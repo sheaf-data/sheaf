@@ -1,0 +1,145 @@
+# Sheaf config for scanning the GitHub CLI (gh).
+#
+# Joins the cobra-derived contract surface (gh subcommands + flags)
+# against:
+#   - rendered reference markdown produced by gh's own
+#     cmd/gen-docs --website (the cli.github.com/manual corpus)
+#   - multi-command workflow tutorials from github.com/github/docs
+#     (docs.github.com content that chains several gh commands)
+#   - Go unit tests under github.com/cli/cli (pkg/cmd/**)
+#
+# Prereqs (clone onto T7 — full clones so doc-lag git history resolves):
+#   git clone https://github.com/cli/cli.git \
+#     /Volumes/T7/sheaf-workspace/checkouts/cli
+#   git clone https://github.com/github/docs.git \
+#     /Volumes/T7/sheaf-workspace/checkouts/github-docs
+#
+# gh ships a custom (ALL-CAPS, inline-flag) --help format, so the
+# generic in-tree generators don't apply. Build gh, then use this
+# repo's introspection generator (handles gh's help dialect, incl.
+# single-line FLAGS):
+#
+#   go build -o /tmp/gh ./cmd/gh            # from the cli/cli checkout
+#   go build -o /tmp/gh-yamlgen ./cmd/kubectl-yamlgen   # from sheaf.data
+#   /tmp/gh-yamlgen --binary /tmp/gh \
+#     --out /Volumes/T7/sheaf-workspace/checkouts/cli/sheaf-cobra-yaml
+#
+# That walks `gh <path> --help` recursively (218 commands, 945 local
+# flags). The output schema matches docker/cli, so the cobra
+# contract-anchor adapter consumes it unchanged.
+#
+# Rendered reference is gh's own website docs (one .md per command):
+#   go build -o /tmp/gh-gen-docs ./cmd/gen-docs   # from cli/cli
+#   /tmp/gh-gen-docs --website \
+#     --doc-path /Volumes/T7/sheaf-workspace/checkouts/cli/sheaf-gh-docs
+#
+# To run a scan:
+#   ln -sf .../sheaf.data/docs/examples/gh-coverage-config.textproto \
+#     /Volumes/T7/sheaf-workspace/checkouts/cli/sheaf.textproto
+#   ln -sf .../sheaf.data/docs/examples/gh-coverage-rules.textproto \
+#     /Volumes/T7/sheaf-workspace/checkouts/cli/categorization-rules.textproto
+#   sheaf doctor --repo /Volumes/T7/sheaf-workspace/checkouts/cli
+#   sheaf scan   --repo /Volumes/T7/sheaf-workspace/checkouts/cli
+
+version: 1
+project {
+  name: "gh"
+  display_name: "GitHub CLI (gh)"
+  homepage: "https://cli.github.com/"
+}
+
+scope {
+  library: "gh"
+}
+
+contract_anchor {
+  name: "cobra"
+  cobra {
+    # Populated by cmd/kubectl-yamlgen --binary gh — see the comment
+    # block above. sheaf-cobra-yaml/ is local-only generator output.
+    yaml_dir: "sheaf-cobra-yaml"
+    binary_name: "gh"
+    include: "**/*.yaml"
+    # Each yaml maps 1:1 to a published page in the gh manual.
+    # `gh_issue_create.yaml` → https://cli.github.com/manual/gh_issue_create
+    url_base: "https://cli.github.com/manual/{basename}"
+  }
+}
+
+rendered_reference {
+  name: "markdowncli"
+  markdowncli {
+    # gh's own cmd/gen-docs --website output, run through
+    # cmd/ghdocs-normalize — the gh EDGE NORMALIZER, which rewrites gh's
+    # <dl class="flags"> blocks into the canonical "### Options" pipe
+    # tables this adapter natively reads. Keeping that dialect knowledge
+    # in a disposable normalizer (not in markdowncli) is what lets the
+    # core adapter stay format-stable across ecosystems. One markdown
+    # file per command path, flat, named gh_<sub>_<sub>.md, so both the
+    # subcommand-level AND per-flag joins are filename-driven. Rebuild:
+    #   gh-gen-docs --website --doc-path .../sheaf-gh-docs
+    #   ghdocs-normalize --in .../sheaf-gh-docs --out .../sheaf-gh-docs-canonical
+    docs_dir: "/Volumes/T7/sheaf-workspace/checkouts/cli/sheaf-gh-docs-canonical"
+    url_base: "https://cli.github.com/manual/"
+    binary_name: "gh"
+    include: "**/*.md"
+    # gen-docs also emits the `gh help <topic>` help-topic pages
+    # (environment, formatting, exit-codes, mintty, reference,
+    # telemetry, and the gh_help index). Those are documentation
+    # topics, not commands — excluded so they don't emit phantom
+    # documented-untested claims against a nonexistent contract
+    # element.
+    exclude: "gh_help*.md"
+    # gh's manual mirrors the on-disk leaf name with underscores
+    # preserved (gh_issue_create.md → /manual/gh_issue_create). The
+    # default docker-style underscore→slash split would 404.
+    url_style: URL_STYLE_FILE_PATH
+    # NOTE: gh's gen-docs renders options as bullet lists (not docker
+    # tables), so per-flag doc joins return no rows; the subcommand
+    # join still works. Per-flag docs coverage is a known gap on this
+    # scan, same as kubectl.
+  }
+}
+
+rendered_reference {
+  name: "workflows"
+  workflows {
+    # docs.github.com content that chains multiple gh commands in
+    # sequence (e.g. auth login → repo clone → pr create). The adapter
+    # walks each .md, extracts `gh <cmd>` invocations from code fences
+    # in document order, and emits one WORKFLOW DocClaim per file whose
+    # distinct-command count >= min_elements. Non-gh pages under these
+    # trees self-filter (0 gh commands → no claim).
+    docs_dir: "/Volumes/T7/sheaf-workspace/checkouts/github-docs/content"
+    include: "github-cli/**/*.md"
+    include: "actions/**/*.md"
+    include: "pull-requests/**/*.md"
+    include: "issues/**/*.md"
+    include: "codespaces/**/*.md"
+    include: "repositories/**/*.md"
+    include: "get-started/**/*.md"
+    binary_name: "gh"
+    min_elements: 2
+    # content/<area>/<slug>.md → https://docs.github.com/en/<area>/<slug>
+    url_base: "https://docs.github.com/en/"
+  }
+}
+
+test_parser {
+  name: "gotest"
+  gotest {
+    # gh command implementations + their tests live under pkg/cmd/.
+    # The cobra-invocation extractor (binary_name: gh) attributes
+    # tests that drive subcommands via cmd.SetArgs([]string{"pr",
+    # "list"}) or exec to the matching ContractElement.
+    include: "pkg/cmd/**/*_test.go"
+    exclude: "vendor/**"
+    exclude: ".git/**"
+    exclude: "**/testdata/**"
+    binary_name: "gh"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }

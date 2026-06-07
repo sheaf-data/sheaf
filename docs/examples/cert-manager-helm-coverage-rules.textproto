@@ -1,0 +1,9 @@
+# Source map for the cert-manager Helm values scan.
+#
+# The helmvalues adapter emits all elements from a single source file
+# (the chart's values.schema.json), so a single default bucket captures
+# the chart's whole value surface.
+
+version: 1
+
+category { dotted_path: "values" }

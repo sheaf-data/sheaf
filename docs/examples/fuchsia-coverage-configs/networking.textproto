@@ -1,0 +1,68 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Networking" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.net/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.debug/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.dhcp/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.dhcpv6/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.filter/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.filter.deprecated/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.http/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.interfaces/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.interfaces.admin/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.masquerade/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.matchers/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.mdns/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.multicast.admin/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.name/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.ndp/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.neighbor/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.policy.properties/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.policy.socketproxy/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.power/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.reachability/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.resources/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.root/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.routes/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.routes.admin/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.settings/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.sockets/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.stack/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.stackmigrationdeprecated/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.tcp/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.tun/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.udp/**/*.fidl"
+    include: "sdk/fidl/fuchsia.net.virtualization/**/*.fidl"
+    include: "sdk/fidl/fuchsia.posix/**/*.fidl"
+    include: "sdk/fidl/fuchsia.posix.socket/**/*.fidl"
+    include: "sdk/fidl/fuchsia.posix.socket.packet/**/*.fidl"
+    include: "sdk/fidl/fuchsia.posix.socket.raw/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/connectivity/network/netstack3/src/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/connectivity/network/netstack3/src/**/*.rs"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

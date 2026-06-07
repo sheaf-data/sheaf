@@ -1,0 +1,8 @@
+library widgets;
+/// The Widget service exposes operations on a server-managed widget.
+protocol Widget {
+    /// Create a new widget with the given name. Returns ZX_ERR_INVALID_ARGS
+    /// if name is empty or longer than 255 bytes. Returns ZX_ERR_ALREADY_EXISTS
+    /// if a widget with this name is already registered.
+    Create(struct { name string; }) -> () error int32;
+};

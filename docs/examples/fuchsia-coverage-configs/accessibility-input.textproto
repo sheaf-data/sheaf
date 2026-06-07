@@ -1,0 +1,55 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Accessibility & Input" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.accessibility/**/*.fidl"
+    include: "sdk/fidl/fuchsia.accessibility.gesture/**/*.fidl"
+    include: "sdk/fidl/fuchsia.accessibility.scene/**/*.fidl"
+    include: "sdk/fidl/fuchsia.accessibility.semantics/**/*.fidl"
+    include: "sdk/fidl/fuchsia.accessibility.tts/**/*.fidl"
+    include: "sdk/fidl/fuchsia.accessibility.virtualkeyboard/**/*.fidl"
+    include: "sdk/fidl/fuchsia.input/**/*.fidl"
+    include: "sdk/fidl/fuchsia.input.injection/**/*.fidl"
+    include: "sdk/fidl/fuchsia.input.interaction/**/*.fidl"
+    include: "sdk/fidl/fuchsia.input.interaction.observation/**/*.fidl"
+    include: "sdk/fidl/fuchsia.input.report/**/*.fidl"
+    include: "sdk/fidl/fuchsia.input.virtualkeyboard/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/ui/a11y/**/*_unittest.cc"
+    include: "src/ui/a11y/**/*_test.cc"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/ui/lib/input_pipeline/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/ui/a11y/lib/**/*.cc"
+  include: "src/ui/a11y/lib/**/*.h"
+  include: "src/ui/a11y/bin/**/*.cc"
+  include: "src/ui/a11y/bin/**/*.h"
+  include: "src/ui/lib/input_pipeline/**/*.rs"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

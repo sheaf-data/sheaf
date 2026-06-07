@@ -1,0 +1,48 @@
+# Source map for the ffx CLI scan.
+#
+# Sheaf categorizes doc claims + test cases by their SOURCE PATH (contract
+# elements are grouped by their command-path structure, not by this map).
+# So this map's job is to route ffx's evidence to the right coverage
+# surface:
+#   - docs.reference  — adapter-populated (clidoc rendered bundle + the
+#     inline /// help on every argh element); REFERENCE claims route here
+#     by kind, no path patterns needed.
+#   - docs.concepts   — the narrative ffx guides; the markdown adapter's
+#     inline `ffx <cmd>` prose mentions in these files fill the concepts
+#     surface (and carry the doc-lag signal).
+#   - examples        — EXAMPLE-kind code-fence claims (posix-terminal) and
+#     WORKFLOW claims (the recipe docs) route here by kind, no patterns.
+#   - tests           — Rust tests attribute by name-token overlap; the
+#     tests.* category just labels them in the report.
+
+version: 1
+
+# Reference docs come from adapters (clidoc bundle + argh /// help), keyed
+# by REFERENCE kind — declared with no paths so the surface renders.
+category { dotted_path: "docs.reference" }
+
+# Narrative / conceptual ffx documentation. Prose mentions of `ffx <cmd>`
+# in these guides route to docs.concepts. Reference-shaped sections (a
+# command's synopsis / options block) are section-excluded so they aren't
+# mistaken for conceptual writing.
+category {
+  dotted_path: "docs.concepts"
+  paths: "docs/development/tools/ffx/**/*.md"
+  paths: "src/developer/ffx/**/*.md"
+  section_excludes: "synopsis"
+  section_excludes: "options"
+  section_excludes: "usage"
+}
+
+# Rust integration tests live under tests/ trees; everything else inline.
+# The split only labels the test surface — attribution is name-token based
+# either way.
+category {
+  dotted_path: "tests.integration_tests"
+  paths: "src/developer/ffx/**/tests/**/*.rs"
+}
+category {
+  dotted_path: "tests.unit_tests"
+  paths: "src/developer/ffx/**/*.rs"
+  exclude_paths: "src/developer/ffx/**/tests/**/*.rs"
+}

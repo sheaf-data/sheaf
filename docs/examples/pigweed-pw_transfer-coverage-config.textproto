@@ -1,0 +1,106 @@
+# Sheaf config for Pigweed pw_transfer — the C++ public API of the
+# streaming file/blob transfer module. The contract surface is the
+# hand-written C++ API under pw_transfer/public/ (Client, Transfer
+# service handlers, TransferThread, Chunk handling, …), joined against
+# the module's C++ unit tests and its reStructuredText docs.
+#
+# This is the C++ *contract* report. The proto wire surface
+# (pw.transfer.Transfer) is a separate, much smaller concern — the
+# embedded user binds against the C++ classes, not the .proto.
+#
+# To run:
+#   sheaf serve --config docs/examples/pigweed-pw_transfer-coverage-config.textproto \
+#               --repo /Volumes/T7/pigweed --port 7790 &
+#   scanner --server http://127.0.0.1:7790 --ecosystem cpp \
+#           --library pw_transfer -o example-reports/pigweed-pw_transfer.html
+#   kill %1
+
+version: 1
+project {
+  name: "pigweed-pw_transfer"
+  display_name: "Pigweed pw_transfer — C++ API"
+  homepage: "https://pigweed.dev/pw_transfer/"
+  # "pw" anchors any proto-ish dotted token the doc/test matchers see;
+  # harmless for the C++ surface and lets the rST :cpp: roles that use
+  # pw::transfer::... resolve through the dotted-form aliases.
+  idl_prefix: "pw"
+  # Embedded/transfer vocabulary too generic for name-token attribution.
+  noisy_words: "client"
+  noisy_words: "server"
+  noisy_words: "handler"
+  noisy_words: "context"
+  noisy_words: "chunk"
+  noisy_words: "transfer"
+  noisy_words: "status"
+  noisy_words: "result"
+  noisy_words: "stream"
+  noisy_words: "thread"
+}
+
+scope {
+  library: "pw_transfer"
+}
+
+contract_anchor {
+  name: "cppheader"
+  cpp_header {
+    include: "pw_transfer/public/**/*.h"
+    # Skip the internal/ subtree's protocol-detail headers from the
+    # public-contract count — they're implementation, not the API
+    # users bind against.
+    exclude: "pw_transfer/public/pw_transfer/internal/**"
+    emit_macros: true
+    # Pigweed attribute-like macros that precede declarations.
+    ignored_attribute_macros: "PW_PRINTF_FORMAT"
+    ignored_attribute_macros: "PW_NO_LOCK_SAFETY_ANALYSIS"
+    ignored_attribute_macros: "PW_LOCKS_EXCLUDED"
+    ignored_attribute_macros: "PW_EXCLUSIVE_LOCKS_REQUIRED"
+  }
+}
+
+# pw_transfer's C++ tests use the pw_unit_test framework, which is
+# googletest-API-compatible (TEST / TEST_F). protocpp is the proto-aware
+# C++ test parser; we use it (over plain gtest) for its namespace-scope
+# tracking — Pigweed tests live inside `namespace pw::transfer { … }`
+# and reference types by bare name, which the scope-aware extractor
+# attributes correctly.
+test_parser {
+  name: "protocpp"
+  protocpp {
+    include: "pw_transfer/**/*_test.cc"
+    exclude: "pw_transfer/integration_test/**"
+    # idl_prefix is inherited from project.idl_prefix ("pw").
+  }
+}
+
+# Module docs are reStructuredText. The rst adapter decodes Sphinx
+# :cpp:class: / :cpp:func: roles, which pw_transfer's docs.rst uses to
+# reference the public API — those land as docs.reference on the
+# matching C++ elements.
+doc_parser {
+  name: "rst"
+  rst {
+    include: "pw_transfer/**/*.rst"
+    code_block_languages: "cpp"
+    code_block_languages: "python"
+  }
+}
+
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "README.md"
+    include: "pw_transfer/README.md"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }
+analyzer { name: "missing-in-category" severity: WARNING
+  config { key: "alert_for_categories" string_value: "tests.unit_tests.pw_transfer" }
+}
+
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "tests"

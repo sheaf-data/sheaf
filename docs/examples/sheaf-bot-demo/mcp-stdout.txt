@@ -1,0 +1,2 @@
+review_pr enabled (adapter=noop)
+MCP server listening on 127.0.0.1:17822

@@ -1,0 +1,218 @@
+# MonorepoManifest for the Fuchsia OS coverage index.
+#
+# Drives `sheaf scan --manifest docs/examples/fuchsia/manifest.textproto
+#   --output-dir example-reports/fuchsia --repo /Volumes/T7/fuchsia`.
+#
+# 24 libraries across 8 domains. config_path resolves relative to this
+# file's directory (docs/examples/fuchsia/); output resolves relative to
+# --output-dir (example-reports/fuchsia/). Entries are ordered by the 8
+# domains below; the index page itself re-sorts domains worst-first by
+# median surface coverage (expected).
+
+# === 1. Kernel & Zircon ===
+entries {
+  config_path: "zx/sheaf.textproto"
+  library: "zx"
+  ecosystem: "fidl"
+  library_label: "zx"
+  output: "zx/index.html"
+  group: "Kernel & Zircon"
+}
+entries {
+  config_path: "kernel/sheaf.textproto"
+  library: "fuchsia.kernel"
+  ecosystem: "fidl"
+  library_label: "fuchsia.kernel"
+  output: "kernel/index.html"
+  group: "Kernel & Zircon"
+}
+entries {
+  config_path: "boot/sheaf.textproto"
+  library: "fuchsia.boot"
+  ecosystem: "fidl"
+  library_label: "fuchsia.boot"
+  output: "boot/index.html"
+  group: "Kernel & Zircon"
+}
+
+# === 2. Storage & IO ===
+entries {
+  config_path: "io/sheaf.textproto"
+  library: "fuchsia.io"
+  ecosystem: "fidl"
+  library_label: "fuchsia.io"
+  output: "io/index.html"
+  group: "Storage & IO"
+}
+entries {
+  config_path: "fs/sheaf.textproto"
+  library: "fuchsia.fs"
+  ecosystem: "fidl"
+  library_label: "fuchsia.fs"
+  output: "fs/index.html"
+  group: "Storage & IO"
+}
+entries {
+  config_path: "hardware-block-volume/sheaf.textproto"
+  library: "fuchsia.hardware.block.volume"
+  ecosystem: "fidl"
+  library_label: "fuchsia.hardware.block.volume"
+  output: "hardware-block-volume/index.html"
+  group: "Storage & IO"
+}
+
+# === 3. Component Framework ===
+entries {
+  config_path: "component/sheaf.textproto"
+  library: "fuchsia.component"
+  ecosystem: "fidl"
+  library_label: "fuchsia.component"
+  output: "component/index.html"
+  group: "Component Framework"
+}
+entries {
+  config_path: "sys2/sheaf.textproto"
+  library: "fuchsia.sys2"
+  ecosystem: "fidl"
+  library_label: "fuchsia.sys2"
+  output: "sys2/index.html"
+  group: "Component Framework"
+}
+entries {
+  config_path: "process/sheaf.textproto"
+  library: "fuchsia.process"
+  ecosystem: "fidl"
+  library_label: "fuchsia.process"
+  output: "process/index.html"
+  group: "Component Framework"
+}
+
+# === 4. Drivers ===
+entries {
+  config_path: "hardware-network/sheaf.textproto"
+  library: "fuchsia.hardware.network"
+  ecosystem: "fidl"
+  library_label: "fuchsia.hardware.network"
+  output: "hardware-network/index.html"
+  group: "Drivers"
+}
+entries {
+  config_path: "driver-framework/sheaf.textproto"
+  library: "fuchsia.driver.framework"
+  ecosystem: "fidl"
+  library_label: "fuchsia.driver.framework"
+  output: "driver-framework/index.html"
+  group: "Drivers"
+}
+entries {
+  config_path: "hardware-display/sheaf.textproto"
+  library: "fuchsia.hardware.display"
+  ecosystem: "fidl"
+  library_label: "fuchsia.hardware.display"
+  output: "hardware-display/index.html"
+  group: "Drivers"
+}
+
+# === 5. UI & Graphics ===
+entries {
+  config_path: "ui-composition/sheaf.textproto"
+  library: "fuchsia.ui.composition"
+  ecosystem: "fidl"
+  library_label: "fuchsia.ui.composition"
+  output: "ui-composition/index.html"
+  group: "UI & Graphics"
+}
+entries {
+  config_path: "ui-input/sheaf.textproto"
+  library: "fuchsia.ui.input"
+  ecosystem: "fidl"
+  library_label: "fuchsia.ui.input"
+  output: "ui-input/index.html"
+  group: "UI & Graphics"
+}
+entries {
+  config_path: "ui-gfx/sheaf.textproto"
+  library: "fuchsia.ui.gfx"
+  ecosystem: "fidl"
+  library_label: "fuchsia.ui.gfx"
+  output: "ui-gfx/index.html"
+  group: "UI & Graphics"
+}
+
+# === 6. Networking ===
+entries {
+  config_path: "net/sheaf.textproto"
+  library: "fuchsia.net"
+  ecosystem: "fidl"
+  library_label: "fuchsia.net"
+  output: "net/index.html"
+  group: "Networking"
+}
+entries {
+  config_path: "posix-socket/sheaf.textproto"
+  library: "fuchsia.posix.socket"
+  ecosystem: "fidl"
+  library_label: "fuchsia.posix.socket"
+  output: "posix-socket/index.html"
+  group: "Networking"
+}
+entries {
+  config_path: "net-http/sheaf.textproto"
+  library: "fuchsia.net.http"
+  ecosystem: "fidl"
+  library_label: "fuchsia.net.http"
+  output: "net-http/index.html"
+  group: "Networking"
+}
+
+# === 7. Media ===
+entries {
+  config_path: "media/sheaf.textproto"
+  library: "fuchsia.media"
+  ecosystem: "fidl"
+  library_label: "fuchsia.media"
+  output: "media/index.html"
+  group: "Media"
+}
+entries {
+  config_path: "audio/sheaf.textproto"
+  library: "fuchsia.audio"
+  ecosystem: "fidl"
+  library_label: "fuchsia.audio"
+  output: "audio/index.html"
+  group: "Media"
+}
+entries {
+  config_path: "camera/sheaf.textproto"
+  library: "fuchsia.camera"
+  ecosystem: "fidl"
+  library_label: "fuchsia.camera"
+  output: "camera/index.html"
+  group: "Media"
+}
+
+# === 8. Diagnostics ===
+entries {
+  config_path: "diagnostics/sheaf.textproto"
+  library: "fuchsia.diagnostics"
+  ecosystem: "fidl"
+  library_label: "fuchsia.diagnostics"
+  output: "diagnostics/index.html"
+  group: "Diagnostics"
+}
+entries {
+  config_path: "inspect/sheaf.textproto"
+  library: "fuchsia.inspect"
+  ecosystem: "fidl"
+  library_label: "fuchsia.inspect"
+  output: "inspect/index.html"
+  group: "Diagnostics"
+}
+entries {
+  config_path: "logger/sheaf.textproto"
+  library: "fuchsia.logger"
+  ecosystem: "fidl"
+  library_label: "fuchsia.logger"
+  output: "logger/index.html"
+  group: "Diagnostics"
+}

@@ -1,0 +1,139 @@
+# sheaf.textproto — sheaf dogfooding itself.
+#
+# Joins the sheaf CLI surface (hand-authored cobra YAML under
+# docs/cli/yaml/, one file per subcommand) against:
+#
+#   - rendered reference markdown under docs/cli/reference/
+#     (one file per subcommand, consumed by the markdowncli adapter)
+#   - Go unit + integration tests under the repo root (consumed by the gotest
+#     adapter with binary_name="sheaf" so the cobra-invocation
+#     extractor maps subprocess invocations + cmd.SetArgs slices to
+#     the matching ContractElement)
+#   - the worked examples under docs/examples/ that name sheaf
+#     subcommands in fenced code blocks (workflows rendered-reference
+#     adapter)
+#
+# To rebuild the dogfooding report (run from the repo root):
+#
+#   go build -o sheaf ./cmd/sheaf
+#   go build -o scanner ./cmd/scanner
+#   ./sheaf doctor --config docs/examples/self-scan/sheaf.textproto --repo .
+#   ./sheaf scan   --config docs/examples/self-scan/sheaf.textproto --repo .
+#   ./sheaf serve  --config docs/examples/self-scan/sheaf.textproto --repo . --port 7700 &
+#   ./scanner --server http://127.0.0.1:7700 --library sheaf \
+#             --ecosystem cli -o example-reports/sheaf-self.html
+#   kill %1
+#
+# Ecosystem is "docker" rather than "fidl" because the noun mapping
+# (subcommand / flag) fits the sheaf CLI surface, not FIDL's
+# protocol / method / type vocabulary.
+
+version: 1
+
+project {
+  name: "sheaf"
+  display_name: "Sheaf (self-scan)"
+  homepage: "https://github.com/sheaf-data/sheaf"
+}
+
+scope {
+  library: "sheaf"
+}
+
+contract_anchor {
+  name: "cobra"
+  cobra {
+    yaml_dir: "docs/cli/yaml"
+    binary_name: "sheaf"
+    include: "**/*.yaml"
+  }
+}
+
+rendered_reference {
+  name: "markdowncli"
+  markdowncli {
+    docs_dir: "docs/cli/reference"
+    url_base: "https://github.com/sheaf-data/sheaf/blob/main/docs/cli/reference/"
+    binary_name: "sheaf"
+    include: "sheaf_*.md"
+    # Reference pages for the companion binaries (scanner.md,
+    # dump-elements.md, dump-profile.md, kubectl-yamlgen.md) live
+    # alongside the sheaf_*.md files but cover a different library
+    # (their `command:` would not be "sheaf <sub>"). Restrict the
+    # include glob to the sheaf-prefixed pages so the markdowncli
+    # adapter does not generate phantom doc claims for them.
+  }
+}
+
+rendered_reference {
+  name: "workflows"
+  workflows {
+    # docs/cli/workflows.md and
+    # the per-example config under docs/examples/ all contain fenced
+    # code blocks that name sheaf subcommands in sequence (sheaf init
+    # → sheaf doctor → sheaf scan → sheaf serve & ; scanner …). One
+    # WORKFLOW DocClaim per file whose distinct-command count >= 2.
+    docs_dir: "docs"
+    include: "cli/workflows.md"
+    include: "cli/sheaf.md"
+    include: "mcp/api.md"
+    include: "playbooks/**/*.md"
+    include: "examples/**/*.textproto"
+    include: "examples/**/*.md"
+    binary_name: "sheaf"
+    min_elements: 2
+    url_base: "https://github.com/sheaf-data/sheaf/blob/main/docs/"
+  }
+}
+
+doc_parser {
+  name: "markdown"
+  markdown {
+    # Concept docs: the project README, the config reference, and the
+    # CLI overview. These mention subcommand identifiers in prose,
+    # producing CONCEPT DocClaims attributed by name match.
+    include: "README.md"
+    include: "docs/config.md"
+    include: "docs/cli/sheaf.md"
+    include: "docs/cli/workflows.md"
+    include: "docs/cli/reference/scanner.md"
+    include: "docs/cli/reference/dump-elements.md"
+    include: "docs/cli/reference/dump-profile.md"
+    include: "docs/cli/reference/kubectl-yamlgen.md"
+    include: "docs/mcp/README.md"
+    include: "docs/mcp/api.md"
+    include: "docs/mcp/schema.md"
+    include: "docs/playbooks/**/*.md"
+  }
+}
+
+test_parser {
+  name: "gotest"
+  gotest {
+    include: "**/*_test.go"
+    # Skip vendor (none today, future-proof) and the gotest adapter's
+    # own fixture corpus, which contains literal exec.Command("docker",
+    # ...) lines that would otherwise produce phantom cross-binary
+    # ContractRefs.
+    exclude: "internal/adapters/gotest/**"
+    exclude: "vendor/**"
+    # Skip .claude/ — git worktrees live under .claude/worktrees/, each a
+    # full repo copy. Without this the **/*_test.go glob walks into every
+    # worktree and counts its tests as phantom duplicates of the real ones.
+    exclude: ".claude/**"
+    # Enable the cobra-invocation extractor so any test that drives
+    # the sheaf binary via subprocess or cmd.SetArgs attributes to
+    # the matching subcommand ContractElement. Today this is
+    # belt-and-suspenders — most cli_test.go tests call runScan /
+    # runDoctor / Version directly, and name-token matching catches
+    # those — but it keeps the door open for future end-to-end tests.
+    binary_name: "sheaf"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }
+
+mcp_server { bind: "127.0.0.1" port: 7700 cache_ttl_seconds: 3600 }
+cache      { store: "filesystem" filesystem { path: ".sheaf/cache" } }

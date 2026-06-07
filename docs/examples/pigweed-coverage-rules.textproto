@@ -1,0 +1,58 @@
+# Source map shared by the three Pigweed C++ API reports:
+#   - example-reports/pigweed-pw_rpc.html
+#   - example-reports/pigweed-pw_log.html
+#   - example-reports/pigweed-pw_transfer.html
+#
+# Each report narrows to one module via --library (pw_rpc / pw_log /
+# pw_transfer) at render time; the categories below cover all three
+# modules' test/doc paths so the same rules file works for every scan.
+# Unmatched categories simply hold zero elements for a given scope.
+#
+# Pigweed tests live alongside the module sources (no parallel test/
+# tree), so test-category paths are "<module>/**/*_test.cc". Module
+# docs are reStructuredText under "<module>/*.rst". The repo-root
+# README is narrative-only -> docs.concepts.
+
+version: 1
+
+# --- C++ unit-test corpora (per module) ----------------------------------
+category {
+  dotted_path: "tests.unit_tests.pw_rpc"
+  paths: "pw_rpc/**/*_test.cc"
+}
+category {
+  dotted_path: "tests.unit_tests.pw_log"
+  paths: "pw_log/**/*_test.cc"
+  paths: "pw_log_rpc/**/*_test.cc"
+  # Backend modules rolled into the pw_log facade report.
+  paths: "pw_log_basic/**/*_test.cc"
+  paths: "pw_log_tokenized/**/*_test.cc"
+  paths: "pw_log_string/**/*_test.cc"
+  paths: "pw_log_null/**/*_test.cc"
+}
+category {
+  dotted_path: "tests.unit_tests.pw_transfer"
+  paths: "pw_transfer/**/*_test.cc"
+}
+
+# --- module reference docs (rST) -----------------------------------------
+category {
+  dotted_path: "docs.reference.pw_rpc"
+  paths: "pw_rpc/**/*.rst"
+}
+category {
+  dotted_path: "docs.reference.pw_log"
+  paths: "pw_log/**/*.rst"
+  paths: "pw_log_rpc/**/*.rst"
+}
+category {
+  dotted_path: "docs.reference.pw_transfer"
+  paths: "pw_transfer/**/*.rst"
+}
+
+# --- narrative / concept docs --------------------------------------------
+category {
+  dotted_path: "docs.concepts"
+  paths: "README.md"
+  paths: "docs/**/*.rst"
+}

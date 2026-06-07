@@ -1,0 +1,81 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Wireless (WLAN / LoWPAN)" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.location/**/*.fidl"
+    include: "sdk/fidl/fuchsia.location.gnss/**/*.fidl"
+    include: "sdk/fidl/fuchsia.location.gnss.types/**/*.fidl"
+    include: "sdk/fidl/fuchsia.location.namedplace/**/*.fidl"
+    include: "sdk/fidl/fuchsia.location.position/**/*.fidl"
+    include: "sdk/fidl/fuchsia.location.sensor/**/*.fidl"
+    include: "sdk/fidl/fuchsia.lowpan/**/*.fidl"
+    include: "sdk/fidl/fuchsia.lowpan.bootstrap/**/*.fidl"
+    include: "sdk/fidl/fuchsia.lowpan.device/**/*.fidl"
+    include: "sdk/fidl/fuchsia.lowpan.driver/**/*.fidl"
+    include: "sdk/fidl/fuchsia.lowpan.experimental/**/*.fidl"
+    include: "sdk/fidl/fuchsia.lowpan.spinel/**/*.fidl"
+    include: "sdk/fidl/fuchsia.lowpan.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.lowpan.thread/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.common/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.device/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.device.service/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.driver/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.fullmac/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.ieee80211/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.internal/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.minstrel/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.mlme/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.phyimpl/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.policy/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.product.deprecatedclient/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.product.deprecatedconfiguration/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.sme/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.softmac/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.stats/**/*.fidl"
+    include: "sdk/fidl/fuchsia.wlan.tap/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/connectivity/wlan/drivers/wlanphy/**/*_test.cc"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/connectivity/wlan/wlancfg/src/**/*.rs"
+    include: "src/connectivity/wlan/wlandevicemonitor/src/**/*.rs"
+    include: "src/connectivity/wlan/wlanix/src/**/*.rs"
+    include: "src/connectivity/lowpan/service/src/**/*.rs"
+    include: "src/connectivity/lowpan/drivers/lowpan-ot-driver/src/**/*.rs"
+    include: "src/connectivity/lowpan/lib/lowpan_driver_common/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/connectivity/wlan/drivers/wlanphy/**/*.cc"
+  include: "src/connectivity/wlan/drivers/wlanphy/**/*.h"
+  include: "src/connectivity/wlan/wlancfg/src/**/*.rs"
+  include: "src/connectivity/wlan/wlandevicemonitor/src/**/*.rs"
+  include: "src/connectivity/wlan/wlanix/src/**/*.rs"
+  include: "src/connectivity/lowpan/service/src/**/*.rs"
+  include: "src/connectivity/lowpan/drivers/lowpan-ot-driver/src/**/*.rs"
+  include: "src/connectivity/lowpan/lib/lowpan_driver_common/**/*.rs"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

@@ -1,0 +1,155 @@
+# Sheaf config for scanning the kubectl CLI.
+#
+# Joins the cobra-derived contract surface (kubectl subcommands +
+# flags) against:
+#   - rendered reference markdown from github.com/kubernetes/website
+#     (content/en/docs/reference/kubectl/generated/)
+#   - Go unit tests under github.com/kubernetes/kubernetes
+#     (staging/src/k8s.io/kubectl/ — the canonical kubectl source
+#     tree, exported into the kubernetes/kubectl staging mirror).
+#
+# Prereqs (clone both repos; T7 is the recommended location):
+#   git clone --depth=1 https://github.com/kubernetes/kubernetes.git \
+#     /Volumes/T7/sheaf-workspace/checkouts/kubernetes
+#   git clone --depth=1 https://github.com/kubernetes/website.git \
+#     /Volumes/T7/sheaf-workspace/checkouts/website
+#
+# kubectl's source tree doesn't ship a docker/cli-style yamldocs
+# target — its in-tree generator at cmd/genyaml/ emits a different
+# schema (Name/Synopsis/Description vs. command/short/long) and
+# only walks one level deep. So we use the introspection-based
+# generator that ships with this repo:
+#
+#   go build -o /tmp/kubectl-yamlgen ./cmd/kubectl-yamlgen
+#   /tmp/kubectl-yamlgen --binary kubectl \
+#     --out /Volumes/T7/sheaf-workspace/checkouts/kubernetes/sheaf-cobra-yaml
+#
+# That walks `kubectl <path> --help` recursively, capturing the full
+# subcommand tree (~100 commands) plus the global-flag block from
+# `kubectl options` (replicated into every command's
+# inherited_options). The output schema matches docker/cli, so the
+# existing cobra contract-anchor adapter consumes it unchanged.
+#
+# To run a scan:
+#   ln -sf /Users/.../sheaf.data/docs/examples/kubectl-coverage-config.textproto \
+#     /Volumes/T7/sheaf-workspace/checkouts/kubernetes/sheaf.textproto
+#   ln -sf /Users/.../sheaf.data/docs/examples/kubectl-coverage-rules.textproto \
+#     /Volumes/T7/sheaf-workspace/checkouts/kubernetes/categorization-rules.textproto
+#   sheaf doctor --repo /Volumes/T7/sheaf-workspace/checkouts/kubernetes
+#   sheaf scan   --repo /Volumes/T7/sheaf-workspace/checkouts/kubernetes
+#
+# To browse interactively:
+#   sheaf serve --repo /Volumes/T7/sheaf-workspace/checkouts/kubernetes --port 7800 &
+#   scanner --server http://127.0.0.1:7800 --library kubectl \
+#           --ecosystem cli -o kubectl-report.html
+#   kill %1
+
+version: 1
+project {
+  name: "kubectl"
+  display_name: "kubectl (Kubernetes CLI)"
+  homepage: "https://kubernetes.io/docs/reference/kubectl/"
+}
+
+scope {
+  library: "kubectl"
+}
+
+contract_anchor {
+  name: "cobra"
+  cobra {
+    # Populated by cmd/kubectl-yamlgen — see comment block above.
+    yaml_dir: "sheaf-cobra-yaml"
+    binary_name: "kubectl"
+    include: "**/*.yaml"
+    # sheaf-cobra-yaml/ is local-only output from kubectl-yamlgen, not
+    # a github-resolvable path. Each yaml file maps 1:1 to a published
+    # reference page on kubernetes.io; emit that as the contract URL.
+    # `kubectl_get.yaml` → https://kubernetes.io/docs/reference/kubectl/generated/kubectl_get/
+    url_base: "https://kubernetes.io/docs/reference/kubectl/generated/{basename}/"
+  }
+}
+
+rendered_reference {
+  name: "markdowncli"
+  markdowncli {
+    # Absolute path into the kubernetes/website sibling checkout.
+    # Website ships auto-generated per-subcommand markdown under
+    # content/en/docs/reference/kubectl/generated/, produced by
+    # cobra's own doc.GenMarkdownTree against the kubectl command
+    # tree. One file per subcommand path: kubectl_get.md,
+    # kubectl_config_view.md, kubectl_create_namespace.md.
+    docs_dir: "/Volumes/T7/sheaf-workspace/checkouts/website/content/en/docs/reference/kubectl/generated"
+    url_base: "https://kubernetes.io/docs/reference/kubectl/generated/"
+    binary_name: "kubectl"
+    include: "**/*.md"
+    # `kubectl.md` is the root command's reference page (kept — it
+    # joins to the "kubectl" element). The bare `_index.md` at the
+    # docs root is the Hugo section landing page ("kubectl reference"
+    # — not a command); excluded so it doesn't emit a phantom claim.
+    # Nested `_index.md` files inside kubectl_<sub>/ ARE the parent
+    # command's reference page and are kept; the markdowncli adapter
+    # derives the command path from the enclosing directory name.
+    exclude: "_index.md"
+    # kubernetes.io publishes the kubectl reference under Hugo's
+    # section convention: URLs mirror the on-disk hierarchy
+    # (kubectl_get/_index.md → /kubectl_get/, with the underscore
+    # preserved). The default docker-style "drop binary name, split
+    # underscores as slashes" would generate /get/ which 404s.
+    url_style: URL_STYLE_FILE_PATH
+    # cobra's GenMarkdownTree emits options as indented bullet lists,
+    # not docker-style tables. The markdowncli adapter's per-flag
+    # join (which requires a table) will return no rows; the
+    # subcommand-level join still works. Per-flag docs coverage is
+    # a known gap on this scan — see
+    # docs/playbooks/onboard-a-new-repo.md.
+  }
+}
+
+rendered_reference {
+  name: "workflows"
+  workflows {
+    # kubernetes/website tutorials + task pages are the canonical
+    # workflow corpus — multi-step recipes that name several kubectl
+    # commands in sequence (apply → wait → rollout status → logs).
+    # The adapter walks every .md under these trees, extracts the
+    # `kubectl <cmd>` invocations from code fences in document order,
+    # and emits one WORKFLOW DocClaim per file whose distinct-command
+    # count >= min_elements.
+    docs_dir: "/Volumes/T7/sheaf-workspace/checkouts/website/content/en/docs"
+    include: "tutorials/**/*.md"
+    include: "tasks/**/*.md"
+    binary_name: "kubectl"
+    min_elements: 2
+    # Canonical URL for each tutorial/task page. The adapter strips
+    # the .md extension and trailing /_index (Hugo's section landing
+    # convention) to produce the slug appended after url_base.
+    # Example: `tasks/administer-cluster/kubeadm/_index.md`
+    #          → https://kubernetes.io/docs/tasks/administer-cluster/kubeadm
+    url_base: "https://kubernetes.io/docs/"
+  }
+}
+
+test_parser {
+  name: "gotest"
+  gotest {
+    # kubectl source + tests live in staging/src/k8s.io/kubectl/
+    # under the kubernetes/kubernetes monorepo (mirrored to
+    # github.com/kubernetes/kubectl). pkg/kubectl/ has been
+    # progressively emptied; the staging path is canonical.
+    include: "staging/src/k8s.io/kubectl/**/*_test.go"
+    # Skip vendored third-party tests, generated mocks, fixtures.
+    exclude: "vendor/**"
+    exclude: ".git/**"
+    exclude: "**/testdata/**"
+    # Enable the cobra-invocation extractor so tests driving subcommands
+    # via subprocess (exec.Command("kubectl", ...)) or args slices
+    # (cmd.SetArgs([]string{"get", "pods"})) attribute directly to the
+    # corresponding ContractElement.
+    binary_name: "kubectl"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }

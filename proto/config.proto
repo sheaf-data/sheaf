@@ -1,0 +1,1138 @@
+// sheaf.textproto schema.
+//
+// Every block in docs/config.md §4 has a corresponding message here.
+// Adapter-specific config messages live alongside their adapters in
+// adapter packages; this file only declares the top-level oneof
+// wiring and the cross-adapter blocks.
+
+syntax = "proto3";
+
+package sheaf.config.v1;
+
+option go_package = "github.com/sheaf-data/sheaf/proto/config";
+
+// ============================================================
+// Top-level
+// ============================================================
+
+message Config {
+  uint32 version = 1;
+
+  Project project = 2;
+  Scope scope = 3;
+
+  repeated ContractAnchorConfig contract_anchor = 10;
+  repeated RenderedReferenceConfig rendered_reference = 11;
+  repeated TestParserConfig test_parser = 12;
+  repeated DocParserConfig doc_parser = 13;
+  repeated ImplementsMapConfig implements_map = 14;
+
+  repeated AnalyzerConfig analyzer = 20;
+  repeated SubstanceThresholds substance_thresholds = 21;
+  PublicSurface public_surface = 22;
+  // surfaces_required names the categorize-namespace surfaces this
+  // project commits to ship. The masthead's "% bridged" composite
+  // figure is computed against these surfaces only; surfaces not
+  // listed here do not contribute to the denominator and are not
+  // rendered as masthead slots.
+  //
+  // Recognized identifiers (extend as the taxonomy grows):
+  //   "docs.reference", "docs.concepts", "docs.tutorial",
+  //   "docs.guide.migration", "docs.guide.troubleshooting",
+  //   "docs.guide.cookbook", "docs.release_notes", "docs.faq",
+  //   "tests", "examples".
+  //
+  // If unset or empty, the engine falls back to the v0 behavior:
+  // bridged = concept > 0 && tests > 0 && examples > 0. Pre-existing
+  // configs do not change behavior on engine upgrade.
+  repeated string surfaces_required = 23;
+
+  // conformance_test_globs lists path globs identifying tests that
+  // genuinely exercise an interface contract through generated
+  // bindings — e.g. a FIDL conformance suite at
+  // `src/storage/conformance/` for fuchsia.io.
+  //
+  // Tests under these paths are eligible to attribute to interface
+  // elements (METHOD / TYPE / PROTOCOL / SYSCALL) via Strategy 1
+  // (direct ref) only. The implements-map and name-token strategies
+  // remain off-limits — the test body must literally name the
+  // FIDL/proto element by ID, alias, or canonical_refs form.
+  //
+  // Empty by default. Most projects do not need this. Interface
+  // coverage by default renders against the `implementations` surface
+  // (populated from IMPLEMENTS relationships) and the docs surfaces,
+  // not against tests.
+  repeated string conformance_test_globs = 24;
+
+  MCPServerConfig mcp_server = 30;
+  CacheStoreConfig cache = 31;
+  ReviewAdapterConfig review = 32;
+  LLMConfig llm = 33;
+  AnnotationConfig annotation = 34;
+  VCSAdapterConfig vcs = 35;
+
+  Strictness strictness = 40;
+
+  // codegen_bridges declares SAME_AS mappings between contract
+  // elements in different ecosystems produced by a deterministic
+  // codegen tool. PR 0 ships the schema; the consumer ships in a
+  // later PR.
+  repeated CodegenBridge codegen_bridges = 41;
+
+  // build_graph configures structural-metadata recognizers that run
+  // BEFORE contract / test / doc adapters and populate a BuildHints
+  // value those adapters consume (for IsPublic filtering, facade
+  // mapping, etc.). Optional; when unset, adapters see NopHints.
+  BuildGraph build_graph = 42;
+
+  // attribution enables the citation-gated LLM attribution pass (runs
+  // AFTER the deterministic indexer). It proposes test/doc -> element
+  // edges, keeps only those whose cited line mechanically references the
+  // element, and adds them as LLM-tier edges. The deterministic join and
+  // its trusted coverage number are untouched. Optional; disabled when
+  // unset.
+  AttributionConfig attribution = 43;
+}
+
+// AttributionConfig configures the citation-gated LLM attribution pass.
+// See internal/attribution and the design doc's attribution section.
+message AttributionConfig {
+  bool enabled = 1;
+  // backend / model select the LLM (same semantics as
+  // LLMExtractAnchorConfig): "" / "auto" picks frontier when
+  // ANTHROPIC_API_KEY is set, else local ollama.
+  string backend = 2;
+  string model = 3;
+  // cache_dir holds per-test/doc LLM responses (content-hash keyed) so a
+  // re-run is reproducible and free. Environment state, not structure —
+  // generated configs leave it empty and the runner sets it.
+  string cache_dir = 4;
+  // Cost caps; 0 means no cap.
+  uint32 max_tests = 5;
+  uint32 max_docs = 6;
+  uint32 max_candidates = 7;
+  // extract_workflows opts in to the LLM WORKFLOW (composition)
+  // extraction pass (internal/workflowextract). For each in-scope prose
+  // doc the model proposes ordered element sequences; a citation gate
+  // confirms each element at its cited line and only sequences with >=2
+  // surviving elements are emitted as DocClaim{kind=WORKFLOW, tier=LLM}.
+  // These additive/flagged claims never enter the deterministic workflow
+  // surface count (the moat) and feed sheaf-hardening.md's
+  // workflow-grammar GROUP-BY. Default false; the default pipeline (and
+  // the self-scan golden) is unaffected when unset.
+  bool extract_workflows = 8;
+}
+
+// ============================================================
+// project
+// ============================================================
+
+message Project {
+  string name = 1;            // slug, required
+  string display_name = 2;
+  string homepage = 3;
+  string description = 4;
+  // Top-level namespace prefix for this project's contract IDs
+  // (e.g. "fuchsia" for fuchsia.io / fuchsia.kernel; "google" for
+  // google.api.*; "acme" for an internal namespace). Drives the
+  // body-parsing regexes in internal/fidlmatch so cross-references
+  // in tests, examples, and code blocks resolve correctly. Empty
+  // defaults to "fuchsia" for back-compat with existing scans.
+  string idl_prefix = 5;
+  // Project-specific single-word type names that should be treated
+  // as noisy (i.e. require the library's distinctive token to also
+  // appear in a test before attribution). Extends the built-in
+  // English-word list in internal/indexer. Useful for ecosystems
+  // with their own bag of common identifiers: gRPC users might add
+  // "service"/"request"; OpenAPI users "path"/"response".
+  repeated string noisy_words = 6;
+}
+
+// ============================================================
+// scope — target-repo dependency closure (D-resolutions)
+// ============================================================
+
+message Scope {
+  repeated string library = 1;
+  Closure closure = 2;
+  repeated string also_include = 3;
+  repeated string exclude = 4;
+}
+
+message Closure {
+  enum Mode {
+    MODE_UNSPECIFIED = 0;
+    LAZY = 1;
+    STRICT = 2;
+  }
+  enum ExternalPolicy {
+    EXTERNAL_POLICY_UNSPECIFIED = 0;
+    REFERENCE_ONLY = 1;
+    FULL_PARSE = 2;
+    IGNORE = 3;
+  }
+  Mode mode = 1;
+  uint32 max_depth = 2;
+  ExternalPolicy external_policy = 3;
+}
+
+// ============================================================
+// contract_anchor / test_parser / doc_parser / rendered_reference /
+// implements_map — pluggable adapter blocks
+// ============================================================
+
+// Per-adapter typed configs are declared in their adapter packages
+// and live in distinct .proto files imported here as well-known
+// extension types. For v1 the oneof is hardcoded — see docs/config.md
+// §6 for the extension story.
+
+message ContractAnchorConfig {
+  string name = 1;
+  oneof per_adapter {
+    FIDLAnchorConfig fidl = 10;
+    ArghAnchorConfig argh = 11;
+    CobraAnchorConfig cobra = 12;
+    ProtoAnchorConfig proto = 13;
+    CMLAnchorConfig cml = 14;
+    ClapAnchorConfig clap = 15;
+    CppHeaderAnchorConfig cpp_header = 16;
+    CRDAnchorConfig crd = 17;
+    K8sManifestAnchorConfig k8s_manifest = 18;
+    HelmValuesAnchorConfig helm_values = 19;
+    LLMExtractAnchorConfig llmextract = 20;
+  }
+}
+
+// LLMExtractAnchorConfig configures the llmextract adapter — an LLM
+// contract-anchor for the SCHEMALESS tail (e.g. C++ headers with no
+// authoritative generator). The model PROPOSES elements with a source
+// citation; a deterministic verifier DISPOSES of any whose cited line
+// does not contain the symbol, so hallucinations cannot survive.
+//
+// Per the deterministic-vs-LLM partition: this adapter must NOT be
+// assigned where a schema generator exists (proto/fidl/clap/cml/cobra) —
+// there the LLM only adds cost and hallucination risk. Auto-detect
+// (`sheaf scan --auto`) assigns it only to header trees with no
+// schema-backed alternative.
+//
+// Every element it emits carries RowProvenance{tier=LLM, source="llm"}.
+// Element IDs follow cppheader's convention ("<library>/<qualified::name>")
+// so the cross-reference join treats LLM and deterministic rows uniformly.
+message LLMExtractAnchorConfig {
+  // Repo-relative include / exclude globs. Defaults to include
+  // "**/*.h" and "**/*.hpp", no excludes.
+  repeated string include = 1;
+  repeated string exclude = 2;
+  // Model tag for the chosen backend. Empty defaults per backend
+  // (ollama: "qwen2.5:14b-instruct"; anthropic: claude-sonnet-4-5).
+  string model = 3;
+  // Disk cache dir for per-file extractions, keyed by
+  // sha256(model + promptVersion + fileContent). A re-scan with a
+  // pinned model is reproducible and free. Empty disables caching.
+  string cache_dir = 4;
+  // Generation backend: "" / "auto" (frontier if ANTHROPIC_API_KEY is
+  // set, else local ollama), "ollama", or "anthropic". Stored as
+  // "auto"/empty in generated configs so they stay portable — the
+  // backend is re-resolved against the environment at run time.
+  string backend = 5;
+}
+
+// HelmValuesAnchorConfig configures the helmvalues adapter, which parses
+// a Helm chart's values surface. It prefers values.schema.json (Helm 3's
+// formal JSON-Schema values contract), walking the schema's `properties`
+// recursively — resolving JSON-Schema `$ref` into `#/$defs/...` — and
+// emitting one CONFIG_KNOB per value key with the schema `description` as
+// its doc_comment_excerpt. When a chart ships no schema, it falls back to
+// values.yaml defaults + the helm-docs `# -- <description>` comment
+// convention as the doc source. It emits one LIBRARY per chart and one
+// CONFIG_KNOB per value. Purely mechanical: no LLM, no cluster access,
+// and — critically — NO raw Helm template parsing. The adapter reads only
+// values.schema.json and values.yaml, never templates/*.yaml.
+//
+// HONESTY CAVEAT: values.yaml defaults are NOT the full reference surface
+// — the true surface is whatever the chart templates actually reference.
+// The schema is more authoritative but may still omit templated values.
+// This adapter reports the values surface as published, not a proof of
+// completeness. See KNOWN_LIMITATIONS.md.
+//
+// One element ID looks like "<chart>.<dotted.path>"
+// (e.g. "cert-manager.replicaCount"). Library = the chart name (from
+// Chart.yaml, else the directory name). Ecosystem = "helm" (never
+// "kubernetes").
+message HelmValuesAnchorConfig {
+  // Repo-relative include / exclude globs evaluated against candidate
+  // files. Defaults: include "**/values.schema.json", "**/values.yaml",
+  // and "**/values.yml", no excludes. For each chart directory the schema
+  // file wins over values.yaml when both are present.
+  repeated string include = 1;
+  repeated string exclude = 2;
+}
+
+// K8sManifestAnchorConfig configures the k8smanifest adapter, which
+// parses plain / rendered Kubernetes manifests — valid YAML ONLY (e.g.
+// the output of `helm template`). It is the universal fallback for
+// charts that ship no schema. For each Kubernetes object document (one
+// with both apiVersion and kind) it emits one LIBRARY per API group, one
+// TYPE per resource kind, and one CONFIG_KNOB per field actually present
+// in the manifest. Purely mechanical: no LLM, no cluster access, and —
+// critically — NO raw Helm template parsing. A document that is not
+// valid YAML (an un-rendered `{{ ... }}` template) is skipped
+// gracefully; rendering is the user's `helm template` step, outside
+// Sheaf. Every element's location points at the field's line in the
+// source manifest YAML.
+//
+// The group is derived from apiVersion: "apps/v1" -> "apps", a core
+// object ("v1") -> "core". One element ID looks like
+// "<group>/<Kind>.<dotted.path>" (e.g.
+// "apps/Deployment.spec.template.spec.containers[].image"). Library =
+// the group. Ecosystem = "manifest" (never "kubernetes").
+message K8sManifestAnchorConfig {
+  // Repo-relative include / exclude globs evaluated against candidate
+  // YAML files. Defaults: include "**/*.yaml" and "**/*.yml", no
+  // excludes. Documents lacking apiVersion + kind are skipped
+  // automatically, so a broad include is safe.
+  repeated string include = 1;
+  repeated string exclude = 2;
+}
+
+// CRDAnchorConfig configures the crd adapter, which parses Kubernetes
+// CustomResourceDefinition YAML and walks each
+// spec.versions[].schema.openAPIV3Schema recursively. It emits one
+// TYPE per CRD kind, one CONFIG_KNOB per schema field, and one LIBRARY
+// per API group. The OpenAPI `description` of each field becomes the
+// element's doc_comment_excerpt (kubebuilder generates these from Go
+// comments); a field with no description is a real undocumented
+// finding. Purely mechanical: no LLM, no cluster access, no template
+// rendering. Every element's location points at the field's line in
+// the source CRD YAML.
+//
+// One element ID looks like "<group>/<Kind>.<dotted.path>"
+// (e.g. "cert-manager.io/Certificate.spec.renewBefore"). Library = the
+// CRD's spec.group. Ecosystem = "crd" (never "kubernetes").
+message CRDAnchorConfig {
+  // Repo-relative include / exclude globs evaluated against candidate
+  // YAML files. Defaults: include "**/*.yaml" and "**/*.yml", no
+  // excludes. Non-CRD YAML documents are skipped automatically (the
+  // adapter content-gates on kind: CustomResourceDefinition), so a
+  // broad include is safe.
+  repeated string include = 1;
+  repeated string exclude = 2;
+}
+
+// CppHeaderAnchorConfig configures the cppheader adapter, a regex-based
+// C++ public-header contract anchor (no libclang dependency). Walks
+// .h / .hpp files and emits one ContractElement per public class,
+// public method, free function, #define-style macro (gated on
+// emit_macros), and enum. Generic — no project-specific conventions;
+// Pigweed-flavored behavior is expressed entirely via the knobs below.
+//
+// One element ID looks like "<library>/<qualified::name>"
+// (e.g. "pw_rpc/pw::rpc::Server"). Aliases include the bare local name
+// and the dotted form so a codegen_bridge can map proto packages onto
+// the generated C++ namespace.
+message CppHeaderAnchorConfig {
+  // Repo-relative include / exclude globs evaluated against header
+  // files. Defaults to include "**/*.h" and "**/*.hpp", no excludes.
+  repeated string include = 1;
+  repeated string exclude = 2;
+  // When true, emit one CPP_MACRO element per #define-style public API
+  // entry. Macro-heavy APIs (Pigweed's PW_LOG_*, PW_ASSERT, …) set this
+  // true; class-heavy projects leave it false to avoid macro noise.
+  bool emit_macros = 3;
+  // Doc-comment styles to recognize. Defaults to both "triple_slash"
+  // (///) and "javadoc" (/** */) when empty.
+  repeated string doc_comment_styles = 4;
+  // Attribute-like macros to skip when scanning for the declaration
+  // that follows them (PW_PRINTF_FORMAT, ABSL_DEPRECATED, …) so they
+  // don't poison the next-token-is-the-declaration heuristic.
+  repeated string ignored_attribute_macros = 5;
+}
+
+// CMLAnchorConfig configures the CML (Fuchsia Component Manifest
+// Language) adapter, which extracts CONFIG_KNOB elements from
+// `config: { ... }` blocks in `.cml` files. CML is JSON5-style; the
+// adapter parses the config block deterministically (no LLM) and emits
+// one ContractElement per declared knob, with its declared type
+// (string/uint64/bool/vector/...) and any constraints (max_size,
+// max_count) preserved in element attributes.
+//
+// One element ID looks like "<package_dir>/<knob_name>" where the
+// package_dir is derived from the .cml's enclosing directory (skipping
+// the conventional `meta/` subdir). Library = the package_dir.
+message CMLAnchorConfig {
+  // Repo-relative include / exclude globs evaluated against .cml files.
+  // Defaults: include "**/*.cml", no excludes.
+  repeated string include = 1;
+  repeated string exclude = 2;
+}
+
+message FIDLAnchorConfig {
+  string fidlc_path = 1;
+  string available = 2;
+  repeated string include = 3;
+  repeated string exclude = 4;
+  // Optional: pre-generated JSON IR directory. When set, the adapter
+  // reads from here instead of invoking fidlc. Useful in environments
+  // (Sheaf dev, CI) without the compiler.
+  string prebuilt_ir_dir = 5;
+}
+
+message ArghAnchorConfig {
+  repeated string crate_roots = 1;
+  repeated string include = 2;
+  repeated string exclude = 3;
+}
+
+// ClapAnchorConfig configures the clap adapter, which discovers
+// CLI contract elements from Rust source that uses clap's derive API
+// (`#[derive(Parser)]`, `#[derive(Subcommand)]`, `#[derive(Args)]`).
+// One element per binary, per `#[arg(...)]` field, and per
+// Subcommand variant. See internal/adapters/clap/clap.go for the
+// scope of what's modeled vs. deliberately skipped.
+message ClapAnchorConfig {
+  // Crate roots to scan. Each entry is repo-relative; the adapter
+  // walks every .rs file under it. The basename of the entry is
+  // used as the binary name when no `#[command(name = "X")]`
+  // override is present (e.g. `crates/fd` → "fd"). Use "." to scan
+  // the entire repo when the Parser struct lives near the root.
+  repeated string crate_roots = 1;
+  // Glob includes; defaults to `**/*.rs`.
+  repeated string include = 2;
+  // Glob excludes; defaults to `**/target/**`.
+  repeated string exclude = 3;
+}
+
+// ProtoAnchorConfig configures the proto adapter, which discovers
+// gRPC/protobuf contract elements by shelling out to protoc with
+// --descriptor_set_out and walking the resulting FileDescriptorSet.
+// Emits one PROTOCOL per service, one METHOD per rpc, and one TYPE
+// per top-level message/enum.
+//
+// One contract element ID looks like "<package>/<Service>.<Method>"
+// (e.g. "grpc.health.v1/Health.Check"). Library = the proto package.
+message ProtoAnchorConfig {
+  // Path to the protoc binary. Defaults to looking up "protoc" on PATH.
+  string protoc_path = 1;
+  // Repo-relative include / exclude globs evaluated against .proto
+  // files. Defaults to include "**/*.proto" with no excludes.
+  repeated string include = 2;
+  repeated string exclude = 3;
+  // Repeated -I paths passed to protoc. Each entry is either
+  // repo-relative (resolved against the scan repo root) or absolute.
+  // protoc auto-includes its own bundled google/protobuf well-knowns,
+  // so well-known imports don't need an explicit entry. When empty,
+  // the repo root itself is used as the sole include path.
+  repeated string proto_path = 4;
+}
+
+// CobraAnchorConfig configures the cobra adapter, which reads
+// docker/cli-style per-subcommand YAML reference (one file per
+// subcommand, produced by docker/cli's `make yamldocs`). The YAML
+// schema is the same one docker/cli uses to emit man pages and the
+// docs.docker.com reference.
+message CobraAnchorConfig {
+  // Directory containing the per-subcommand YAML files (e.g.
+  // `docker/cli/docs/yaml/gen/` or any directory produced by
+  // `make yamldocs`).
+  string yaml_dir = 1;
+  // Optional include/exclude globs evaluated against repo-relative
+  // paths under yaml_dir. Defaults: include "**/*.yaml", no excludes.
+  repeated string include = 2;
+  repeated string exclude = 3;
+  // Root binary name (e.g. "docker"). Subcommand IDs are derived
+  // from the YAML's `command:` field when present, otherwise from
+  // the filename (e.g. docker_run.yaml → "docker run").
+  string binary_name = 4;
+  // Canonical URL pattern for the contract element. When set, the
+  // adapter stamps a clickable URL on each emitted element by
+  // substituting:
+  //   {basename}  → yaml filename without extension (e.g. "kubectl_get")
+  //   {subcommand} → underscores→slashes form (e.g. "kubectl/get")
+  // The yaml file path on disk is typically local-only output of a
+  // help-text scraper (sheaf-cobra-yaml/kubectl_get.yaml), so the
+  // raw path doesn't 404-safely github-ify. This URL is what the
+  // reader should actually open — usually the project's published
+  // reference page.
+  //
+  // Example for kubectl:
+  //   url_base: "https://kubernetes.io/docs/reference/kubectl/generated/{basename}/"
+  string url_base = 5;
+}
+
+message RenderedReferenceConfig {
+  string name = 1;
+  oneof per_adapter {
+    FIDLDocConfig fidldoc = 10;
+    CLIDocConfig clidoc = 11;
+    MarkdownCLIConfig markdowncli = 12;
+    WorkflowsConfig workflows = 13;
+    YamlWorkflowsConfig yaml_workflows = 14;
+  }
+}
+
+// YamlWorkflowsConfig configures the yaml-workflows rendered-reference
+// adapter — the YAML / declarative-graph sibling of the CLI-shaped
+// workflows adapter above. Walks a directory of rST tutorial / config
+// cookbook files and emits one WORKFLOW DocClaim per
+// `.. code-block:: yaml` block that names two-or-more distinct
+// contract elements (proto messages). The ContractRefs list on each
+// claim is ordered by appearance in the YAML.
+//
+// Originally driven out against envoy's docs/root/ — envoy's value-add
+// IS the composition (Listener + filter chain + Cluster + RouteConfig
+// wired together) and per-message coverage on its own misses this layer.
+message YamlWorkflowsConfig {
+  // Root dir to walk. Absolute or relative to repo. Required.
+  string docs_dir = 1;
+  // Glob includes; defaults to **/*.rst when empty.
+  repeated string include = 2;
+  // Glob excludes — apply on top of include.
+  repeated string exclude = 3;
+  // Filter extracted FQDN refs to those whose package starts with
+  // this string. For envoy, "envoy" keeps `envoy.config.cluster.v3/Cluster`
+  // and drops `google.protobuf.Any` / `xds.core.v3.Authority`. Empty
+  // disables the filter (every dotted FQDN inside a yaml block emits).
+  string idl_prefix = 4;
+  // Minimum distinct element count per yaml block. Defaults to 2 —
+  // single-element blocks are EXAMPLE territory, not workflow
+  // territory.
+  uint32 min_elements = 5;
+  // URL base prepended to the file's repo-relative path to produce a
+  // clickable canonical URL. Empty disables the link.
+  string url_base = 6;
+}
+
+// WorkflowsConfig configures the workflows rendered-reference
+// adapter. Walks a directory of markdown tutorials / tasks / recipes
+// and emits one WORKFLOW DocClaim per file whose code fences invoke
+// two-or-more distinct contract elements in sequence. The
+// ContractRefs list on each claim is ordered: refs[0] is the first
+// command, refs[N-1] is the last.
+//
+// Used to surface the inter-element layer that per-element coverage
+// (docs/tests/examples) can't see — agents that know a flag exists
+// in isolation may still combine commands incorrectly in production.
+message WorkflowsConfig {
+  // Root dir to walk. Absolute or relative to repo. Required.
+  string docs_dir = 1;
+  // Glob includes; defaults to **/*.md when empty.
+  repeated string include = 2;
+  // Glob excludes — apply on top of include.
+  repeated string exclude = 3;
+  // Binary name to anchor command-invocation parsing. Required.
+  // The extractor matches `<binary_name> <subcommand-tree> [...]`
+  // inside code fences and resolves the matched tokens against the
+  // contract surface to derive element IDs.
+  string binary_name = 4;
+  // Minimum distinct element count for a file to be emitted as a
+  // workflow. Defaults to 2 — single-element files are EXAMPLE
+  // territory, not workflow territory.
+  uint32 min_elements = 5;
+  // URL base prepended to the workflow file's repo-relative path to
+  // produce a clickable canonical URL. Example for kubectl's tutorial
+  // corpus (sourced from kubernetes/website):
+  //   url_base: "https://kubernetes.io/docs/"
+  // The adapter strips the markdown extension and any trailing
+  // `_index` before appending. Empty url_base disables the link.
+  string url_base = 6;
+}
+
+message FIDLDocConfig {
+  string bundle_path = 1;
+  string url_base = 2;
+  string library = 3;       // optional; defaults to "all libraries in the bundle"
+}
+
+message CLIDocConfig {
+  string bundle_path = 1;
+  string section_path = 2;
+  string url_base = 3;
+}
+
+// MarkdownCLIConfig configures the markdowncli rendered-reference
+// adapter. Reads per-subcommand markdown files under docs_dir; one
+// file per subcommand. Path derivation prepends binary_name to the
+// filename (with underscores converted to spaces): "container_run.md"
+// with binary_name="docker" → "docker container run". When the
+// filename's first segment already equals binary_name, it isn't
+// double-prefixed.
+//
+// Originally driven out against docker/cli; works for any CLI whose
+// docs follow the one-file-per-subcommand pattern.
+message MarkdownCLIConfig {
+  string docs_dir = 1;
+  // URL base for canonical links. The adapter appends the relative
+  // command path (e.g. "container/run/") plus an anchor for per-flag
+  // links (#flag-name). Leave empty to omit URLs entirely.
+  string url_base = 2;
+  repeated string include = 3;
+  repeated string exclude = 4;
+  // Root binary name (e.g. "docker"). Used as the first segment of
+  // the command path when not already present in the filename.
+  string binary_name = 5;
+
+  // OptionsTable overrides the options-table parsing defaults.
+  // Most CLIs work with the defaults — set this only when scanning
+  // a project whose markdown uses non-standard section names or a
+  // table layout with no parseable header row.
+  OptionsTableConfig options_table = 6;
+
+  // How to derive the canonical URL slug from the on-disk path.
+  //
+  //   URL_STYLE_COMMAND_PATH (default) — drops the binary name and
+  //     joins subcommand tokens with "/". `container_run.md` →
+  //     ".../container/run/". Matches docker/cli's docs site.
+  //
+  //   URL_STYLE_FILE_PATH — uses the file's relative path under
+  //     docs_dir verbatim (extension stripped, `_index` stripped,
+  //     trailing slash appended). Matches Hugo/Jekyll sites that
+  //     mirror their on-disk hierarchy in URLs — e.g. kubernetes
+  //     website where `kubectl_get/_index.md` is published at
+  //     ".../kubectl_get/" (preserving the underscore) and
+  //     `kubectl_config/kubectl_config_view.md` at
+  //     ".../kubectl_config/kubectl_config_view/".
+  enum URLStyle {
+    URL_STYLE_UNSPECIFIED = 0;
+    URL_STYLE_COMMAND_PATH = 1;
+    URL_STYLE_FILE_PATH = 2;
+  }
+  URLStyle url_style = 7;
+}
+
+message OptionsTableConfig {
+  // Section header names (case-insensitive) that introduce options
+  // tables. Defaults to ["options", "inherited options",
+  // "global options", "common options"].
+  repeated string section_names = 1;
+  // 0-based column index for the flag name when header sniffing
+  // fails. Default 0.
+  int32 name_column = 2;
+  // 0-based column index for the description when header sniffing
+  // fails. Use -1 (or omit) for "last column", which works for
+  // docker/cli's 4-column layout.
+  int32 description_column = 3;
+}
+
+message TestParserConfig {
+  string name = 1;
+  oneof per_adapter {
+    GTestConfig gtest = 10;
+    RustTestConfig rust_test = 11;
+    BatsConfig bats = 12;
+    GoTestConfig gotest = 13;
+    ProtoCPPConfig protocpp = 14;
+    PytestConfig pytest = 15;
+    PythonTestConfig python_test = 16;
+  }
+}
+
+message GTestConfig {
+  repeated string include = 1;
+  repeated string exclude = 2;
+  repeated string extra_test_macros = 3;
+}
+
+message RustTestConfig {
+  repeated string include = 1;
+  repeated string exclude = 2;
+  repeated string extra_test_attributes = 3;
+}
+
+message BatsConfig {
+  repeated string include = 1;
+  repeated string exclude = 2;
+}
+
+// ProtoCPPConfig configures the protocpp test-parser adapter, which
+// extends the stock gtest adapter with C++/protobuf idioms that
+// gRPC-shaped projects (envoy, grpc, kubernetes, ...) use but FIDL
+// projects don't:
+//
+//   - String-literal RPC references:
+//       "<prefix>.<pkg>.<Service>.<Method>"
+//     gRPC clients identify RPCs by their fully-qualified method name,
+//     passed as a quoted string to DescriptorPool::FindMethodByName.
+//
+//   - Generated *.pb.h include scope:
+//       #include "<prefix>/<pkg>/<basename>.pb.h"
+//     Brings the proto package into scope for that file's tests.
+//
+//   - Fully-qualified C++ proto type references:
+//       <prefix>::<pkg>::<TypeName>
+//     Emits both the dotted form and the bare local name as refs.
+//
+//   - `*_test_harness.h` include following:
+//     Scans included harness headers for descriptor wiring and
+//     propagates their refs to every test in the file.
+//
+// Macro recognition and file-walking are gtest-compatible; the extra
+// refs are folded into the same TestCase.ContractRefs the indexer's
+// Strategy-1 direct-ref matcher already consumes. When confident
+// direct-ref evidence is found, NameTokens are suppressed so the
+// indexer's fuzzy Strategy-2 doesn't add false positives.
+//
+// Anchored on the project's `project.idl_prefix` — for envoy that's
+// "envoy"; for grpc, "grpc"; for kubernetes, "k8s.io". Defaults to
+// "envoy" if unset (the prototypical use case).
+message ProtoCPPConfig {
+  repeated string include = 1;
+  repeated string exclude = 2;
+  // Additional test macros beyond TEST / TEST_F / TEST_P. Envoy
+  // occasionally uses TYPED_TEST; rare and project-specific macros
+  // can be added here.
+  repeated string extra_test_macros = 3;
+
+  // When true, additionally extract BARE free-function call-sites from each
+  // test body — `Encode(buf)` where a using-declaration brought the function
+  // into scope — as candidate contract refs, resolved by the indexer's exact
+  // bare-name alias match. This is the attribution path for C++ libraries whose
+  // tests exercise free functions by unqualified call rather than the qualified
+  // `pkg::Type` / string-literal idioms proto projects use (e.g. Pigweed's
+  // pw_varint / pw_base64 / pw_checksum, where without it the whole module reads
+  // ~0% tested even though the suite is dense).
+  //
+  // OFF by default and deliberately conservative: it is inert for proto/FIDL
+  // contracts (C++ call identifiers don't collide with proto element names), so
+  // it only adds value for a cppheader-style contract surface. Test-framework
+  // macros (EXPECT_*/ASSERT_*/the TEST family) and C++ control-flow/cast
+  // keywords are filtered before emission; qualified calls (`pw::varint::Encode`)
+  // and member calls (`obj.method(`, `ptr->method(`) are already handled / left
+  // to the existing extractors. C-ABI wrapper indirection
+  // (`pw_varint_CallEncode64`) is NOT bridged here — a named residual.
+  bool extract_free_function_calls = 4;
+}
+
+// GoTestConfig configures the gotest test-parser adapter, which
+// reads Go test functions (Test*/Benchmark*/Fuzz*/Example* with the
+// standard testing.{T,B,F} signatures) and t.Run subtests from
+// *_test.go files.
+//
+// When binary_name is set, the adapter also runs a "cobra
+// invocation" extractor that scans test bodies for patterns like
+// exec.Command("docker", "run", "--rm", ...), cmd.SetArgs([]string{
+// "--platform", ...}), and struct-literal args:/flags: fields, then
+// pre-populates ContractRefs on each TestCase. This lets the
+// indexer's Strategy 1 (direct-ref match) catch tests that drive
+// flags via subprocess calls or args slices — the dominant pattern
+// in docker/cli and similar projects, where the name-token matcher
+// would otherwise miss the attribution.
+message GoTestConfig {
+  repeated string include = 1;
+  repeated string exclude = 2;
+  // Root binary name (e.g. "docker") for the cobra-invocation
+  // extractor. Empty disables extraction; the adapter falls back to
+  // name-token overlap only.
+  string binary_name = 3;
+}
+
+// PytestConfig configures the Python pytest contract-test adapter.
+// Walks Python files matched by include/exclude, discovers test
+// functions (module-scope test_*, plus test_* methods on Test*
+// classes and unittest.TestCase subclasses), and emits one TestCase
+// per discovered test with ContractRefs extracted from the test body
+// via three patterns:
+//
+//   - Dotted FQDNs: `pw.log.LogEntry`, `pw_log.LogEntry` (both forms
+//     are emitted as refs; the indexer's alias matcher resolves them).
+//
+//   - String-literal refs anchored on idl_prefix: same shape as
+//     protocpp's, e.g. `"pw.log.Logs/Listen"`.
+//
+//   - Import-then-bare refs: `from pw_log import LogEntry` plus
+//     `LogEntry(...)` in a test body resolves the bare name to the
+//     qualified form. Module aliases let projects map Python module
+//     names to canonical IDL names when codegen renames them.
+//
+// AST-free regex scanner; no Python runtime dependency.
+message PytestConfig {
+  // Globs of Python test files to include. Defaults if empty:
+  // ["**/test_*.py", "**/*_test.py"].
+  repeated string include = 1;
+  // Globs to exclude (e.g. conftest, generated, third_party).
+  repeated string exclude = 2;
+  // IDL prefix anchor for the string-literal extractor (same
+  // semantics as protocpp.idl_prefix). Optional — when empty, only
+  // the import-tracked refs and dotted FQDN scans run.
+  string idl_prefix = 3;
+  // Module-name aliases. For projects where the Python module name
+  // doesn't match the proto package (e.g. `pw_log` ↔ `pw.log`), map
+  // each Python module to its canonical IDL name so import-tracked
+  // refs resolve. List of "python_module=idl_name" strings, e.g.
+  // "pw_log=pw.log".
+  repeated string module_aliases = 4;
+}
+
+// PythonTestConfig configures the python-test test-parser adapter — the
+// Python analog of the rust-test ffx subprocess-invocation extractor.
+//
+// Where PytestConfig discovers test functions and extracts IDL/proto
+// references from their bodies, PythonTestConfig walks Python e2e files and
+// extracts the `ffx <subcommand> --<flags>` subprocess invocations they run
+// (Honeydew's `ffx.run(["target", "list", "--no-probe"])`), emitting one
+// TestCase per enclosing function whose ContractRefs are the canonical
+// command + flag element IDs (`ffx target list`, `ffx target list --format`).
+// This makes the substantive *behavior* testing of ffx flags — which lives
+// in the Python e2e suite, not the Rust corpus — visible to coverage.
+//
+// Extraction prefers a bundled Python `ast` helper (robust to multi-line /
+// locally built / constant command lists) and falls back to a pure-Go regex
+// pass for the inline-literal-list idiom when no python3 is available; in
+// both modes un-extractable (dynamic) invocations are logged, never silently
+// dropped. The extractor is a no-op unless the project scope declares a
+// CLI-shaped binary named "ffx" (the same gate the rust-test extractor uses),
+// so a non-ffx python-test config is preserved untouched.
+message PythonTestConfig {
+  // Globs of Python e2e files to include. Defaults if empty: ["**/*.py"].
+  repeated string include = 1;
+  // Globs to exclude (e.g. third_party, generated). Defaults if empty:
+  // ["**/third_party/**"].
+  repeated string exclude = 2;
+}
+
+message DocParserConfig {
+  string name = 1;
+  oneof per_adapter {
+    MarkdownConfig markdown = 10;
+    RstConfig rst = 11;
+    DoxygenConfig doxygen = 12;
+  }
+}
+
+message MarkdownConfig {
+  repeated string include = 1;
+  repeated string exclude = 2;
+  repeated string code_block_languages = 3;
+}
+
+// RstConfig configures the rst doc-parser adapter, which walks
+// reStructuredText source the same way the markdown adapter walks
+// CommonMark — tracking the underline-style heading stack, parsing
+// `code-block::` / `.. sourcecode::` directives, recognizing inline
+// double-backtick literals, and emitting prose-mention DocClaims for
+// qualified identifiers and CLI flags.
+message RstConfig {
+  repeated string include = 1;
+  repeated string exclude = 2;
+  // Languages whose `.. code-block:: <lang>` blocks should be emitted
+  // as EXAMPLE-kind claims. Same semantics as MarkdownConfig.
+  repeated string code_block_languages = 3;
+}
+
+// DoxygenConfig configures the doxygen doc-parser adapter, which reads a
+// Doxygen XML output directory (GENERATE_XML=YES) and emits one REFERENCE
+// DocClaim per *documented* C++ entity — the formal API-reference surface
+// that lives in `///` / `/** */` header comments, not in narrative prose.
+//
+// Unlike rst/markdown (which catch whichever elements an author named in a
+// guide), this reflects the generator's own per-symbol output: a class or
+// function counts as documented iff Doxygen recorded a non-empty
+// brief/detailed description for it. Undocumented symbols (private fields,
+// EXTRACT_ALL=YES noise) are skipped; the same free function listed under
+// both its namespace and file compounds is emitted once (dedupe by id).
+//
+// The xml_dir is typically a build output (run `doxygen <Doxyfile>` with
+// GENERATE_XML=YES first); point it at the directory holding index.xml and
+// the per-compound *.xml files. ContractRefs are the fully-qualified C++
+// names (e.g. `pw::StringBuilder::append`), which the indexer's alias join
+// resolves against cppheader element IDs.
+message DoxygenConfig {
+  // Path to the Doxygen XML output directory. Absolute, or relative to the
+  // scan repo root.
+  string xml_dir = 1;
+  // Optional URL base for clickable links to the published HTML, following
+  // the Doxygen convention <url_base>/<compound>.html#<anchor>. Empty omits
+  // URLs.
+  string url_base = 2;
+  // Optional include / exclude globs over the *.xml basenames. Empty include
+  // = every compound XML file (index.xml, Doxyfile.xml and dir_*.xml are
+  // always skipped).
+  repeated string include = 3;
+  repeated string exclude = 4;
+}
+
+message ImplementsMapConfig {
+  string name = 1;
+  repeated string pattern = 2;       // regex patterns; %PROTO% substituted at runtime
+  repeated string include = 3;
+  repeated string exclude = 4;
+}
+
+// ============================================================
+// analyzer
+// ============================================================
+
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  INFO = 1;
+  WARNING = 2;
+  ERROR = 3;
+}
+
+message AnalyzerKV {
+  string key = 1;
+  oneof value {
+    string string_value = 2;
+    int64 int_value = 3;
+    bool bool_value = 4;
+  }
+}
+
+message AnalyzerConfig {
+  string name = 1;
+  Severity severity = 2;
+  repeated AnalyzerKV config = 3;
+  repeated string suppress_for_paths = 4;
+}
+
+// ============================================================
+// substance_thresholds (D3)
+// ============================================================
+
+message SubstanceThresholds {
+  string ecosystem = 1;       // "fidl", "argh", "cpp", ...
+  string kind = 2;            // ContractElementKind name as string ("METHOD", "FLAG", ...)
+  uint32 signature_only_max = 3;
+  uint32 partial_max = 4;
+}
+
+// ============================================================
+// public_surface
+// ============================================================
+
+message PublicSurface {
+  repeated string fidl_category = 1;
+  repeated string path = 2;
+}
+
+// ============================================================
+// mcp_server (D5)
+// ============================================================
+
+message MCPServerConfig {
+  string bind = 1;
+  uint32 port = 2;
+  uint32 cache_ttl_seconds = 3;
+  AuthConfig auth = 4;
+  repeated OperationCache operation_cache = 5;
+}
+
+message AuthConfig {
+  enum Mode {
+    MODE_UNSPECIFIED = 0;
+    NONE = 1;
+    BEARER = 2;
+    // MTLS reserved for v2+
+  }
+  Mode mode = 1;
+  string bearer_token_env = 2;
+}
+
+message OperationCache {
+  string op = 1;
+  uint32 ttl_seconds = 2;
+}
+
+// ============================================================
+// cache
+// ============================================================
+
+message CacheStoreConfig {
+  string store = 1;           // "filesystem"
+  oneof per_backend {
+    FilesystemCacheConfig filesystem = 10;
+  }
+}
+
+message FilesystemCacheConfig {
+  string path = 1;
+  uint64 max_size_bytes = 2;
+  bool allow_missing_bundles = 3;
+}
+
+// ============================================================
+// review (PR-bot)
+// ============================================================
+
+message ReviewAdapterConfig {
+  string adapter = 1;         // "gerrit" | "github" | "noop"
+  oneof per_adapter {
+    GerritReviewConfig gerrit = 10;
+    GitHubReviewConfig github = 11;
+  }
+}
+
+message GerritReviewConfig {
+  string host = 1;
+  string project = 2;
+  string auth_token_env = 3;
+}
+
+message GitHubReviewConfig {
+  string repo = 1;            // "owner/repo"
+  string token_env = 2;
+}
+
+// ============================================================
+// llm (D2)
+// ============================================================
+
+message LLMConfig {
+  string client = 1;          // "local-llama" | "noop"
+  oneof per_client {
+    LocalLlamaConfig local_llama = 12;
+  }
+
+  string embeddings = 20;     // "ollama-embed" | "noop"
+  oneof per_embedding {
+    OllamaEmbedConfig ollama_embeddings = 31;
+  }
+
+  LLMCacheConfig cache = 40;
+
+  // AnthropicConfig / OpenAIConfig / OpenAIEmbedConfig were dropped in
+  // the public-release prep — they only ever returned "not yet
+  // implemented in v1" at build time, so the schema surface was misleading.
+  // Field numbers 10, 11, 30 are reserved so re-adding later doesn't
+  // collide with old serialized data.
+  reserved 10, 11, 30;
+}
+
+message LocalLlamaConfig {
+  string host = 1;            // "127.0.0.1"
+  uint32 port = 2;            // 11434 for ollama
+  string model = 3;           // "qwen2.5:7b-instruct"
+}
+
+message OllamaEmbedConfig {
+  string host = 1;
+  uint32 port = 2;
+  string model = 3;           // "nomic-embed-text"
+}
+
+message LLMCacheConfig {
+  uint32 prompt_version = 1;
+}
+
+// ============================================================
+// annotation (v2+ gated)
+// ============================================================
+
+message AnnotationConfig {
+  bool enabled = 1;           // v1 startup error if true
+  string sidecar_dir = 2;
+  repeated Approver approvers = 3;
+}
+
+message Approver {
+  string name = 1;
+  string email = 2;
+}
+
+// ============================================================
+// vcs
+// ============================================================
+
+message VCSAdapterConfig {
+  string adapter = 1;         // "git"
+  oneof per_adapter {
+    GitVCSConfig git = 10;
+  }
+}
+
+message GitVCSConfig {
+  string root = 1;
+}
+
+// ============================================================
+// strictness
+// ============================================================
+
+enum StrictnessAction {
+  STRICTNESS_ACTION_UNSPECIFIED = 0;
+  STRICTNESS_IGNORE = 1;
+  STRICTNESS_WARN = 2;
+  STRICTNESS_ERROR = 3;
+}
+
+message Strictness {
+  StrictnessAction unmatched_globs = 1;
+  StrictnessAction missing_bundles = 2;
+  StrictnessAction empty_categories = 3;
+}
+
+// ============================================================
+// codegen_bridge
+// ============================================================
+
+// CodegenBridge declares a SAME_AS mapping between contract elements
+// in different ecosystems produced by a deterministic codegen tool.
+// A future indexer pass materializes SAME_AS relationships between
+// matched elements so coverage evidence aggregates across the
+// language boundary. PR 0 ships the schema; the consumer ships
+// in a later PR.
+message CodegenBridge {
+  string source_ecosystem = 1;       // e.g. "proto"
+  string target_ecosystem = 2;       // e.g. "cpp"
+  string target_name_template = 3;   // e.g. "{{package_cpp}}::pwpb::{{message}}"
+}
+
+// ============================================================
+// monorepo_manifest
+// ============================================================
+
+// MonorepoManifest is consumed by `sheaf scan --manifest <file>` to
+// fan out a scan across many per-module configs. PR 0 ships the
+// schema only; the consumer ships in a later PR.
+message MonorepoManifest {
+  message Entry {
+    string config_path = 1;
+    string library = 2;
+    string ecosystem = 3;
+    string library_label = 4;   // optional human-readable scope label
+    string output = 5;          // relative output path for the rendered report
+    // Optional logical grouping (a "domain") the index tree buckets this
+    // library under, e.g. "Storage & IO". Entries with no group fall into
+    // an ungrouped bucket.
+    string group = 6;
+    // Optional href to a sibling Concept Docs report for this entry, lighting
+    // up the coverage report's concept-doc reach-stats link (ConceptDocsHref).
+    // A relative/published path (e.g. "../fuchsia-coverage-concept-docs/io.html")
+    // so the link survives publishing. Empty = no link (the entry's libraries
+    // have no concept-doc report). May carry a "?library=" query that filters a
+    // multi-library report to the entry's covered libraries.
+    string concept_docs_href = 7;
+  }
+  repeated Entry entries = 1;
+}
+
+// ============================================================
+// build_graph
+// ============================================================
+
+// BuildGraph configures structural-metadata recognizers that run
+// BEFORE contract / test / doc adapters and populate a BuildHints
+// value those adapters consume (for IsPublic filtering, facade
+// mapping, etc.). Each sub-field is one recognizer; future
+// recognizers for Bazel visibility, Cargo workspaces, etc. plug
+// into the same framework.
+message BuildGraph {
+  // Pigweed pw_facade()/pw_source_set() GN parser. Reads BUILD.gn
+  // files under the repo, builds a facade→backend map by the
+  // name-convention heuristic (sibling pw_<facade>_* modules
+  // declaring a source set with the same name as the facade).
+  PwFacade pw_facade = 1;
+  // Future: bazel_visibility, cargo_workspace, etc.
+}
+
+// PwFacade configures the Pigweed GN-parser recognizer. It walks
+// BUILD.gn files matching include / exclude globs, extracts
+// pw_facade() and pw_source_set()/pw_static_library() declarations,
+// and computes facade→backend relationships by the name-convention
+// heuristic. See internal/adapters/pwfacade for details.
+message PwFacade {
+  // Optional. Globs of BUILD.gn files to consider. Defaults to
+  // "**/BUILD.gn" when empty.
+  repeated string include = 1;
+  // Optional. Globs to exclude (e.g. third_party/).
+  repeated string exclude = 2;
+}

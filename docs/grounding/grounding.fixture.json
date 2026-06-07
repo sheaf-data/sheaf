@@ -1,0 +1,190 @@
+{
+  "_comment": "CANONICAL FIXTURE — frozen UI/backend contract for the Grounding surface. The UI renders against THIS shape; the backend detector must emit THIS shape. Validates against grounding.schema.json. Hand-authored sample data (drivers domain). Bump schema_version on any breaking change.",
+  "schema_version": 1,
+  "surface": "grounding",
+  "generated_at": "2026-06-01T00:00:00Z",
+  "model_stamp": null,
+  "repo": "fuchsia.git",
+  "commit": "9f3c2a1",
+  "library": "fuchsia.driver.framework",
+  "library_display": "Fuchsia OS — Drivers & Framework",
+
+  "summary": {
+    "elements_total": 199,
+    "elements_mentioned": 64,
+    "elements_not_mentioned": 135,
+    "elements_grounded": 31,
+    "elements_guessing": 19,
+    "elements_ungrounded": 14,
+    "references_total": 412,
+    "references_grounded": 280,
+    "references_guessing": 90,
+    "references_ungrounded": 42,
+    "forces_a_guess": 132,
+    "headline": "132 references force an agent to guess or worse"
+  },
+
+  "display_map": {
+    "grounded":   { "label": "Grounded",   "working_label": "Grounded",   "lighthouse": "pass",       "glyph": "●", "tone": "green", "blurb": "The page binds this reference to the API. The agent knows what you mean." },
+    "guessing":   { "label": "Guessing",   "working_label": "Inferred",   "lighthouse": "needs-work", "glyph": "◐", "tone": "amber", "blurb": "Context suggests a referent but nothing confirms it. The agent has to infer." },
+    "ungrounded": { "label": "Ungrounded", "working_label": "Ungrounded", "lighthouse": "fail",       "glyph": "○", "tone": "red",   "blurb": "Nothing on the page ties this to the API. The agent is blind — and will hallucinate." }
+  },
+
+  "elements": [
+    {
+      "element_id": "fuchsia.driver.framework/Node",
+      "display": "Node",
+      "kind": "PROTOCOL",
+      "state": "ungrounded",
+      "mentioned": true,
+      "ref_counts": { "grounded": 0, "guessing": 2, "ungrounded": 3 },
+      "finding_ids": ["g-0001", "g-0002", "g-0003", "g-0004", "g-0005"]
+    },
+    {
+      "element_id": "fuchsia.driver.framework/NodeController",
+      "display": "NodeController",
+      "kind": "PROTOCOL",
+      "state": "grounded",
+      "mentioned": true,
+      "ref_counts": { "grounded": 3, "guessing": 1, "ungrounded": 0 },
+      "finding_ids": ["g-0006", "g-0007", "g-0008", "g-0009"]
+    },
+    {
+      "element_id": "fuchsia.driver.framework/CompositeNodeManager",
+      "display": "CompositeNodeManager",
+      "kind": "PROTOCOL",
+      "state": "guessing",
+      "mentioned": true,
+      "ref_counts": { "grounded": 0, "guessing": 2, "ungrounded": 0 },
+      "finding_ids": ["g-0010", "g-0011"]
+    },
+    {
+      "element_id": "fuchsia.driver.framework/NodePropertyKey",
+      "display": "NodePropertyKey",
+      "kind": "TYPE",
+      "state": "not_mentioned",
+      "mentioned": false,
+      "ref_counts": { "grounded": 0, "guessing": 0, "ungrounded": 0 },
+      "finding_ids": []
+    }
+  ],
+
+  "findings": [
+    {
+      "id": "g-0001",
+      "element_id": "fuchsia.driver.framework/Node",
+      "element_display": "Node",
+      "state": "ungrounded",
+      "source_path": "docs/concepts/drivers/driver_communication.md",
+      "line": 42,
+      "section_path": ["Driver Communication", "Adding children"],
+      "excerpt": "When a driver wants a child, the driver adds a child node and waits for the node to bind.",
+      "token": "node",
+      "token_span": { "start": 45, "len": 4 },
+      "candidates": [
+        { "element_id": "fuchsia.driver.framework/Node", "label": "Node", "kind": "contract", "is_contract": true },
+        { "element_id": null, "label": "a node in the topology graph", "kind": "english", "is_contract": false }
+      ],
+      "competing_contract_refs": 1,
+      "checked": [
+        { "anchor": "page_title",        "found": false, "detail": "Driver Communication" },
+        { "anchor": "heading",           "found": false, "detail": "Adding children" },
+        { "anchor": "first_use",         "found": false, "detail": null },
+        { "anchor": "defined_term",      "found": false, "detail": null },
+        { "anchor": "qualified_mention", "found": false, "detail": null },
+        { "anchor": "link",              "found": false, "detail": null }
+      ],
+      "fix": {
+        "kind": "link_first_use",
+        "suggestion": "Link the first mention of “node” in this page to the Node protocol reference.",
+        "markdown": "[`Node`](/reference/fidl/fuchsia.driver.framework#Node)"
+      },
+      "severity": 0.71,
+      "provenance": { "tier": "mechanical", "adapter": "grounding", "adapter_version": "0.1.0" }
+    },
+    {
+      "id": "g-0002",
+      "element_id": "fuchsia.driver.framework/Node",
+      "element_display": "Node",
+      "state": "guessing",
+      "source_path": "docs/concepts/drivers/drivers_and_nodes.md",
+      "line": 88,
+      "section_path": ["Drivers and nodes", "The node topology"],
+      "excerpt": "Each node in the driver framework exposes a controller that the parent uses to manage it.",
+      "token": "node",
+      "token_span": { "start": 5, "len": 4 },
+      "candidates": [
+        { "element_id": "fuchsia.driver.framework/Node", "label": "Node", "kind": "contract", "is_contract": true },
+        { "element_id": null, "label": "a graph node (generic)", "kind": "english", "is_contract": false }
+      ],
+      "competing_contract_refs": 1,
+      "checked": [
+        { "anchor": "page_title",        "found": true,  "detail": "Drivers and nodes" },
+        { "anchor": "heading",           "found": true,  "detail": "The node topology" },
+        { "anchor": "first_use",         "found": false, "detail": null },
+        { "anchor": "defined_term",      "found": false, "detail": null },
+        { "anchor": "qualified_mention", "found": false, "detail": null },
+        { "anchor": "link",              "found": false, "detail": null }
+      ],
+      "fix": {
+        "kind": "define_term",
+        "suggestion": "The section is about nodes but never binds “node” to the protocol. Define it on first use.",
+        "markdown": "the [`Node`](/reference/fidl/fuchsia.driver.framework#Node) protocol"
+      },
+      "severity": 0.42,
+      "provenance": { "tier": "mechanical", "adapter": "grounding", "adapter_version": "0.1.0" }
+    },
+    {
+      "id": "g-0006",
+      "element_id": "fuchsia.driver.framework/NodeController",
+      "element_display": "NodeController",
+      "state": "grounded",
+      "source_path": "docs/concepts/drivers/drivers_and_nodes.md",
+      "line": 120,
+      "section_path": ["Drivers and nodes", "Controllers"],
+      "excerpt": "The parent drives the child through the `NodeController` protocol returned by AddChild.",
+      "token": "NodeController",
+      "token_span": { "start": 36, "len": 14 },
+      "candidates": [
+        { "element_id": "fuchsia.driver.framework/NodeController", "label": "NodeController", "kind": "contract", "is_contract": true }
+      ],
+      "competing_contract_refs": 1,
+      "checked": [
+        { "anchor": "qualified_mention", "found": true,  "detail": "backticked `NodeController`" }
+      ],
+      "fix": null,
+      "severity": 0.0,
+      "provenance": { "tier": "mechanical", "adapter": "grounding", "adapter_version": "0.1.0" }
+    },
+    {
+      "id": "g-0010",
+      "element_id": "fuchsia.driver.framework/CompositeNodeManager",
+      "element_display": "CompositeNodeManager",
+      "state": "guessing",
+      "source_path": "docs/concepts/drivers/composite_nodes.md",
+      "line": 17,
+      "section_path": ["Composite nodes", "The manager"],
+      "excerpt": "The composite node manager assembles a composite from several parent nodes.",
+      "token": "composite node manager",
+      "token_span": { "start": 4, "len": 22 },
+      "candidates": [
+        { "element_id": "fuchsia.driver.framework/CompositeNodeManager", "label": "CompositeNodeManager", "kind": "contract", "is_contract": true },
+        { "element_id": null, "label": "a generic 'manager' component", "kind": "english", "is_contract": false }
+      ],
+      "competing_contract_refs": 1,
+      "checked": [
+        { "anchor": "page_title",        "found": true,  "detail": "Composite nodes" },
+        { "anchor": "heading",           "found": true,  "detail": "The manager" },
+        { "anchor": "qualified_mention", "found": false, "detail": null },
+        { "anchor": "link",              "found": false, "detail": null }
+      ],
+      "fix": {
+        "kind": "link_first_use",
+        "suggestion": "Bind the prose name to the protocol on first use.",
+        "markdown": "the [`CompositeNodeManager`](/reference/fidl/fuchsia.driver.framework#CompositeNodeManager) protocol"
+      },
+      "severity": 0.38,
+      "provenance": { "tier": "mechanical", "adapter": "grounding", "adapter_version": "0.1.0" }
+    }
+  ]
+}

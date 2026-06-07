@@ -1,0 +1,3 @@
+version: 1
+category { dotted_path: "docs.reference" }
+category { dotted_path: "tests.unit_tests" paths: "src/**/*_test.cc" }

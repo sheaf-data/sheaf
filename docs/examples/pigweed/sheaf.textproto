@@ -1,0 +1,130 @@
+# Sheaf config for Google Pigweed — the C++ public API surface of the
+# embedded framework. Pigweed ships ~186 `pw_*` modules; each module's
+# hand-written API contract lives at pw_<m>/public/pw_<m>/*.h (classes,
+# methods, free functions, enums, and the PW_* macros), exercised by
+# pw_unit_test (gtest-compatible) *_test.cc files and documented in
+# reStructuredText (docs.rst / design.rst / guide.rst / api.rst, using
+# Sphinx :cpp:class: / :cpp:func: roles the rst adapter decodes).
+#
+# This is the C++ *contract* report — the surface embedded users bind
+# against. The contract anchor spans every module's public/ tree; the
+# rendered scope is narrowed at snapshot time via `--library <list>` to
+# a bounded, representative subset of the core value/utility modules
+# (pw_string, pw_bytes, pw_status, pw_result, pw_span, pw_containers,
+# pw_function, pw_kvs, pw_assert, pw_varint, pw_checksum, pw_base64,
+# pw_preprocessor, pw_tokenizer, pw_chrono), so a single foreground scan
+# stays tractable on the full 233 MB checkout. Widen the --library list
+# (or drop it) to cover more / all modules.
+#
+# To run (two-step, in-process, no server):
+#   sheaf snapshot --config docs/examples/pigweed/sheaf.textproto \
+#                  --repo /Volumes/T7/pigweed \
+#                  --library "pw_string,pw_bytes,pw_status,pw_result,pw_span,pw_containers,pw_function,pw_kvs,pw_assert,pw_varint,pw_checksum,pw_base64,pw_preprocessor,pw_tokenizer,pw_chrono" \
+#                  --library-label "Pigweed core C++ API" \
+#                  --out /tmp/pigweed-snap.json
+#   sheaf render --from-snapshot /tmp/pigweed-snap.json --ecosystem cpp \
+#                --repo-root /Volumes/T7/pigweed -o /tmp/pigweed.html
+
+version: 1
+project {
+  name: "pigweed"
+  display_name: "Google Pigweed — C++ API"
+  homepage: "https://pigweed.dev/"
+  idl_prefix: "pw"
+  # Identifiers that recur across many module APIs; demoting them keeps
+  # the fuzzy doc/test name-token matcher from over-attributing.
+  noisy_words: "status"
+  noisy_words: "result"
+  noisy_words: "span"
+  noisy_words: "size"
+  noisy_words: "buffer"
+  noisy_words: "string"
+  noisy_words: "bytes"
+  noisy_words: "value"
+  noisy_words: "data"
+  noisy_words: "config"
+}
+
+# No scope{} block: leaving scope.library unset puts every pw_* module
+# in scope at scan time (the cppheader adapter's libraryInScope returns
+# true when no libraries are listed). The rendered report is then scoped
+# by `sheaf snapshot --library <list>`.
+
+contract_anchor {
+  name: "cppheader"
+  cpp_header {
+    # The hand-written public API of every pw_* module.
+    include: "pw_*/public/**/*.h"
+    # internal/ trees hold wire-format + plumbing headers, not the API
+    # users bind against; *_private / impl headers likewise.
+    exclude: "pw_*/public/**/internal/**"
+    # Pigweed's PW_* macros (PW_LOG_*, PW_ASSERT, PW_CHECK, PW_TRY, …)
+    # ARE part of the user-facing API for many modules — emit them.
+    emit_macros: true
+    # Pigweed annotation/attribute macros that precede a declaration;
+    # listing them keeps the "next token is the declaration" heuristic
+    # from latching onto the annotation instead of the real decl.
+    ignored_attribute_macros: "PW_PRINTF_FORMAT"
+    ignored_attribute_macros: "PW_NO_LOCK_SAFETY_ANALYSIS"
+    ignored_attribute_macros: "PW_LOCKS_EXCLUDED"
+    ignored_attribute_macros: "PW_EXCLUSIVE_LOCKS_REQUIRED"
+    ignored_attribute_macros: "PW_GUARDED_BY"
+    ignored_attribute_macros: "PW_NO_SANITIZE"
+    ignored_attribute_macros: "PW_CONSTEXPR_CPP20"
+  }
+}
+
+# Test parser. Pigweed's pw_unit_test exposes the gtest macro surface
+# (TEST / TEST_F / TEST_P), so the stock `gtest` adapter PARSES these
+# files fine. But Pigweed's contract elements carry qualified C++ names
+# (pw::StringBuilder, pw::ToString, …) while its gtest *suite* names are
+# the bare local type (TEST(StringBuilder, …)), and the fuzzy gtest
+# name-token matcher does not bridge the two — it attributes ~0 tests to
+# these elements. The `protocpp` adapter is a gtest superset that adds
+# direct-reference + qualified-name matching anchored on
+# project.idl_prefix ("pw"); it recovers the attribution (e.g. pw_string
+# 0 -> 20 tested elements, correctly linking pw::StringBuilder /
+# pw::ToString / pw::MakeString to their *_test.cc). The pre-existing
+# pigweed-pw_{rpc,log,transfer} example configs use protocpp for the
+# same reason. Macro recognition stays gtest-compatible.
+test_parser {
+  name: "protocpp"
+  protocpp {
+    # tests live beside the module sources as *_test.cc.
+    include: "pw_*/**/*_test.cc"
+    # Exclude fuzzers and perf/size harnesses — not unit tests.
+    exclude: "pw_*/fuzz/**"
+    exclude: "pw_*/**/*_fuzzer.cc"
+    exclude: "pw_*/size_report/**"
+    # TEST / TEST_F / TEST_P are recognized by default; Pigweed also
+    # uses a small number of TYPED_TEST suites.
+    extra_test_macros: "TYPED_TEST"
+    extra_test_macros: "TYPED_TEST_P"
+    # idl_prefix is inherited from project.idl_prefix ("pw").
+  }
+}
+
+doc_parser {
+  name: "rst"
+  rst {
+    include: "pw_*/**/*.rst"
+    code_block_languages: "cpp"
+    code_block_languages: "c++"
+    code_block_languages: "python"
+  }
+}
+
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "README.md"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }
+
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "tests"

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: schema-demo
+description: A trimmed fixture chart that ships values.schema.json
+version: 0.1.0
+appVersion: "1.0.0"

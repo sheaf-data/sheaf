@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen version="1.17.0">
+  <compounddef id="classpw_1_1_widget" kind="class" language="C++">
+    <compoundname>pw::Widget</compoundname>
+    <sectiondef kind="public-func">
+      <memberdef kind="function" id="classpw_1_1_widget_1aFROB">
+        <name>Frob</name>
+        <qualifiedname>pw::Widget::Frob</qualifiedname>
+        <briefdescription><para>Frobnicates the widget.</para></briefdescription>
+        <detaileddescription><para>Applies the frob transform in place and returns the
+        resulting <ref>size</ref>. Safe to call repeatedly on the same widget.</para></detaileddescription>
+        <location file="pw_widget/public/pw_widget/widget.h" line="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classpw_1_1_widget_1aRESET">
+        <name>Reset</name>
+        <qualifiedname>pw::Widget::Reset</qualifiedname>
+        <briefdescription><para>Resets it.</para></briefdescription>
+        <detaileddescription></detaileddescription>
+        <location file="pw_widget/public/pw_widget/widget.h" line="50"/>
+      </memberdef>
+    </sectiondef>
+    <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classpw_1_1_widget_1aCOUNT">
+        <name>count_</name>
+        <qualifiedname>pw::Widget::count_</qualifiedname>
+        <briefdescription></briefdescription>
+        <detaileddescription></detaileddescription>
+        <location file="pw_widget/public/pw_widget/widget.h" line="60"/>
+      </memberdef>
+    </sectiondef>
+    <briefdescription><para>A widget that frobs.</para></briefdescription>
+    <detaileddescription><para>The canonical widget. Holds a count and supports frob and
+    reset operations for the pw_widget module, with no heap allocation.</para></detaileddescription>
+    <location file="pw_widget/public/pw_widget/widget.h" line="30"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,26 @@
+command: sheaf coverage
+short: Print the CoverageProfile for one element.
+long: |
+  Focused inverse of `sheaf report`. Runs the full pipeline, then
+  emits the CoverageProfile for the single element named by --element
+  as either pretty-printed text or JSON.
+usage: sheaf coverage --element id [--config path] [--repo path] [--format fmt]
+pname: sheaf
+plink: sheaf.yaml
+options:
+  - option: config
+    value_type: string
+    default_value: ""
+    description: Path to sheaf.textproto.
+  - option: repo
+    value_type: string
+    default_value: "."
+    description: Project repo root.
+  - option: element
+    value_type: string
+    default_value: ""
+    description: ContractElement ID (required).
+  - option: format
+    value_type: string
+    default_value: "text"
+    description: Output format — text or json.

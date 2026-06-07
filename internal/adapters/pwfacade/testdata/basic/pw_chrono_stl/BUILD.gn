@@ -1,0 +1,16 @@
+# Synthetic pw_chrono_stl BUILD.gn — backs pw_chrono's system_clock
+# and system_timer facades by matching name.
+
+pw_source_set("system_clock") {
+  public_configs = [ ":public_include_path" ]
+  public = [
+    "public/pw_chrono_stl/system_clock_config.h",
+    "public/pw_chrono_stl/system_clock_inline.h",
+  ]
+  sources = [ "system_clock.cc" ]
+}
+
+pw_source_set("system_timer") {
+  public = [ "public/pw_chrono_stl/system_timer_inline.h" ]
+  sources = [ "system_timer.cc" ]
+}

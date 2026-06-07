@@ -1,0 +1,3 @@
+pw_source_set("system_clock") {
+  public = [ "public/pw_chrono_stl/system_clock_inline.h" ]
+}

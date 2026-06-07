@@ -1,0 +1,41 @@
+command: sheaf review
+short: Render a PR review comment from base + head corpora.
+long: |
+  Scans two checkouts of the same project (--base = PR target, --repo
+  = PR head) using the same sheaf.textproto, builds a delta, and
+  renders a Markdown comment showing coverage gained or lost. The
+  rendered body always goes to stdout. With --post, it is also
+  delivered via the configured review adapter (noop / file / gerrit /
+  github).
+usage: sheaf review --base path [--repo path] [--pr ref] [--post]
+pname: sheaf
+plink: sheaf.yaml
+options:
+  - option: config
+    value_type: string
+    default_value: ""
+    description: Path to sheaf.textproto (used for both base + head).
+  - option: repo
+    value_type: string
+    default_value: "."
+    description: Head repo root (PR head).
+  - option: base
+    value_type: string
+    default_value: ""
+    description: Base repo root (PR base) — required for delta.
+  - option: pr
+    value_type: string
+    default_value: "PR#unknown"
+    description: PR reference for the comment header.
+  - option: post
+    value_type: bool
+    default_value: "false"
+    description: Post the rendered comment via the configured review adapter.
+  - option: review
+    value_type: string
+    default_value: ""
+    description: Override the configured review adapter — noop, file, gerrit, github.
+  - option: file-out
+    value_type: string
+    default_value: ""
+    description: When --review=file, write here. Defaults to $SHEAF_REVIEW_FILE_OUT.

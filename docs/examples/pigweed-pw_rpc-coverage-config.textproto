@@ -1,0 +1,95 @@
+# Sheaf config for Pigweed pw_rpc — the C++ public API of the RPC
+# framework module. The contract surface is the hand-written C++ API
+# under pw_rpc/public/ (Server, Client, Channel, Service, ClientCall,
+# ChannelOutput, the *ReaderWriter call objects, …), joined against the
+# module's C++ unit tests and its extensive reStructuredText docs.
+#
+# This is the C++ *contract* report — the surface embedded users
+# actually bind against. pw_rpc has the richest doc tree of the three
+# Pigweed examples (cpp.rst, design.rst, guides.rst, protocol.rst, …),
+# all using Sphinx :cpp:class: / :cpp:func: roles that the rst adapter
+# decodes onto these C++ elements.
+#
+# To run:
+#   sheaf serve --config docs/examples/pigweed-pw_rpc-coverage-config.textproto \
+#               --repo /Volumes/T7/pigweed --port 7790 &
+#   scanner --server http://127.0.0.1:7790 --ecosystem cpp \
+#           --library pw_rpc -o example-reports/pigweed-pw_rpc.html
+#   kill %1
+
+version: 1
+project {
+  name: "pigweed-pw_rpc"
+  display_name: "Pigweed pw_rpc — C++ API"
+  homepage: "https://pigweed.dev/pw_rpc/"
+  idl_prefix: "pw"
+  noisy_words: "channel"
+  noisy_words: "server"
+  noisy_words: "client"
+  noisy_words: "method"
+  noisy_words: "service"
+  noisy_words: "call"
+  noisy_words: "packet"
+  noisy_words: "context"
+  noisy_words: "status"
+  noisy_words: "writer"
+  noisy_words: "reader"
+}
+
+scope {
+  library: "pw_rpc"
+}
+
+contract_anchor {
+  name: "cppheader"
+  cpp_header {
+    include: "pw_rpc/public/**/*.h"
+    # internal/ holds the wire-format + plumbing headers, not the API
+    # users bind against.
+    exclude: "pw_rpc/public/pw_rpc/internal/**"
+    emit_macros: true
+    ignored_attribute_macros: "PW_PRINTF_FORMAT"
+    ignored_attribute_macros: "PW_NO_LOCK_SAFETY_ANALYSIS"
+    ignored_attribute_macros: "PW_LOCKS_EXCLUDED"
+    ignored_attribute_macros: "PW_EXCLUSIVE_LOCKS_REQUIRED"
+    ignored_attribute_macros: "PW_GUARDED_BY"
+  }
+}
+
+test_parser {
+  name: "protocpp"
+  protocpp {
+    include: "pw_rpc/**/*_test.cc"
+    exclude: "pw_rpc/fuzz/**"
+    # idl_prefix is inherited from project.idl_prefix ("pw").
+  }
+}
+
+doc_parser {
+  name: "rst"
+  rst {
+    include: "pw_rpc/**/*.rst"
+    code_block_languages: "cpp"
+    code_block_languages: "python"
+    code_block_languages: "proto"
+  }
+}
+
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "README.md"
+    include: "pw_rpc/README.md"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }
+analyzer { name: "missing-in-category" severity: WARNING
+  config { key: "alert_for_categories" string_value: "tests.unit_tests.pw_rpc" }
+}
+
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "tests"

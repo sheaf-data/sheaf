@@ -1,0 +1,51 @@
+// Source-map schema. On disk this file is conventionally named
+// `categorization-rules.textproto` at the project repo root. The
+// user-facing concept is the project's "source map" — a declaration
+// of which paths in the source tree produce which kind of evidence
+// (docs.reference, docs.concepts, tests.integration_tests,
+// examples, ...).
+
+syntax = "proto3";
+
+package sheaf.categorization.v1;
+
+option go_package = "github.com/sheaf-data/sheaf/proto/categorization";
+
+message Rules {
+  uint32 version = 1;
+  repeated Category category = 2;
+  repeated Ownership ownership = 3;
+}
+
+message Category {
+  // Dotted path matching the CoverageProfile field hierarchy.
+  // Examples: "tests.unit_tests", "docs.guide.migrations".
+  string dotted_path = 1;
+  repeated string paths = 2;
+  repeated string exclude_paths = 3;
+
+  // section_excludes / section_includes filter doc claims by the
+  // heading stack the claim sits under (see DocClaim.section_path).
+  // Matching is case-insensitive substring against any heading in
+  // the stack.
+  //
+  // - section_excludes: if any pattern matches any heading, the
+  //   category does NOT apply to this claim (even if its path matches).
+  // - section_includes: if non-empty, the category applies only when
+  //   at least one pattern matches at least one heading. If empty,
+  //   no include filter is applied.
+  //
+  // Filters are skipped entirely when the claim's section_path is
+  // empty (preamble text or a non-markdown source). Together these
+  // let a docs.concepts rule route README.md to concepts while
+  // excluding reference-shaped sections like `## Options`.
+  repeated string section_excludes = 4;
+  repeated string section_includes = 5;
+}
+
+message Ownership {
+  string category = 1;
+  string scope = 2;            // optional; exact-match library name
+  string owner = 3;
+  bool subscribe = 4;
+}

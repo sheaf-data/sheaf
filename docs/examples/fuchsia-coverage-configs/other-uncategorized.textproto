@@ -1,0 +1,54 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Other (uncategorized)" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.buttons/**/*.fidl"
+    include: "sdk/fidl/fuchsia.firebase.messaging/**/*.fidl"
+    include: "sdk/fidl/fuchsia.firmware.crash/**/*.fidl"
+    include: "sdk/fidl/fuchsia.gpu.agis/**/*.fidl"
+    include: "sdk/fidl/fuchsia.gpu.magma/**/*.fidl"
+    include: "sdk/fidl/fuchsia.gpu.virtio/**/*.fidl"
+    include: "sdk/fidl/fuchsia.legacymetrics/**/*.fidl"
+    include: "sdk/fidl/fuchsia.lightsensor/**/*.fidl"
+    include: "sdk/fidl/fuchsia.math/**/*.fidl"
+    include: "sdk/fidl/fuchsia.mem/**/*.fidl"
+    include: "sdk/fidl/fuchsia.migration/**/*.fidl"
+    include: "sdk/fidl/fuchsia.nand/**/*.fidl"
+    include: "sdk/fidl/fuchsia.opencl.loader/**/*.fidl"
+    include: "sdk/fidl/fuchsia.perfmon.cpu/**/*.fidl"
+    include: "sdk/fidl/fuchsia.sensors/**/*.fidl"
+    include: "sdk/fidl/fuchsia.sensors.types/**/*.fidl"
+    include: "sdk/fidl/fuchsia.stash/**/*.fidl"
+    include: "sdk/fidl/fuchsia.stresstest/**/*.fidl"
+    include: "sdk/fidl/fuchsia.terminal/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ultrasound/**/*.fidl"
+    include: "sdk/fidl/fuchsia.unknown/**/*.fidl"
+    include: "sdk/fidl/fuchsia.url/**/*.fidl"
+    include: "sdk/fidl/fuchsia.usb.policy/**/*.fidl"
+    include: "sdk/fidl/fuchsia.version/**/*.fidl"
+    include: "sdk/fidl/fuchsia.video/**/*.fidl"
+    include: "sdk/fidl/fuchsia.virtualaudio/**/*.fidl"
+    include: "sdk/fidl/fuchsia.virtualconsole/**/*.fidl"
+    include: "sdk/fidl/fuchsia.vsock/**/*.fidl"
+    include: "sdk/fidl/fuchsia.vulkan.loader/**/*.fidl"
+    include: "sdk/fidl/fuchsia.web/**/*.fidl"
+    include: "sdk/fidl/zbi/**/*.fidl"
+    include: "sdk/fidl/zx/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

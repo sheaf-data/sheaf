@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "helm-values": {
+      "additionalProperties": false,
+      "properties": {
+        "replicaCount": {
+          "$ref": "#/$defs/helm-values.replicaCount"
+        },
+        "image": {
+          "$ref": "#/$defs/helm-values.image"
+        },
+        "extraArgs": {
+          "$ref": "#/$defs/helm-values.extraArgs"
+        },
+        "undocumented": {
+          "$ref": "#/$defs/helm-values.undocumented"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.replicaCount": {
+      "default": 1,
+      "description": "The number of replicas of the controller to run. The default is 1, but in production set this to 2 or 3 for high availability.",
+      "type": "number"
+    },
+    "helm-values.image": {
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "$ref": "#/$defs/helm-values.image.repository"
+        },
+        "tag": {
+          "$ref": "#/$defs/helm-values.image.tag"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.image.repository": {
+      "default": "example/app",
+      "description": "The container image repository to deploy.",
+      "type": "string"
+    },
+    "helm-values.image.tag": {
+      "description": "Override the image tag to deploy. If unset, the chart appVersion is used.",
+      "type": "string"
+    },
+    "helm-values.extraArgs": {
+      "default": [],
+      "description": "Additional command line flags to pass to the binary.",
+      "items": {},
+      "type": "array"
+    },
+    "helm-values.undocumented": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "$ref": "#/$defs/helm-values",
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

@@ -1,0 +1,62 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Hardware · Display, GPU & Audio" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.hardware.amlogiccanvas/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.audio/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.audio.signalprocessing/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.backlight/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.display/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.display.engine/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.display.types/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.goldfish/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.goldfish.pipe/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.gpu.amlogic/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.gpu.mali/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.mediacodec/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.sysmem/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.virtio.pmem/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/graphics/display/**/*-test.cc"
+    include: "src/graphics/display/**/*-unittest.cc"
+    include: "src/graphics/display/**/*_test.cc"
+    include: "src/graphics/drivers/**/*-test.cc"
+    include: "src/graphics/drivers/**/*_test.cc"
+    include: "src/media/audio/drivers/**/*-test.cc"
+    include: "src/media/audio/drivers/**/*_test.cc"
+    include: "src/sysmem/server/**/*_test.cc"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/graphics/display/**/*.cc"
+  include: "src/graphics/display/**/*.h"
+  include: "src/graphics/drivers/**/*.cc"
+  include: "src/graphics/drivers/**/*.h"
+  include: "src/graphics/magma/**/*.cc"
+  include: "src/graphics/magma/**/*.h"
+  include: "src/media/audio/drivers/**/*.cc"
+  include: "src/media/audio/drivers/**/*.h"
+  include: "src/sysmem/server/**/*.cc"
+  include: "src/sysmem/server/**/*.h"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

@@ -1,0 +1,60 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Hardware · Block & Storage" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.hardware.block.driver/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.block.encrypted/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.block.verified/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.block.volume/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.nand/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.ramdisk/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.ufs/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.ufs.phy/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/devices/block/drivers/nvme/**/*-test.cc"
+    include: "src/devices/block/drivers/ufs/**/*-test.cc"
+    include: "src/devices/block/drivers/ftl/**/*-test.cc"
+    include: "src/devices/block/drivers/ftl/**/*_test.cc"
+    include: "src/devices/block/drivers/virtio/**/*_test.cc"
+    include: "src/devices/block/drivers/usb-mass-storage/**/*-test.cc"
+    include: "src/devices/nand/**/*-test.cc"
+    include: "src/devices/nand/**/*_test.cc"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/devices/block/drivers/core/**/*.cc"
+  include: "src/devices/block/drivers/core/**/*.h"
+  include: "src/devices/block/drivers/nvme/**/*.cc"
+  include: "src/devices/block/drivers/nvme/**/*.h"
+  include: "src/devices/block/drivers/ufs/**/*.cc"
+  include: "src/devices/block/drivers/ufs/**/*.h"
+  include: "src/devices/block/drivers/ftl/**/*.cc"
+  include: "src/devices/block/drivers/ftl/**/*.h"
+  include: "src/devices/block/drivers/virtio/**/*.cc"
+  include: "src/devices/block/drivers/virtio/**/*.h"
+  include: "src/devices/block/drivers/usb-mass-storage/**/*.cc"
+  include: "src/devices/block/drivers/usb-mass-storage/**/*.h"
+  include: "src/devices/nand/**/*.cc"
+  include: "src/devices/nand/**/*.h"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

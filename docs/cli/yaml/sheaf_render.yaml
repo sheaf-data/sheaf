@@ -1,0 +1,64 @@
+command: sheaf render
+short: Render an HTML report from a saved Snapshot JSON (in-process; no server).
+long: |
+  Loads a previously-saved Snapshot JSON (the shape `sheaf snapshot` and the
+  MCP server's library_snapshot op emit) and renders the canonical
+  self-contained HTML report from it, entirely in-process — no server connect,
+  no rescan. It is the in-binary replacement for `scanner --from-snapshot`,
+  sharing the exact same core so the two paths cannot diverge.
+
+  When --repo-root points at a real git working tree, the report's Lag section
+  is computed and rendered — the headline reason to render a snapshot against a
+  checkout rather than the bare snapshot alone.
+usage: sheaf render --from-snapshot path [--ecosystem id] [--repo-root path] [--header-style style] [-o path]
+pname: sheaf
+plink: sheaf.yaml
+options:
+  - option: from-snapshot
+    value_type: string
+    default_value: ""
+    description: Path to a Snapshot JSON (e.g. from `sheaf snapshot --out`). Rendered directly, no server. Required.
+  - option: library
+    value_type: string
+    default_value: ""
+    description: Library label for the report. Defaults to the snapshot's own library field.
+  - option: ecosystem
+    value_type: string
+    default_value: "fidl"
+    description: Ecosystem id (rendering shape) — fidl | cli | proto | cpp | openapi | ...
+  - option: api-level
+    value_type: string
+    default_value: "HEAD"
+    description: Target API level for removed-in-the-past detection. Numeric (e.g. 27), HEAD (dev tip), or NEXT.
+  - option: output
+    value_type: string
+    default_value: ""
+    description: Output HTML path (alias -o; default <library>-report.html in the cwd).
+  - option: quiet
+    value_type: bool
+    default_value: "false"
+    description: Suppress chatty progress output.
+  - option: source-url-template
+    value_type: string
+    default_value: ""
+    description: URL pattern turning path:line labels into links. Placeholders {path}, {abs_path}, {line}.
+  - option: repo-root
+    value_type: string
+    default_value: ""
+    description: Absolute path of the scanned repo root. Required for {abs_path} links; enables the Lag section when it points at a git working tree.
+  - option: header-style
+    value_type: string
+    default_value: "full"
+    description: Masthead layout — full (5-KPI numtable), hero (single % bridged tile), or minimal (one-line strip, no tiles).
+  - option: commit
+    value_type: string
+    default_value: ""
+    description: Optional short git hash of the scanned repo, rendered in the minimal/hero header strip.
+  - option: concept-docs-href
+    value_type: string
+    default_value: ""
+    description: Relative href to this library's Concept Docs report; when set, the coverage report's concept-doc reach line links to it.
+  - option: mock-overlap
+    value_type: bool
+    default_value: "false"
+    description: For design iteration only — replace the Overlap (UpSet) row data with a richer fictional set.

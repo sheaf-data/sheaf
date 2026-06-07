@@ -1,0 +1,57 @@
+# Config used to produce docs/examples/fuchsia-io-coverage/
+# Scope: fuchsia.io FIDL + vfs C++ test corpus + implements-map bridge.
+
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — fuchsia.io" }
+
+scope {
+  library: "fuchsia.io"
+  also_include: "fuchsia.unknown"
+}
+
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/storage/lib/vfs/cpp/**/*_test.cc"
+    include: "src/storage/lib/vfs/cpp/**/*_tests.cc"
+  }
+}
+
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/storage/lib/vfs/cpp/**/*.h"
+  include: "src/storage/lib/vfs/cpp/**/*.cc"
+}
+
+analyzer { name: "missing-in-category" severity: WARNING
+  config { key: "alert_for_categories" string_value: "tests.unit_tests" }
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+
+# FIDL element coverage is computed against
+# {docs.reference, docs.concepts, examples, implementations} — NOT
+# tests. Tests of impl classes (DirectoryConnection, FileConnection,
+# NodeConnection) attribute to the impl element directly; the FIDL
+# protocols render their IMPLEMENTS edges via the `implementations`
+# surface.
+#
+# fuchsia.io ships a real conformance test suite at
+# src/storage/conformance/ that genuinely exercises the protocol
+# contract through generated bindings. Once the v2 conformance
+# rendering ships, this config can opt in via:
+#   conformance_test_globs: "src/storage/conformance/**/*_test.cc"
+# v1 ships without that knob populated; the implementations surface
+# is the load-bearing addition.
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "implementations"

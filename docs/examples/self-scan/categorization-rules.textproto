@@ -1,0 +1,45 @@
+# Source map (categorization-rules.textproto) — sheaf dogfooding itself.
+#
+# Buckets the sheaf CLI surface by the conceptual family the
+# subcommand belongs to: lifecycle (init / doctor / version),
+# pipeline (scan / gaps / coverage / report), serve (serve / review).
+# YAML filenames and markdown filenames both follow the same
+# sheaf_<sub>.{yaml,md} convention, so one path pattern matches both
+# ingest paths.
+
+version: 1
+
+category { dotted_path: "docs.reference" }
+
+# Lifecycle: bring a project online, validate, identify the binary.
+category {
+  dotted_path: "subcommands.lifecycle"
+  paths: "**/sheaf_init*"
+  paths: "**/sheaf_doctor*"
+  paths: "**/sheaf_version*"
+}
+
+# Pipeline: scan a project, list gaps, drill into a profile, dump
+# bulk reports.
+category {
+  dotted_path: "subcommands.pipeline"
+  paths: "**/sheaf_scan*"
+  paths: "**/sheaf_gaps*"
+  paths: "**/sheaf_coverage*"
+  paths: "**/sheaf_report*"
+}
+
+# Long-running: persistent MCP server + PR review delivery.
+category {
+  dotted_path: "subcommands.serve"
+  paths: "**/sheaf_serve*"
+  paths: "**/sheaf_review*"
+}
+
+# Root command holds no flags itself; bucket it separately so a
+# single oversized row never skews per-family coverage.
+category {
+  dotted_path: "subcommands.global"
+  paths: "**/sheaf.yaml"
+  paths: "**/sheaf.md"
+}

@@ -1,0 +1,6 @@
+pw_facade("system_clock") {
+  backend = pw_chrono_SYSTEM_CLOCK_BACKEND
+  public = [
+    "public/pw_chrono/system_clock.h",
+  ]
+}

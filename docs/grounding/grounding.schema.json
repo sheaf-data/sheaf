@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sheaf-data.github.io/schema/grounding-1.json",
+  "title": "Sheaf Grounding surface payload",
+  "description": "FROZEN CONTRACT between the Grounding backend detector and the report UI. One payload per library. The UI renders this; the detector emits this. Three-state model: grounded / guessing / ungrounded (full / partial / no grounding signal a doc gives a coding agent). Mechanical, deterministic; model_stamp is null unless an AI tier contributed.",
+  "type": "object",
+  "required": ["schema_version", "surface", "library", "summary", "display_map", "elements", "findings"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "surface": { "type": "string", "const": "grounding" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "model_stamp": {
+      "description": "null for a purely mechanical run (reproducible). Set only if an AI tier contributed any finding.",
+      "type": ["object", "null"],
+      "properties": { "model": { "type": "string" }, "version": { "type": "string" }, "run_at": { "type": "string" } }
+    },
+    "repo": { "type": "string" },
+    "commit": { "type": "string" },
+    "library": { "type": "string" },
+    "library_display": { "type": "string" },
+
+    "summary": {
+      "type": "object",
+      "required": ["elements_total", "elements_mentioned", "references_total", "forces_a_guess"],
+      "additionalProperties": true,
+      "properties": {
+        "elements_total":        { "type": "integer", "minimum": 0 },
+        "elements_mentioned":    { "type": "integer", "minimum": 0, "description": "referenced at least once in concept docs" },
+        "elements_not_mentioned":{ "type": "integer", "minimum": 0, "description": "no concept-doc reference at all — a coverage gap, NOT an ungrounded finding" },
+        "elements_grounded":     { "type": "integer", "minimum": 0, "description": "best per-element state is grounded" },
+        "elements_guessing":     { "type": "integer", "minimum": 0 },
+        "elements_ungrounded":   { "type": "integer", "minimum": 0 },
+        "references_total":      { "type": "integer", "minimum": 0 },
+        "references_grounded":   { "type": "integer", "minimum": 0 },
+        "references_guessing":   { "type": "integer", "minimum": 0 },
+        "references_ungrounded": { "type": "integer", "minimum": 0 },
+        "forces_a_guess":        { "type": "integer", "minimum": 0, "description": "guessing + ungrounded references — the cold-stranger headline number" },
+        "headline":              { "type": "string", "description": "prebuilt headline sentence for the masthead" }
+      }
+    },
+
+    "display_map": {
+      "description": "state -> presentation. label = vivid framing-copy word; working_label = parallel-participle for terse working surfaces (bar/chips/header), per the brand voice-split; lighthouse = pass/needs-work/fail; glyph = non-color signal; tone = color family.",
+      "type": "object",
+      "required": ["grounded", "guessing", "ungrounded"],
+      "properties": {
+        "grounded":   { "$ref": "#/$defs/stateStyle" },
+        "guessing":   { "$ref": "#/$defs/stateStyle" },
+        "ungrounded": { "$ref": "#/$defs/stateStyle" }
+      }
+    },
+
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["element_id", "display", "state", "mentioned", "ref_counts"],
+        "additionalProperties": true,
+        "properties": {
+          "element_id": { "type": "string" },
+          "display":    { "type": "string" },
+          "kind":       { "type": "string", "description": "PROTOCOL | METHOD | TYPE | ... (mirrors contract kind)" },
+          "state":      { "$ref": "#/$defs/elementState" },
+          "mentioned":  { "type": "boolean" },
+          "ref_counts": {
+            "type": "object",
+            "required": ["grounded", "guessing", "ungrounded"],
+            "properties": {
+              "grounded":   { "type": "integer", "minimum": 0 },
+              "guessing":   { "type": "integer", "minimum": 0 },
+              "ungrounded": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "finding_ids": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+
+    "findings": {
+      "description": "One per detected reference (mention of a word colliding with a contract element). The atom of the UI — the finding card.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "element_id", "state", "source_path", "line", "excerpt", "token", "candidates", "checked", "provenance"],
+        "additionalProperties": true,
+        "properties": {
+          "id":              { "type": "string" },
+          "element_id":      { "type": "string" },
+          "element_display": { "type": "string" },
+          "state":           { "$ref": "#/$defs/findingState" },
+          "source_path":     { "type": "string" },
+          "line":            { "type": "integer", "minimum": 1 },
+          "section_path":    { "type": "array", "items": { "type": "string" }, "description": "H1/H2/H3 heading stack at the mention" },
+          "excerpt":         { "type": "string", "description": "the sentence, verbatim — render as a pull-quote in the doc's register" },
+          "token":           { "type": "string", "description": "the colliding surface word" },
+          "token_span":      { "type": "object", "properties": { "start": { "type": "integer", "minimum": 0 }, "len": { "type": "integer", "minimum": 1 } }, "description": "offset+len of token within excerpt, for highlight" },
+          "candidates":      { "type": "array", "items": { "$ref": "#/$defs/candidate" }, "description": "the 'Could mean ->' set; set the contract candidate in mono, the english gloss in italic — type contrast, no equal-weight pipe" },
+          "competing_contract_refs": { "type": "integer", "minimum": 0, "description": "# of plausible CONTRACT referents — the blast-radius / ranking signal" },
+          "checked":         { "type": "array", "items": { "$ref": "#/$defs/checkedAnchor" }, "description": "the 'Sheaf checked ...' audit trail — render as a checklist, this is what Jules audits" },
+          "fix":             { "anyOf": [ { "$ref": "#/$defs/fix" }, { "type": "null" } ], "description": "null for grounded findings (no fix needed)" },
+          "severity":        { "type": "number", "minimum": 0, "maximum": 1, "description": "worklist rank: state + competing_contract_refs + load-bearing-ness; a high-ambiguity Guess can outrank a flat Ungrounded" },
+          "provenance":      { "$ref": "#/$defs/provenance" }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "elementState":  { "type": "string", "enum": ["grounded", "guessing", "ungrounded", "not_mentioned"] },
+    "findingState":  { "type": "string", "enum": ["grounded", "guessing", "ungrounded"] },
+    "stateStyle": {
+      "type": "object",
+      "required": ["label", "working_label", "lighthouse", "glyph", "tone"],
+      "properties": {
+        "label":         { "type": "string" },
+        "working_label": { "type": "string" },
+        "lighthouse":    { "type": "string", "enum": ["pass", "needs-work", "fail"] },
+        "glyph":         { "type": "string" },
+        "tone":          { "type": "string", "enum": ["green", "amber", "red"] },
+        "blurb":         { "type": "string" }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["label", "is_contract"],
+      "properties": {
+        "element_id":  { "type": ["string", "null"] },
+        "label":       { "type": "string" },
+        "kind":        { "type": "string", "enum": ["contract", "english", "other"] },
+        "is_contract": { "type": "boolean" }
+      }
+    },
+    "checkedAnchor": {
+      "type": "object",
+      "required": ["anchor", "found"],
+      "properties": {
+        "anchor": { "type": "string", "enum": ["page_title", "heading", "first_use", "defined_term", "qualified_mention", "link"] },
+        "found":  { "type": "boolean" },
+        "detail": { "type": ["string", "null"] }
+      }
+    },
+    "fix": {
+      "type": "object",
+      "properties": {
+        "kind":       { "type": "string", "enum": ["link_first_use", "define_term", "qualify"] },
+        "suggestion": { "type": "string" },
+        "markdown":   { "type": "string" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["tier"],
+      "properties": {
+        "tier":            { "type": "string", "enum": ["mechanical", "llm", "hybrid"], "description": "Grounding is mechanical -> the solid ● badge" },
+        "adapter":         { "type": "string" },
+        "adapter_version": { "type": "string" }
+      }
+    }
+  }
+}

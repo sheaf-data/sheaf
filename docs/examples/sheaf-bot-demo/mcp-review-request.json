@@ -1,0 +1,11 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "review_pr",
+  "params": {
+    "pr_ref": "github:example/widgets#44",
+    "base_path": "/abs/path/to/sheaf-bot-demo/base",
+    "head_path": "/abs/path/to/sheaf-bot-demo/head",
+    "post": false
+  }
+}

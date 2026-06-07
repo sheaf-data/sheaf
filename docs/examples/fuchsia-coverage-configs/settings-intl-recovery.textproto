@@ -1,0 +1,67 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Settings, Intl & Recovery" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.acpi.chromeos/**/*.fidl"
+    include: "sdk/fidl/fuchsia.acpi.tables/**/*.fidl"
+    include: "sdk/fidl/fuchsia.buildinfo/**/*.fidl"
+    include: "sdk/fidl/fuchsia.buildinfo.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.factory/**/*.fidl"
+    include: "sdk/fidl/fuchsia.factory.lowpan/**/*.fidl"
+    include: "sdk/fidl/fuchsia.factory.wlan/**/*.fidl"
+    include: "sdk/fidl/fuchsia.fonts/**/*.fidl"
+    include: "sdk/fidl/fuchsia.fonts.experimental/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hwinfo/**/*.fidl"
+    include: "sdk/fidl/fuchsia.intl/**/*.fidl"
+    include: "sdk/fidl/fuchsia.recovery/**/*.fidl"
+    include: "sdk/fidl/fuchsia.recovery.android/**/*.fidl"
+    include: "sdk/fidl/fuchsia.recovery.policy/**/*.fidl"
+    include: "sdk/fidl/fuchsia.recovery.ui/**/*.fidl"
+    include: "sdk/fidl/fuchsia.settings/**/*.fidl"
+    include: "sdk/fidl/fuchsia.settings.policy/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/recovery/**/*_unittest.cc"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/settings/service/**/*.rs"
+    include: "src/fonts/**/*.rs"
+    include: "src/recovery/**/*.rs"
+    include: "src/hwinfo/**/*.rs"
+    include: "src/factory/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/settings/service/**/*.rs"
+  include: "src/intl/**/*.cc"
+  include: "src/intl/**/*.rs"
+  include: "src/fonts/**/*.rs"
+  include: "src/recovery/**/*.rs"
+  include: "src/recovery/**/*.cc"
+  include: "src/recovery/**/*.h"
+  include: "src/hwinfo/**/*.rs"
+  include: "src/factory/**/*.rs"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

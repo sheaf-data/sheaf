@@ -1,0 +1,54 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Drivers & Framework" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fdf/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.compat/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.crash/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.development/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.framework/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.host/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.index/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.loader/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.metadata/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.playground/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.registrar/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.test.logger/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.token/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/devices/bin/driver_manager/**/*_test.cc"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/devices/bin/driver_manager_rust/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/devices/bin/driver_manager/**/*.cc"
+  include: "src/devices/bin/driver_manager/**/*.h"
+  include: "src/devices/bin/driver_manager_rust/**/*.rs"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

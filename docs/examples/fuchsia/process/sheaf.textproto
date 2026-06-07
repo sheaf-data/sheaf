@@ -1,0 +1,9 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — fuchsia.process" }
+scope { library: "fuchsia.process" }
+contract_anchor {
+  name: "fidl"
+  fidl { include: "sdk/fidl/**/*.fidl" exclude: "sdk/fidl/**/test/**" }
+}
+analyzer { name: "thin-reference" severity: WARNING }
+surfaces_required: "docs.reference"

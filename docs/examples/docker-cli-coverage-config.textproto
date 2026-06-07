@@ -1,0 +1,73 @@
+# Sheaf config for scanning the docker CLI.
+#
+# Joins the cobra-derived contract surface (from docker/cli's
+# `make yamldocs` output) against the docker.com reference markdown
+# bundle. This gives one row of coverage per docker subcommand and
+# per flag.
+#
+# Prereqs (one-time, in a checkout of docker/cli):
+#   bash scripts/docs/generate-yaml.sh
+#
+# That writes per-subcommand YAML files to docker/cli/docs/yaml/.
+# Point cobra.yaml_dir at that directory. (The Makefile's
+# `make yamldocs` target wraps the same script in a docker run; the
+# script-direct path avoids needing a docker daemon.)
+#
+# The reference markdown lives in docker/cli's source tree at
+# docs/reference/commandline/*.md — one file per subcommand.
+
+version: 1
+project {
+  name: "docker"
+  display_name: "Docker CLI"
+  homepage: "https://docs.docker.com/reference/cli/"
+}
+
+scope {
+  library: "docker"
+}
+
+contract_anchor {
+  name: "cobra"
+  cobra {
+    yaml_dir: "docs/yaml"
+    binary_name: "docker"
+    include: "**/*.yaml"
+  }
+}
+
+rendered_reference {
+  name: "markdowncli"
+  markdowncli {
+    docs_dir: "docs/reference/commandline"
+    url_base: "https://docs.docker.com/reference/cli/"
+    binary_name: "docker"
+    include: "**/*.md"
+    # Skip the global index file; per-subcommand files only.
+    exclude: "index.md"
+    # Docker's options table uses the default layout (Name first,
+    # Description last, with the docker MARKER_GEN templating). Other
+    # CLIs may need an options_table { ... } block to override.
+  }
+}
+
+test_parser {
+  name: "gotest"
+  gotest {
+    include: "**/*_test.go"
+    # docker/cli vendors deps under vendor/; skip those plus the
+    # generated client code that has its own test corpus.
+    exclude: "vendor/**"
+    exclude: ".git/**"
+    # Enables the cobra-invocation extractor: scans test bodies for
+    # exec.Command("docker", ...), cmd.SetArgs([]string{...}), and
+    # args/flags struct-literal fields, pre-populating ContractRefs
+    # so the indexer's Strategy 1 catches subprocess- and arg-slice-
+    # driven flag tests that name-token overlap would miss.
+    binary_name: "docker"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }

@@ -1,0 +1,45 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Telephony & Weave" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.overnet.protocol/**/*.fidl"
+    include: "sdk/fidl/fuchsia.telephony.manager/**/*.fidl"
+    include: "sdk/fidl/fuchsia.telephony.ril/**/*.fidl"
+    include: "sdk/fidl/fuchsia.telephony.snoop/**/*.fidl"
+    include: "sdk/fidl/fuchsia.weave/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/connectivity/weave/weavestack/**/*_test.cc"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/connectivity/overnet/lib/core/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/connectivity/weave/weavestack/**/*.cc"
+  include: "src/connectivity/weave/weavestack/**/*.h"
+  include: "src/connectivity/overnet/lib/core/**/*.rs"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

@@ -1,0 +1,19 @@
+command: sheaf doctor
+short: Diagnose configuration and adapter health.
+long: |
+  Validates sheaf.textproto and categorization-rules.textproto, walks
+  every configured adapter, and probes the LLM embedder. Use before the
+  first scan on a new project, or whenever a scan starts producing
+  surprising output.
+usage: sheaf doctor [--config path] [--repo path]
+pname: sheaf
+plink: sheaf.yaml
+options:
+  - option: config
+    value_type: string
+    default_value: ""
+    description: Path to sheaf.textproto (default <repo>/sheaf.textproto).
+  - option: repo
+    value_type: string
+    default_value: "."
+    description: Path to the project repo root.

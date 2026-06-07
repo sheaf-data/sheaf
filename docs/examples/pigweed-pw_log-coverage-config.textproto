@@ -1,0 +1,121 @@
+# Sheaf config for Pigweed pw_log — the C++ public API of the
+# structured-logging module. The contract surface here is dominated by
+# MACROS: PW_LOG, PW_LOG_DEBUG, PW_LOG_INFO, PW_LOG_WARN, PW_LOG_ERROR,
+# PW_LOG_CRITICAL, and the tokenization/format helpers. That is the
+# real user-facing API — emit_macros is essential for this module.
+#
+# pw_log is a Pigweed facade (its BUILD.gn declares pw_facade); the
+# backend modules (pw_log_basic, pw_log_tokenized, pw_log_null, …)
+# implement it. This report links them: the build_graph{pw_facade{}}
+# recognizer identifies the backends, and the facade post-pass emits
+# IMPLEMENTS edges from each backend's PW_HANDLE_LOG handler macro to the
+# facade's PW_LOG macro (Pigweed's PW_HANDLE_<X> -> PW_<X> convention).
+# Render with --library "pw_log,pw_log_basic,pw_log_tokenized,..." to roll
+# the facade + backends into one report (see scripts/regen-example-reports.sh).
+#
+# To run:
+#   sheaf serve --config docs/examples/pigweed-pw_log-coverage-config.textproto \
+#               --repo /Volumes/T7/pigweed --port 7790 &
+#   scanner --server http://127.0.0.1:7790 --ecosystem cpp \
+#           --library pw_log -o example-reports/pigweed-pw_log.html
+#   kill %1
+
+version: 1
+project {
+  name: "pigweed-pw_log"
+  display_name: "Pigweed pw_log — C++ API"
+  homepage: "https://pigweed.dev/pw_log/"
+  idl_prefix: "pw"
+  noisy_words: "log"
+  noisy_words: "level"
+  noisy_words: "message"
+  noisy_words: "module"
+  noisy_words: "flags"
+  noisy_words: "token"
+}
+
+scope {
+  library: "pw_log"
+  # Backend modules whose public headers implement the pw_log facade.
+  # Without these, libraryInScope drops backend elements (their library
+  # slug is pw_log_basic / pw_log_tokenized / …, not pw_log) and the
+  # facade post-pass has nothing to attach IMPLEMENTS edges to.
+  also_include: "pw_log_basic"
+  also_include: "pw_log_tokenized"
+  also_include: "pw_log_string"
+  also_include: "pw_log_null"
+}
+
+# Build-graph: parse the pw_facade()/pw_source_set() declarations across
+# the pw_log facade and its backend modules so RunFacadePass can emit
+# facade->backend IMPLEMENTS edges.
+build_graph {
+  pw_facade {
+    include: "pw_log*/BUILD.gn"
+  }
+}
+
+contract_anchor {
+  name: "cppheader"
+  cpp_header {
+    # The pw_log facade's own public headers ...
+    include: "pw_log/public/**/*.h"
+    # ... plus the backend modules' public headers, so their elements
+    # exist as IMPLEMENTS sources for the facade post-pass. Backend
+    # elements land in libraries pw_log_basic / pw_log_tokenized / etc.
+    # (the cppheader library is the path segment after public/).
+    include: "pw_log_basic/public/**/*.h"
+    include: "pw_log_tokenized/public/**/*.h"
+    include: "pw_log_string/public/**/*.h"
+    include: "pw_log_null/public/**/*.h"
+    # The PW_LOG_* macros ARE the pw_log API — must emit them.
+    emit_macros: true
+    ignored_attribute_macros: "PW_PRINTF_FORMAT"
+  }
+}
+
+test_parser {
+  name: "protocpp"
+  protocpp {
+    # pw_log's own unit tests, the service tests in the sibling
+    # pw_log_rpc module, and the backend modules' tests (so the backend
+    # elements rolled into this report are not shown as untested).
+    include: "pw_log/**/*_test.cc"
+    include: "pw_log_rpc/**/*_test.cc"
+    include: "pw_log_basic/**/*_test.cc"
+    include: "pw_log_tokenized/**/*_test.cc"
+    include: "pw_log_string/**/*_test.cc"
+    include: "pw_log_null/**/*_test.cc"
+    # idl_prefix is inherited from project.idl_prefix ("pw").
+  }
+}
+
+doc_parser {
+  name: "rst"
+  rst {
+    include: "pw_log/**/*.rst"
+    include: "pw_log_rpc/**/*.rst"
+    code_block_languages: "cpp"
+    code_block_languages: "python"
+  }
+}
+
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "README.md"
+    include: "pw_log/README.md"
+    include: "pw_log_rpc/README.md"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }
+analyzer { name: "missing-in-category" severity: WARNING
+  config { key: "alert_for_categories" string_value: "tests.unit_tests.pw_log" }
+}
+
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "tests"

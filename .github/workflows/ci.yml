@@ -1,0 +1,74 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: go build
+        run: go build ./...
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files are not gofmt-formatted; run 'gofmt -w .':"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.8
+          # Build golangci-lint from source with this job's Go toolchain.
+          # The prebuilt v1.64.8 binary is built with Go 1.24, and
+          # golangci-lint refuses to run when its build-Go is older than
+          # the module's targeted Go (go.mod is go 1.26.2). goinstall
+          # compiles it against go.mod's toolchain, so build-Go == target.
+          install-mode: goinstall
+          args: --timeout=5m
+
+  # Stage 2 (sheaf-ci-requirements.md §4): the test gate. Lands now that
+  # B3 has greened the suite — `go test ./... -race -count=1` (including
+  # utils/scanner/inprocess_test.go, which guards the sheaf-self.html
+  # golden) passes on this branch, so this job is blocking from its first
+  # run, not continue-on-error.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: go test
+        run: go test ./... -race -count=1

@@ -1,0 +1,113 @@
+# Source map for the envoy coverage scan.
+#
+# Declares which paths in envoy's source tree produce which kind of
+# evidence — buckets each TestCase / DocClaim into a dotted
+# CoverageProfile path the report layer renders as columns. Sheaf
+# falls back to tests.unit_tests for everything not matched, so we
+# only need to call out the broad subtrees we want to read as
+# distinct columns.
+
+version: 1
+
+# ----------------------------------------------------------------
+# Test buckets — keyed by path relative to repo root.
+# ----------------------------------------------------------------
+
+category {
+  dotted_path: "tests.unit_tests"
+  paths: "test/extensions/**"
+  paths: "test/common/**"
+  paths: "test/server/**"
+  paths: "test/exe/**"
+}
+
+category {
+  dotted_path: "tests.integration_tests"
+  paths: "test/integration/**"
+}
+
+category {
+  dotted_path: "tests.mocks"
+  paths: "test/mocks/**"
+}
+
+category {
+  dotted_path: "tests.fuzz"
+  paths: "test/**/*_fuzz_test.cc"
+  paths: "test/fuzz/**"
+}
+
+category {
+  dotted_path: "tests.benchmark"
+  paths: "test/benchmark/**"
+  paths: "test/**/*_benchmark_test.cc"
+}
+
+# ----------------------------------------------------------------
+# Doc buckets — envoy keeps user-facing docs in docs/root/ as
+# reStructuredText (sphinx). The rst adapter walks that tree; the
+# markdown adapter picks up the repo-root governance/dev docs and the
+# per-package conceptual READMEs under api/.
+#
+# A surface declared without `paths` is reserved for adapter-populated
+# claims (e.g. EXAMPLE-kind claims emitted from rst code-block
+# directives → examples; rendered-reference adapters → docs.reference).
+# ----------------------------------------------------------------
+
+category {
+  dotted_path: "docs.concepts"
+  # Repo-root dev/contribution/governance prose. README.md is the
+  # high-level concept doc; CONTRIBUTING / GOVERNANCE / DEVELOPER /
+  # STYLE / REPO_LAYOUT describe the operating model an integrator
+  # needs.
+  paths: "README.md"
+  paths: "CONTRIBUTING.md"
+  paths: "GOVERNANCE.md"
+  paths: "DEVELOPER.md"
+  paths: "STYLE.md"
+  paths: "REPO_LAYOUT.md"
+  paths: "docs/README.md"
+  # Per-package conceptual READMEs alongside each api/ subtree —
+  # e.g. api/envoy/service/discovery/v3/README.md.
+  paths: "api/**/README.md"
+  # Narrative chapters under docs/root/ — protocol intro, configuration
+  # walkthroughs, architecture overviews.
+  paths: "docs/root/intro/**/*.rst"
+  paths: "docs/root/configuration/**/*.rst"
+}
+
+category {
+  dotted_path: "docs.reference"
+  # The xDS reference tree. One .rst per envoy.* package, generated
+  # from the proto comments — what an integrator reads to learn a
+  # specific message / RPC.
+  paths: "docs/root/api-v3/**/*.rst"
+}
+
+category {
+  dotted_path: "docs.tutorial"
+  paths: "docs/root/start/**/*.rst"
+}
+
+category {
+  dotted_path: "docs.faq"
+  paths: "docs/root/faq/**/*.rst"
+}
+
+category {
+  dotted_path: "docs.guide.troubleshooting"
+  paths: "docs/root/operations/**/*.rst"
+}
+
+category {
+  dotted_path: "docs.release_notes"
+  paths: "DEPRECATED.md"
+  paths: "BACKPORTS.md"
+  paths: "RELEASES.md"
+  # changelogs/**/*.yaml is the per-version changelog corpus; routing
+  # it would require a yaml-changelog adapter (v2 follow-up).
+}
+
+# examples — populated by the rst adapter's EXAMPLE-kind claims from
+# .. code-block:: yaml / proto / json / cpp blocks under docs/root/.
+category { dotted_path: "examples" }

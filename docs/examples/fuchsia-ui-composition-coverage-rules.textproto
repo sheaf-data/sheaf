@@ -1,0 +1,13 @@
+# Source map used to produce example-reports/fuchsia-ui-composition.html
+
+version: 1
+
+category { dotted_path: "docs.reference" }
+
+category {
+  dotted_path: "tests.unit_tests"
+  paths: "src/ui/scenic/lib/flatland/**/*_unittest.cc"
+  paths: "src/ui/scenic/lib/flatland/**/*_test.cc"
+  paths: "src/ui/scenic/tests/**/*_unittest.cc"
+  paths: "src/ui/scenic/tests/**/*_test.cc"
+}

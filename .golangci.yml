@@ -1,0 +1,15 @@
+# .golangci.yml — v1 baseline.
+# Conservative, bug-finding set; expand deliberately. gofmt/goimports are
+# intentionally left to the dedicated gofmt step in .github/workflows/ci.yml.
+run:
+  timeout: 5m
+linters:
+  enable:
+    - errcheck      # unchecked errors
+    - govet         # redundant with the vet step but keeps lint self-contained
+    - ineffassign   # ineffectual assignments
+    - staticcheck   # the high-value bug finder
+    - unused        # dead code
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

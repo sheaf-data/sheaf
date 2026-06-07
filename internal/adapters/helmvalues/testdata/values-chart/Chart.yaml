@@ -1,0 +1,5 @@
+apiVersion: v2
+name: values-demo
+description: A trimmed fixture chart with helm-docs comments and no schema
+version: 0.1.0
+appVersion: "1.0.0"

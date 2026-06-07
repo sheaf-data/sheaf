@@ -1,0 +1,24 @@
+command: sheaf scan
+short: Run the scan pipeline against a project and print a summary.
+long: |
+  Loads sheaf.textproto, dispatches every configured contract-anchor,
+  test-parser, doc-parser, rendered-reference, and implements-map
+  adapter, builds the cross-reference index, runs every enabled
+  analyzer, and prints a per-stage timing summary plus a per-finding-kind
+  histogram. The workhorse subcommand.
+usage: sheaf scan [--config path] [--repo path] [--quiet]
+pname: sheaf
+plink: sheaf.yaml
+options:
+  - option: config
+    value_type: string
+    default_value: ""
+    description: Path to sheaf.textproto (default <repo>/sheaf.textproto).
+  - option: repo
+    value_type: string
+    default_value: "."
+    description: Path to the project repo root.
+  - option: quiet
+    value_type: bool
+    default_value: "false"
+    description: Suppress per-adapter detail in output.

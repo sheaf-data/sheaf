@@ -1,0 +1,19 @@
+version: 1
+project { name: "REPLACE_ME" }
+
+scope { library: "REPLACE_ME" closure { mode: STRICT } }
+
+contract_anchor {
+  name: "argh"
+  argh { crate_roots: "src" }
+}
+
+test_parser { name: "rust-test" rust_test { include: "src/**/*.rs" } }
+doc_parser  { name: "markdown"  markdown  { include: "docs/**/*.md" } }
+
+analyzer { name: "missing-in-category" severity: WARNING
+  config { key: "alert_for_categories" string_value: "tests.unit_tests" }
+}
+
+mcp_server { bind: "127.0.0.1" port: 7700 cache_ttl_seconds: 3600 }
+cache      { store: "filesystem" filesystem { path: "~/.sheaf/cache" } }

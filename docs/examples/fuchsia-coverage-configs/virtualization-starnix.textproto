@@ -1,0 +1,48 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Virtualization & Starnix" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.starnix.binder/**/*.fidl"
+    include: "sdk/fidl/fuchsia.starnix.container/**/*.fidl"
+    include: "sdk/fidl/fuchsia.starnix.gralloc/**/*.fidl"
+    include: "sdk/fidl/fuchsia.starnix.psi/**/*.fidl"
+    include: "sdk/fidl/fuchsia.starnix.runner/**/*.fidl"
+    include: "sdk/fidl/fuchsia.virtualization/**/*.fidl"
+    include: "sdk/fidl/fuchsia.virtualization.hardware/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/virtualization/bin/vmm/**/*_test.cc"
+    include: "src/virtualization/bin/vmm/**/*_unittest.cc"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/starnix/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/starnix/**/*.rs"
+  include: "src/virtualization/bin/vmm/**/*.cc"
+  include: "src/virtualization/bin/vmm/**/*.h"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

@@ -1,0 +1,7 @@
+command: sheaf
+short: Sheaf — contract-coverage analysis.
+long: |
+  Sheaf finds the gaps between your contracts (APIs, CLIs), tests, docs,
+  and examples. The top-level binary dispatches to scan / doctor / serve /
+  report / gaps / coverage / review / init / version subcommands.
+usage: sheaf <command> [options]

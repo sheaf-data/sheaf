@@ -1,0 +1,28 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Cast" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.castauth/**/*.fidl"
+    include: "sdk/fidl/fuchsia.castconfig/**/*.fidl"
+    include: "sdk/fidl/fuchsia.castremotecontrol/**/*.fidl"
+    include: "sdk/fidl/fuchsia.castsetup/**/*.fidl"
+    include: "sdk/fidl/fuchsia.castsysteminfo/**/*.fidl"
+    include: "sdk/fidl/fuchsia.castwindow/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

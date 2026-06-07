@@ -1,0 +1,11 @@
+# Non-Pigweed BUILD.gn — no pw_facade or pw_source_set declarations.
+
+source_set("foo") {
+  sources = [ "foo.cc" ]
+  public = [ "foo.h" ]
+}
+
+executable("foo_bin") {
+  sources = [ "main.cc" ]
+  deps = [ ":foo" ]
+}

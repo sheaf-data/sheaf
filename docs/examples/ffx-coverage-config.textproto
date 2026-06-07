@@ -1,0 +1,179 @@
+# Sheaf config for scanning Fuchsia's `ffx` developer CLI.
+#
+# ffx is a host tool with a plugin/subtool model and ~680 commands. Its
+# leaf subcommands are mostly `argh` enum variants packed into shared
+# args.rs files, so a source-walking anchor (argh) sees only ~27% of the
+# surface. The authoritative, complete surface is ffx's checked-in CLI
+# goldens (tests/cli-goldens/goldens/**/*.golden — one CliArgsInfo JSON per
+# command, diffed in CI). scripts/gen-ffx-coverage-inputs.py turns those
+# into cobra-schema YAML (one doc per command), which the stock `cobra`
+# contract anchor consumes for the full 680-command + flags surface. This
+# is the same pattern kubectl uses via cmd/kubectl-yamlgen.
+#
+# It joins that surface against:
+#   - clidoc rendered reference (docs.reference) — synthesized from the same
+#     goldens, giving each command a deep-anchored fuchsia.dev URL.
+#   - narrative / concept docs (docs.concepts) under docs/development/tools/ffx
+#     AND every README / design doc under src/developer/ffx (plugin READMEs,
+#     configuration.md, …), plus the per-command help on every cobra element.
+#   - worked examples (examples) — the 29 `ffx` workflow recipes (multi-command
+#     sequences, via the workflows adapter) and the goldens' examples[] arrays
+#     (single-command snippets, via the synthesized markdown + the markdown
+#     adapter's CLI code-fence extractor).
+#   - Rust unit / integration tests under src/developer/ffx (rust-test).
+#
+# Prereqs: a full Fuchsia checkout (T7 recommended) and the synthesized
+# inputs (run once per checkout update; the regen ffx arm does this for you):
+#   git clone https://fuchsia.googlesource.com/fuchsia /Volumes/T7/fuchsia
+#   FFX_CHECKOUT=/Volumes/T7/fuchsia python3 scripts/gen-ffx-coverage-inputs.py
+#
+# To run a scan (the synthesized clidoc bundle path is ${FFX_CHECKOUT}-rooted,
+# so export it first):
+#   export FFX_CHECKOUT=/Volumes/T7/fuchsia
+#   ln -sf $PWD/docs/examples/ffx-coverage-config.textproto $FFX_CHECKOUT/sheaf.textproto
+#   ln -sf $PWD/docs/examples/ffx-coverage-rules.textproto  $FFX_CHECKOUT/categorization-rules.textproto
+#   sheaf scan --repo $FFX_CHECKOUT
+
+version: 1
+project {
+  name: "ffx"
+  display_name: "Fuchsia ffx (developer CLI)"
+  homepage: "https://fuchsia.dev/fuchsia-src/development/tools/ffx/overview"
+}
+
+scope {
+  library: "ffx"
+}
+
+# Contract surface: the complete 680-command tree, from cobra-schema YAML
+# synthesized out of the CLI goldens. yaml_dir is repo-relative (the
+# orchestrator joins it against the scan repo). Files are named
+# `<anchor>.yaml` (ffx_target_list.yaml) so url_base's {basename} produces
+# the deep-anchored published reference URL.
+contract_anchor {
+  name: "cobra"
+  cobra {
+    yaml_dir: "sheaf-ffx-gen/ffx-cobra-yaml"
+    binary_name: "ffx"
+    include: "**/*.yaml"
+    url_base: "https://fuchsia.dev/reference/tools/sdk/ffx#{basename}"
+  }
+}
+
+# Rendered reference: the clidoc markdown bundle synthesized from the same
+# goldens (one anchored `{#ffx_<path>}` section per command). bundle_path is
+# opened directly (NOT repo-joined), so it is rooted at the ${FFX_CHECKOUT}
+# env var the regen arm / scan invocation exports.
+rendered_reference {
+  name: "clidoc"
+  clidoc {
+    bundle_path: "${FFX_CHECKOUT}/sheaf-ffx-gen/clidoc_out.tar.gz"
+    section_path: "clidoc/ffx.md"
+    url_base: "https://fuchsia.dev/reference/tools/sdk/"
+  }
+}
+
+# Workflow recipes: the 29 task-oriented `ffx` guides under workflows/ each
+# name several commands in sequence -> one WORKFLOW claim per file (the
+# inter-element / worked-example surface). docs_dir is repo-relative.
+rendered_reference {
+  name: "workflows"
+  workflows {
+    docs_dir: "docs/development/tools/ffx/workflows"
+    binary_name: "ffx"
+    min_elements: 2
+    url_base: "https://fuchsia.dev/fuchsia-src/development/tools/ffx/workflows/"
+  }
+}
+
+# Narrative / concept docs + worked-example code fences.
+#  - prose mentions of `ffx <cmd>` -> PROSE_MENTION -> docs.concepts
+#    (routed by path in the source map). Covers the ffx guide tree AND every
+#    README / design doc under src/developer/ffx.
+#  - posix-terminal / sh fenced blocks with `$ ffx <cmd>` -> EXAMPLE-kind
+#    claims attributed to the command element (via the markdown adapter's
+#    CLI code-fence extractor) -> examples surface. ffx devsite docs use
+#    ```posix-terminal; the synthesized ffx-golden-examples.md matches it.
+# The workflows/ subtree is excluded here — it is owned by the workflows
+# adapter above (avoids double-attributing those files as flat concepts).
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/tools/ffx/**/*.md"
+    include: "src/developer/ffx/**/*.md"
+    include: "sheaf-ffx-gen/ffx-golden-examples.md"
+    exclude: "docs/development/tools/ffx/workflows/**"
+    code_block_languages: "posix-terminal"
+    code_block_languages: "sh"
+    code_block_languages: "bash"
+    code_block_languages: "shell"
+  }
+}
+
+# ffx is Rust; tests are #[test] and Fuchsia's #[fuchsia::test]. The
+# rust-test adapter token-matches test names/paths to command elements
+# (a `fn target_list_*` test, or a co-located test under
+# plugins/target/list/, attributes to `ffx target list`).
+#
+# ffx command code lives in several trees, so the corpus spans all of
+# them:
+#   - src/developer/ffx/**   the bulk — plugins/ (old layout) + tools/
+#                            (subtools) + lib/config/daemon framework,
+#                            all with co-located tests.
+#   - out-of-tree homes      ffx subcommands shipped from their owning
+#                            area: `ffx net` (net-cli), virtualization,
+#                            the network-test-realm plugin, and the
+#                            scrutiny ffx integration test (`ffx scrutiny`,
+#                            the only out-of-tree home with a Rust test
+#                            today; the others are command homes included
+#                            so future tests there are picked up).
+# Deliberately NOT included: src/developer/debug/ffx_zxdb (`ffx debug` is
+# C++, no Rust tests). The Honeydew Python e2e suite under
+# src/testing/end_to_end/honeydew is covered by the python-test parser below.
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/developer/ffx/**/*.rs"
+    include: "src/security/tests/scrutiny_ffx_integration/**/*.rs"
+    include: "src/connectivity/network/net-cli/ffx/**/*.rs"
+    include: "src/connectivity/network/testing/network-test-realm/ffx/**/*.rs"
+    include: "src/virtualization/ffx/**/*.rs"
+    exclude: "**/target/**"
+    extra_test_attributes: "fuchsia::test"
+  }
+}
+
+# The substantive *behavior* testing of ffx — especially its flags — lives
+# in the Honeydew Python end-to-end suite, NOT the Rust corpus. Honeydew's
+# FFX transport runs real `ffx <subcommand> --<flags>` invocations against a
+# device/emulator (`ffx.run(["target", "list", "--no-probe"])`) and the e2e
+# tests + affordances that call it exercise dozens of flags the Rust tests
+# never touch. The python-test parser extracts those invocations (via a
+# bundled Python `ast` helper, with a pure-Go regex fallback) and credits the
+# command + flag elements they run — the only lever that moves *useful*
+# (behavior, not parse-only) flag-test coverage off the floor.
+#
+# Scope is the Honeydew tree (transport + affordances + their functional
+# tests). unit_tests/ are excluded: they mock the transport (no real ffx
+# run), and their placeholder args aren't real subcommands — so they are
+# not "executed" invocations. (The receiver gate already skips them; the
+# exclude is belt-and-suspenders + documents intent.)
+test_parser {
+  name: "python-test"
+  python_test {
+    include: "src/testing/end_to_end/honeydew/**/*.py"
+    exclude: "**/tests/unit_tests/**"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }
+
+# ffx commits to a published reference, narrative guides, a test suite, and
+# worked examples (workflows + per-command snippets) — so all four headline
+# surfaces contribute to the masthead "% bridged".
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "tests"
+surfaces_required: "examples"

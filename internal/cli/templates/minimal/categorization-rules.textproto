@@ -1,0 +1,10 @@
+# Source map (categorization-rules.textproto) — minimal.
+
+version: 1
+
+category {
+  dotted_path: "tests.unit_tests"
+  paths: "**/*_test.cc"
+  paths: "**/*_tests.cc"
+}
+category { dotted_path: "docs.reference" }

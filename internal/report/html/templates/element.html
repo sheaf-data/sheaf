@@ -1,0 +1,130 @@
+{{define "content"}}
+<h2><code>{{.ID}}</code></h2>
+<p>
+  <span class="pill pill-blue">{{.Kind}}</span>
+  {{if .Library}}<span class="pill pill-gray">{{.Library}}</span>{{end}}
+  {{if .Location}}<span class="pill pill-gray"><code>{{.Location}}</code></span>{{end}}
+</p>
+
+{{if .DocExcerpt}}
+<div class="doc-excerpt">{{.DocExcerpt}}</div>
+{{end}}
+
+{{if .Relationships}}
+<h3>Relationships</h3>
+<ul class="ref-list">
+  {{range .Relationships}}
+    <li>
+      <code>{{.Kind}}</code> → <a href="../elements/{{.TargetSlug}}.html"><code>{{.Target}}</code></a>
+      {{if .Note}}<div class="meta-row">{{.Note}}</div>{{end}}
+    </li>
+  {{end}}
+</ul>
+{{end}}
+
+<h3>Documentation ({{.DocsTotal}})</h3>
+{{if .DocsRefs}}
+<ul class="ref-list">
+  {{range .DocsRefs}}
+    <li>
+      <span class="pill {{substancePillClass .Substance}}">{{.Substance}}</span>
+      <code>{{.Path}}{{if .Line}}:{{.Line}}{{end}}</code>
+      {{if .URL}}<a href="{{.URL}}" target="_blank" rel="noopener">↗</a>{{end}}
+      {{if .Words}}<span class="meta-row" style="display:inline;margin-left:8px">{{.Words}} words</span>{{end}}
+      <div class="meta-row">{{.Bucket}} · adapter: {{.Adapter}}</div>
+    </li>
+  {{end}}
+</ul>
+{{else}}
+<p class="empty">No documentation references.</p>
+{{end}}
+
+<h3>Tests ({{.TestsTotal}})</h3>
+{{if .TestRefs}}
+<ul class="ref-list">
+  {{range .TestRefs}}
+    <li>
+      <span class="pill pill-gray">{{.Bucket}}</span>
+      <code>{{.TestName}}</code>
+      <div class="meta-row">{{.Framework}} · {{.Path}}:{{.Line}}</div>
+    </li>
+  {{end}}
+</ul>
+{{else}}
+<p class="empty">No test references.</p>
+{{end}}
+
+{{if .LLMTestRefs}}
+<h3>LLM-inferred tests ({{.LLMTestsTotal}}) <span class="pill pill-amber">unverified</span></h3>
+<p class="tier-note">Proposed by the LLM attribution pass and citation-gated (the cited line really references this element), but NOT counted in the deterministic Tests total above — a reference is confirmed, not that the test semantically exercises the element.</p>
+<ul class="ref-list">
+  {{range .LLMTestRefs}}
+    <li>
+      <span class="pill pill-amber">LLM</span>
+      <code>{{.TestName}}</code>
+      <div class="meta-row">{{.Framework}} · {{.Path}}:{{.Line}}</div>
+    </li>
+  {{end}}
+</ul>
+{{end}}
+
+{{if .LLMDocRefs}}
+<h3>LLM-inferred docs ({{.LLMDocsTotal}}) <span class="pill pill-amber">unverified</span></h3>
+<ul class="ref-list">
+  {{range .LLMDocRefs}}
+    <li>
+      <span class="pill pill-amber">LLM</span>
+      <code>{{.Path}}:{{.Line}}</code>
+    </li>
+  {{end}}
+</ul>
+{{end}}
+
+<h3>Examples ({{.ExamplesTotal}})</h3>
+{{if .ExampleRefs}}
+<ul class="ref-list">
+  {{range .ExampleRefs}}
+    <li>
+      <span class="pill pill-gray">{{.Bucket}}</span>
+      <code>{{.Path}}:{{.StartLine}}–{{.EndLine}}</code>
+      {{if .Intent}}<div class="meta-row">{{.Intent}}</div>{{end}}
+    </li>
+  {{end}}
+</ul>
+{{else}}
+<p class="empty">No example references.</p>
+{{end}}
+
+<h3>Gaps</h3>
+{{if .Missing}}
+<p>Missing categories:</p>
+<ul class="gap-list">
+  {{range .Missing}}<li><span class="pill pill-red">{{.}}</span></li>{{end}}
+</ul>
+{{end}}
+{{if .Thin}}
+<p>Thin references:</p>
+<ul class="gap-list">
+  {{range .Thin}}<li><span class="pill pill-yellow">{{.Category}}</span> {{.Reason}}</li>{{end}}
+</ul>
+{{end}}
+{{if and (not .Missing) (not .Thin)}}
+<p class="empty">No gaps.</p>
+{{end}}
+
+{{if .ElementFindings}}
+<h3>Findings ({{len .ElementFindings}})</h3>
+<ul class="ref-list">
+  {{range .ElementFindings}}
+    <li>
+      <span class="pill {{severityPillClassRank .SeverityRank}}">{{.Severity}}</span>
+      <code>{{.Kind}}</code>
+      <span style="margin-left:6px">{{.Message}}</span>
+      <div class="meta-row">analyzer: {{.Analyzer}}</div>
+    </li>
+  {{end}}
+</ul>
+{{end}}
+
+<p><a href="../index.html">← back to elements</a></p>
+{{end}}

@@ -1,0 +1,71 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Hardware · Power, Thermal & Sensors" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.hardware.adc/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.adcimpl/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.power/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.power.battery/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.power.charger/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.power.sensor/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.power.source/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.power.statecontrol/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.power.suspend/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.power.usb/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.powerdomain/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.powersource/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.powersource.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.pwm/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.sensors/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.temperature/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.thermal/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.trippoint/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.vreg/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/devices/power/**/*-test.cc"
+    include: "src/devices/thermal/**/*-test.cc"
+    include: "src/devices/temperature/**/*-test.cc"
+    include: "src/devices/pwm/**/*-test.cc"
+    include: "src/devices/adc/**/*-test.cc"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/sensors/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/devices/power/**/*.cc"
+  include: "src/devices/power/**/*.h"
+  include: "src/devices/thermal/**/*.cc"
+  include: "src/devices/thermal/**/*.h"
+  include: "src/devices/temperature/**/*.cc"
+  include: "src/devices/temperature/**/*.h"
+  include: "src/devices/pwm/**/*.cc"
+  include: "src/devices/pwm/**/*.h"
+  include: "src/devices/adc/**/*.cc"
+  include: "src/devices/adc/**/*.h"
+  include: "src/sensors/src/**/*.rs"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

@@ -1,0 +1,66 @@
+# Build artifacts (rebuild from source)
+/bin/
+/build/
+
+# Go test caches and coverage
+*.test
+*.out
+coverage.txt
+
+# OS / editor noise
+.DS_Store
+*.swp
+*~
+.env
+.idea/
+.vscode/
+
+# Python bytecode (scripts/ run by regen)
+__pycache__/
+*.pyc
+
+# Local-only scratch
+/scratch/
+/tmp_runs/
+/.sheaf/
+
+# Built binaries (rebuild via `go install` or `go build -o`)
+/sheaf
+/scanner
+/dump-elements
+/dump-profile
+/kubectl-yamlgen
+/rescan-coverage
+/audit-edges
+
+# Generated Fuchsia coverage fan-out output — large, regenerate via
+# `scripts/regen-example-reports.sh fuchsia-coverage`. The generator, the
+# test/impl overlay, the 27 per-domain configs, and the manifest ARE
+# committed; the rendered pages (the <root>.html index + its
+# <root>-contents/ dir) are not. Same for the co-generated concept-doc
+# coverage (per-library + all-fuchsia + index, plus the grounding JSONs).
+/docs/examples/fuchsia-coverage.html
+/docs/examples/fuchsia-coverage-contents/
+/docs/examples/fuchsia-coverage-preview/
+/docs/examples/fuchsia-coverage-concept-docs/
+
+# Generated ffx reports — the coverage report and the doc-centric
+# clear/ambiguous/silent concept-doc map, both produced by the ffx) arm of
+# `scripts/regen-example-reports.sh ffx`. Regenerate; do not commit.
+/docs/examples/ffx.html
+/docs/examples/ffx-concept-docs.html
+
+# Local Claude/editor tooling: launch configs, precision-audit scratch (edge
+# dumps, samples, verdicts). Machine-specific paths — never committed.
+/.claude/
+
+# Internal design notes — never committed (see CLAUDE.md). Lives locally only.
+/internal-notes/
+
+# Generated example reports — hosted from sheaf-data/examples, not the code
+# repo. Regenerate via scripts/regen-example-reports.sh; do not commit.
+/example-reports/
+/docs/examples/fuchsia-io-coverage/
+/docs/examples/sheaf-self.html
+/docs/concept-docs-report/
+/docs/grounding/samples/*.html

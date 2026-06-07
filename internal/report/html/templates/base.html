@@ -1,0 +1,102 @@
+{{define "base"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} — {{.Project}} — Sheaf</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; margin: 0; color: #1d1d1f; background: #fafafa; }
+    header { background: #1d1d1f; color: #fff; padding: 14px 24px; }
+    header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+    header h1 a { color: #fff; text-decoration: none; }
+    header .meta { color: #999; font-size: 12px; margin-top: 4px; }
+    nav { background: #2c2c2e; padding: 8px 24px; }
+    nav a { color: #ddd; text-decoration: none; margin-right: 18px; font-size: 13px; }
+    nav a:hover, nav a.active { color: #fff; border-bottom: 2px solid #fff; }
+    main { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    h2 { font-size: 20px; margin: 0 0 12px; }
+    h3 { font-size: 16px; margin: 24px 0 8px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+    th { background: #f5f5f7; font-weight: 600; cursor: pointer; user-select: none; position: sticky; top: 0; }
+    th:hover { background: #eaeaef; }
+    th[data-sort]::after { content: " ⇅"; color: #aaa; font-size: 10px; }
+    tr:hover { background: #f9f9fb; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    code { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: #f1f1f3; padding: 1px 5px; border-radius: 3px; }
+    a { color: #0066cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+    .pill-green  { background: #d3f3da; color: #1f6c33; }
+    .pill-yellow { background: #fdf2cc; color: #886a08; }
+    .pill-red    { background: #fadbd5; color: #8a2718; }
+    .pill-gray   { background: #ececef; color: #545458; }
+    .pill-blue   { background: #d6e8fd; color: #0a4a96; }
+    .pill-amber  { background: #fbe7c6; color: #8a5a08; }
+    .pill-slate  { background: #dde3ea; color: #3a4654; }
+    .tier-note { color: #6e6e73; font-size: 12px; margin: -12px 0 20px; max-width: 70ch; line-height: 1.5; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .summary .card { background: #fff; padding: 14px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .summary .card .label { color: #6e6e73; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .summary .card .value { font-size: 24px; font-weight: 600; color: #1d1d1f; margin-top: 4px; }
+    .gap-list { margin: 0; padding-left: 18px; }
+    .empty { color: #8e8e93; font-style: italic; }
+    .doc-excerpt { background: #f5f5f7; border-left: 3px solid #ccc; padding: 10px 12px; margin: 8px 0; font-size: 13px; color: #444; white-space: pre-wrap; }
+    .ref-list { list-style: none; padding: 0; margin: 0; }
+    .ref-list li { padding: 6px 0; border-bottom: 1px solid #f0f0f4; }
+    .ref-list li:last-child { border-bottom: none; }
+    .ref-list .meta-row { color: #6e6e73; font-size: 12px; margin-top: 2px; }
+    footer { color: #999; font-size: 11px; padding: 24px; text-align: center; }
+    input[type="search"] { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="{{.Root}}index.html">Sheaf</a> · {{.Project}}{{if .ProjectDisplay}} · {{.ProjectDisplay}}{{end}}</h1>
+    <div class="meta">Generated {{.GeneratedAt}} · {{.ElementCount}} elements · {{.FindingCount}} findings</div>
+  </header>
+  <nav>
+    <a href="{{.Root}}index.html" class="{{if eq .Page "index"}}active{{end}}">Elements</a>
+    <a href="{{.Root}}findings.html" class="{{if eq .Page "findings"}}active{{end}}">Findings</a>
+  </nav>
+  <main>
+    {{template "content" .}}
+  </main>
+  <footer>sheaf v0.1 · static report</footer>
+
+  <script>
+    // Tiny vanilla-JS column sorter + search.
+    document.querySelectorAll('table.sortable').forEach(function(tbl) {
+      var ths = tbl.querySelectorAll('th[data-sort]');
+      ths.forEach(function(th, i) {
+        th.addEventListener('click', function() {
+          var rows = Array.from(tbl.querySelectorAll('tbody tr'));
+          var type = th.dataset.sort;
+          var dir = th.dataset.dir === 'asc' ? 'desc' : 'asc';
+          th.dataset.dir = dir;
+          rows.sort(function(a, b) {
+            var av = a.children[i].dataset.val || a.children[i].textContent.trim();
+            var bv = b.children[i].dataset.val || b.children[i].textContent.trim();
+            if (type === 'num') { av = parseFloat(av) || 0; bv = parseFloat(bv) || 0; }
+            if (av < bv) return dir === 'asc' ? -1 : 1;
+            if (av > bv) return dir === 'asc' ?  1 : -1;
+            return 0;
+          });
+          var tbody = tbl.querySelector('tbody');
+          rows.forEach(function(r) { tbody.appendChild(r); });
+        });
+      });
+    });
+    document.querySelectorAll('input.tablesearch').forEach(function(inp) {
+      inp.addEventListener('input', function() {
+        var q = inp.value.toLowerCase();
+        var tbl = document.querySelector(inp.dataset.target);
+        tbl.querySelectorAll('tbody tr').forEach(function(r) {
+          r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+      });
+    });
+  </script>
+</body>
+</html>{{end}}

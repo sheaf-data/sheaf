@@ -1,0 +1,128 @@
+// Grounding surface — proto sketch (mirrors grounding.schema.json / grounding.fixture.json).
+//
+// This is the backend-facing canonical schema for the Grounding lens.
+// The detector produces GroundingReport; the renderer + MCP read it.
+// JSON (camelCase) serialization MUST match grounding.fixture.json so the
+// UI built against the fixture renders the real data unchanged.
+//
+// The detector agent should reconcile this with proto/ conventions
+// (go_package, the existing Finding / CoverageProfile / RowProvenance
+// messages) and move the final version under proto/. Provenance maps onto
+// the existing RowProvenance tier/source/transform — the trusted-coverage
+// count already excludes non-mechanical tiers; Grounding is mechanical.
+
+syntax = "proto3";
+package sheaf.grounding.v1;
+option go_package = "github.com/sheaf-data/sheaf/proto/grounding";
+
+enum GroundingState {
+  GROUNDING_STATE_UNSPECIFIED = 0;
+  GROUNDED   = 1;  // full signal: linked / qualified / defined. Agent knows.            pass  ●
+  GUESSING   = 2;  // partial signal: context leans, nothing confirms. Agent infers.     needs-work ◐
+  UNGROUNDED = 3;  // no signal: bare collision, nothing binds it. Agent is blind.       fail  ○
+  NOT_MENTIONED = 4; // element-rollup only: no concept-doc reference at all (coverage gap, not a finding).
+}
+
+enum AnchorKind {
+  ANCHOR_UNSPECIFIED = 0;
+  PAGE_TITLE = 1;
+  HEADING = 2;
+  FIRST_USE = 3;
+  DEFINED_TERM = 4;
+  QUALIFIED_MENTION = 5; // backticked / dotted-qualified name
+  LINK = 6;
+}
+
+enum FixKind {
+  FIX_UNSPECIFIED = 0;
+  LINK_FIRST_USE = 1;
+  DEFINE_TERM = 2;
+  QUALIFY = 3;
+}
+
+message GroundingReport {
+  int32  schema_version = 1; // == 1
+  string surface = 2;        // "grounding"
+  string generated_at = 3;
+  ModelStamp model_stamp = 4; // unset => purely mechanical / reproducible
+  string repo = 5;
+  string commit = 6;
+  string library = 7;
+  string library_display = 8;
+  GroundingSummary summary = 9;
+  map<string, StateStyle> display_map = 10; // keys: grounded|guessing|ungrounded
+  repeated GroundingElement elements = 11;
+  repeated GroundingFinding findings = 12;
+}
+
+message ModelStamp { string model = 1; string version = 2; string run_at = 3; }
+
+message GroundingSummary {
+  int32 elements_total = 1;
+  int32 elements_mentioned = 2;
+  int32 elements_not_mentioned = 3;
+  int32 elements_grounded = 4;
+  int32 elements_guessing = 5;
+  int32 elements_ungrounded = 6;
+  int32 references_total = 7;
+  int32 references_grounded = 8;
+  int32 references_guessing = 9;
+  int32 references_ungrounded = 10;
+  int32 forces_a_guess = 11; // guessing + ungrounded references — the headline number
+  string headline = 12;
+}
+
+message StateStyle {
+  string label = 1;         // vivid framing word: Grounded / Guessing / Ungrounded
+  string working_label = 2; // terse parallel participle: Grounded / Inferred / Ungrounded
+  string lighthouse = 3;    // pass | needs-work | fail
+  string glyph = 4;         // ● ◐ ○  (non-color signal)
+  string tone = 5;          // green | amber | red
+  string blurb = 6;
+}
+
+message GroundingElement {
+  string element_id = 1;
+  string display = 2;
+  string kind = 3;             // PROTOCOL | METHOD | TYPE ...
+  GroundingState state = 4;    // best state across refs; NOT_MENTIONED if none
+  bool   mentioned = 5;
+  RefCounts ref_counts = 6;
+  repeated string finding_ids = 7;
+}
+
+message RefCounts { int32 grounded = 1; int32 guessing = 2; int32 ungrounded = 3; }
+
+message GroundingFinding {
+  string id = 1;
+  string element_id = 2;
+  string element_display = 3;
+  GroundingState state = 4;          // grounded | guessing | ungrounded (never not_mentioned)
+  string source_path = 5;
+  int32  line = 6;
+  repeated string section_path = 7;  // heading stack
+  string excerpt = 8;                // the sentence, verbatim
+  string token = 9;                  // the colliding word
+  Span   token_span = 10;            // highlight offset within excerpt
+  repeated Candidate candidates = 11;
+  int32  competing_contract_refs = 12; // ranking / blast-radius signal
+  repeated CheckedAnchor checked = 13; // the "Sheaf checked ..." audit trail
+  Fix    fix = 14;                   // unset for grounded findings
+  double severity = 15;              // 0..1 worklist rank
+  Provenance provenance = 16;
+}
+
+message Span { int32 start = 1; int32 len = 2; }
+
+message Candidate {
+  string element_id = 1;  // empty for non-contract candidates
+  string label = 2;
+  string kind = 3;        // contract | english | other
+  bool   is_contract = 4;
+}
+
+message CheckedAnchor { AnchorKind anchor = 1; bool found = 2; string detail = 3; }
+
+message Fix { FixKind kind = 1; string suggestion = 2; string markdown = 3; }
+
+message Provenance { string tier = 1; string adapter = 2; string adapter_version = 3; } // tier: mechanical|llm|hybrid

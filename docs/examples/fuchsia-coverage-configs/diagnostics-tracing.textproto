@@ -1,0 +1,62 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Diagnostics & Tracing" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.cobalt/**/*.fidl"
+    include: "sdk/fidl/fuchsia.debugdata/**/*.fidl"
+    include: "sdk/fidl/fuchsia.debugger/**/*.fidl"
+    include: "sdk/fidl/fuchsia.diagnostics/**/*.fidl"
+    include: "sdk/fidl/fuchsia.diagnostics.host/**/*.fidl"
+    include: "sdk/fidl/fuchsia.diagnostics.system/**/*.fidl"
+    include: "sdk/fidl/fuchsia.diagnostics.types/**/*.fidl"
+    include: "sdk/fidl/fuchsia.exception/**/*.fidl"
+    include: "sdk/fidl/fuchsia.feedback/**/*.fidl"
+    include: "sdk/fidl/fuchsia.inspect/**/*.fidl"
+    include: "sdk/fidl/fuchsia.inspect.deprecated/**/*.fidl"
+    include: "sdk/fidl/fuchsia.logger/**/*.fidl"
+    include: "sdk/fidl/fuchsia.metrics/**/*.fidl"
+    include: "sdk/fidl/fuchsia.metrics.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.tracing/**/*.fidl"
+    include: "sdk/fidl/fuchsia.tracing.controller/**/*.fidl"
+    include: "sdk/fidl/fuchsia.tracing.perfetto/**/*.fidl"
+    include: "sdk/fidl/fuchsia.tracing.provider/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/performance/trace_manager/**/*_test.cc"
+    include: "src/developer/forensics/**/*_unittest.cc"
+    include: "src/developer/forensics/**/*_test.cc"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/diagnostics/archivist/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/diagnostics/archivist/**/*.rs"
+  include: "src/performance/trace_manager/**/*.cc"
+  include: "src/performance/trace_manager/**/*.h"
+  include: "src/developer/forensics/**/*.cc"
+  include: "src/developer/forensics/**/*.h"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

@@ -1,0 +1,9 @@
+command: sheaf version
+short: Print version information.
+long: |
+  Print the linked build version (set via -ldflags at link time,
+  defaulting to 0.1.0-dev) and exit. Takes no flags and runs no
+  pipeline.
+usage: sheaf version
+pname: sheaf
+plink: sheaf.yaml

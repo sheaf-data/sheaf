@@ -1,0 +1,72 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — UI, Scenic & Composition" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.element/**/*.fidl"
+    include: "sdk/fidl/fuchsia.scenic.scheduling/**/*.fidl"
+    include: "sdk/fidl/fuchsia.sysmem/**/*.fidl"
+    include: "sdk/fidl/fuchsia.sysmem2/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.activity/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.activity.control/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.annotation/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.app/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.brightness/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.composition/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.composition.internal/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.compression.internal/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.display.color/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.display.singleton/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.focus/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.gfx/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.input/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.input.accessibility/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.input3/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.keyboard.focus/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.observation.geometry/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.observation.scope/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.observation.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.pointer/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.pointer.augment/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.pointerinjector/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.pointerinjector.configuration/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.pointerinjector.dso/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.policy/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.scenic/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.shortcut/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.test.conformance/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.test.context/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.test.input/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.test.scene/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.types/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ui.views/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/ui/scenic/lib/**/*_test.cc"
+    include: "src/ui/scenic/lib/**/*_unittest.cc"
+    include: "src/ui/scenic/lib/**/*_pixeltest.cc"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/ui/scenic/lib/**/*.cc"
+  include: "src/ui/scenic/lib/**/*.h"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

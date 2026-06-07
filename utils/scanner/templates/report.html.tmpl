@@ -1,0 +1,2483 @@
+{{define "report"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sheaf — {{.Library}} fragmentation scan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Junge&family=Fraunces:ital,opt,wght@0,500;0,600;0,700;1,400;1,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#faf6ee; --card:#fffdf8; --ink:#16201c; --ink-2:#4a554f; --ink-3:#7d877f;
+  --line:#ece5d6; --line-2:#f3eee2;
+  --green-700:#0a6b3f; --green-600:#0f9d58; --green-500:#16c172; --green-300:#8fe6b8; --green-50:#e6f8ee;
+  --cyan-700:#0a6e7a; --cyan-500:#11b3c6; --cyan-50:#e3f7fa;
+  --indigo-700:#2d44b8; --indigo-500:#3d5ae0; --indigo-300:#9aa9f2; --indigo-50:#e8ecfd;
+  --amber:#ff8a1e; --amber-700:#b85a08; --amber-50:#fff0dd;
+  /* Worked-examples gets a bright yellow rather than the legacy
+     amber so it doesn't fight the red warn-chip palette. Saturated
+     enough to read as a deliberate signal, dark enough to keep
+     contrast on the cream paper. */
+  --yellow:#f5c518; --yellow-700:#8f6d00; --yellow-50:#fff6c5;
+  --gap:#f0533f; --gap-700:#b32d1a; --gap-50:#fdeae6;
+  --drift-domain:#3d5ae0; --drift-domain-50:#e8ecfd;
+  --drift-time:#ff8a1e; --drift-time-50:#fff0dd;
+  /* Surface palette — assigned per the crew's color discipline pass.
+     Three always-on hues (docs / tests / examples); the two
+     surface-conditional rows (workflows / implementations) take a
+     darker tonal variant of their parent surface so the reader only
+     has to learn three colors.
+       docs       → cyan       (clarity / water — "concept")
+       tests      → navy       (sober verification; not Grafana green)
+       examples   → ochre      (earth pigment; less caution than yellow)
+       workflows  → darker cyan (docs of the recipe tier)
+       impls      → darker navy (concrete behind the test/contract). */
+  --surf-docs:#11b3c6;
+  --surf-tests:#2a4a78;
+  --surf-examples:#c79a3a;
+  --surf-workflows:#0a7a85;
+  --surf-impls:#1a3050;
+
+  --f-display:'Junge', Georgia, 'Times New Roman', serif;
+  --f-frame:'Fraunces', Georgia, 'Times New Roman', serif;
+  --f-score:'Fraunces', Georgia, 'Times New Roman', serif;
+  --f-body:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --f-ui:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --f-mono:'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;background:var(--paper);color-scheme:light;width:100%;min-height:100%;}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);line-height:1.5;width:100%;min-height:100vh;margin:0;display:flex;flex-direction:column;}
+
+.topnav{position:sticky;top:0;z-index:50;background:rgba(250,246,238,.93);border-bottom:1px solid var(--line);backdrop-filter:saturate(1.2) blur(6px);}
+.topnav-in{max-width:1080px;margin:0 auto;padding:11px 32px;display:flex;align-items:center;gap:20px;}
+.topnav-logo{display:flex;align-items:center;gap:9px;}
+.topnav-logo img{width:24px;height:24px;border-radius:6px;display:block;}
+.topnav-brand{font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--green-700);}
+.topnav-tabs{display:flex;gap:4px;margin-left:auto;}
+.topnav-tabs .tab{font-family:var(--f-ui);font-size:12.5px;font-weight:600;color:var(--ink-3);background:transparent;border:none;padding:6px 13px;border-radius:7px;cursor:pointer;transition:all .12s;}
+.topnav-tabs .tab:hover{color:var(--ink);background:var(--line-2);}
+.topnav-tabs .tab.on{color:var(--ink);background:var(--card);box-shadow:inset 0 0 0 1px var(--line);}
+
+.wrap{max-width:1080px;width:100%;margin:0 auto;padding:0 32px 100px;flex:1 0 auto;background:var(--paper);}
+
+.masthead{padding:48px 0 18px;}
+.meta{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);margin-bottom:12px;letter-spacing:.02em;}
+.meta b{color:var(--green-700);font-weight:500;}
+.title{font-family:var(--f-display);font-weight:400;font-size:40px;letter-spacing:-.01em;line-height:1.08;margin-bottom:12px;color:var(--ink);}
+.title .lib{font-family:var(--f-mono);font-weight:500;font-size:0.72em;letter-spacing:-.01em;color:var(--ink-2);background:#edeae1;padding:2px 11px;border-radius:8px;white-space:nowrap;}
+
+.numtable{display:flex;flex-direction:column;}
+.nrow{display:flex;gap:18px;align-items:baseline;padding:13px 0;border-top:1px solid var(--line-2);}
+.nrow:first-child{border-top:none;padding-top:0;}
+.nval{flex:0 0 92px;font-family:var(--f-score);font-weight:600;font-size:26px;line-height:1;color:var(--ink);font-feature-settings:"onum" 1;text-align:right;}
+.nval .den{font-family:var(--f-ui);font-weight:600;font-size:12px;color:var(--ink-3);font-feature-settings:normal;}
+.nval.d{color:var(--amber-700);}
+.nsay{flex:1;font-family:var(--f-body);font-size:14px;color:var(--ink-2);line-height:1.5;}
+.nsay b{color:var(--ink);font-weight:600;}
+
+/* v0.4 minimal header — one calm line, no tiles, no brand pill.
+   Library name leads at full intensity; the rest (scan tag, date,
+   commit hash) is provenance at reduced intensity. */
+.masthead-minimal{position:sticky;top:0;z-index:50;background:rgba(250,246,238,.93);backdrop-filter:saturate(1.2) blur(6px);padding:14px 0 10px;border-bottom:1px solid var(--line);margin-bottom:0;}
+.masthead-minimal .strip{font-family:var(--f-mono);font-weight:400;font-size:14px;color:var(--ink-2);line-height:1.4;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.masthead-minimal .strip-icon{width:22px;height:22px;border-radius:5px;display:block;flex:0 0 22px;}
+.masthead-minimal .strip-sep{color:#aab2a8;font-weight:400;}
+.masthead-minimal .strip-lib{color:var(--ink-2);}
+.masthead-minimal .strip-kind{color:var(--ink-2);}
+.masthead-minimal .strip-meta{color:var(--ink-3);}
+.view-wrap{margin-left:auto;display:inline-flex;align-items:center;gap:8px;}
+/* Borderless text-tab switcher: two uppercase labels separated by a
+   middot. Active label gets a 2px ink underline; inactive is ink-3. */
+.view-toggle{display:inline-flex;align-items:baseline;gap:8px;}
+.view-toggle button{padding:2px 0 4px;background:transparent;color:var(--ink-3);border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;line-height:1.15;transition:color .12s,border-color .12s;}
+.view-toggle button:hover{color:var(--ink);}
+.view-toggle button.on{color:var(--ink);border-bottom-color:var(--ink);}
+.view-toggle-sep{font-family:var(--f-ui);color:var(--ink-3);font-size:13px;line-height:1;}
+/* View-mode hint line — a quiet sentence beneath the masthead that
+   tells the reader what the current mode emphasizes. Always rendered;
+   CSS reveals only the active mode's hint. */
+.view-hint{margin-top:6px;font-family:var(--f-frame);font-style:italic;font-size:15.5px;color:var(--ink-2);line-height:1.45;width:100%;}
+.view-hint .hint-writer,.view-hint .hint-reviewer{display:none;}
+body[data-view="writer"]   .view-hint .hint-writer  {display:inline;}
+body[data-view="reviewer"] .view-hint .hint-reviewer{display:inline;}
+
+/* Reviewer mode: open all worklist rows by default so the auditor
+   sees every row's evidence at a glance. Writer mode keeps the
+   accordion collapsed (only the row sample chips show, like today). */
+/* Methods-section header: "Gaps" h2 on the left, toggle on the right. */
+/* Worklist section retired — the Evidence section's left rail now
+   carries the same fix-group worklist, so the standalone view above
+   it was duplicate. Hide its three components via CSS instead of
+   ripping out the template markup (the Methods/UpSet branches still
+   feed live JS like showSurface()/showSubstance() that the Depth and
+   "Show all" reveals below this block continue to call). */
+#sec-methods > .sh-methods,
+#sec-methods > .upset-and-donut-intros,
+#sec-methods .upset2-wrap.view-stage{display:none !important;}
+.sh-methods{display:flex;align-items:center;gap:14px;}
+.sh-methods h2{flex:1;}
+.sh-methods .view-wrap{margin-left:auto;}
+
+/* Action + severity inside each UpSet row's expanded panel.
+   Kept for the categorization view's row-expansion UI. */
+.u2r-action{font-family:var(--f-body);font-weight:600;font-size:13px;color:var(--ink);line-height:1.4;margin-bottom:4px;}
+.u2r-severity{font-family:var(--f-frame);font-style:italic;font-size:12.5px;color:var(--ink-2);line-height:1.4;margin-bottom:8px;}
+
+/* ──────────────────────────────────────────────────────────────────
+   TWO-VIEW SWIPE: the same Methods section presents data two ways.
+   Fixes view (default): worklist of fix-groups, sorted by severity
+   (trust damage), no dots, action verb foregrounded.
+   Categories view: UpSet rows with surface-combo dots, sorted by
+   count, grouped by which surfaces are present.
+   The two panels live inside an overflow:hidden stage; the inner
+   track holds them side-by-side and translateX slides between them.
+   ────────────────────────────────────────────────────────────────── */
+/* The stage hides off-screen content (the categories panel slides
+   in/out via translateX). The first .wl-row's top rounded corner used
+   to be flush with the stage's top edge and the expanded row's
+   rounded bottom could clip when scrollHeight measured short.
+   Compensated by .panel-fixes padding-top + a larger buffer in
+   fitStageToActivePanel below. */
+.view-stage{position:relative;overflow:hidden;transition:height .3s ease-out;}
+.view-track{display:flex;align-items:flex-start;width:200%;transition:transform .3s ease-out;}
+.view-panel{flex:0 0 50%;min-width:0;}
+/* Fixes (Worklist) is the default; categories slides in from the left
+   when the user toggles to States. The panel DOM order stays the same
+   (categories panel first, fixes panel second); the default transform
+   shifts the track to reveal the second (fixes) panel on load. */
+body[data-view="categories"] .view-track{transform:translateX(0);}
+body[data-view="fixes"] .view-track,
+body:not([data-view]) .view-track{transform:translateX(-50%);}
+
+/* Hint paragraphs — only one shows at a time. */
+.view-hint .hint-categories,.view-hint .hint-fixes{display:none;}
+body[data-view="fixes"] .view-hint .hint-fixes,
+body:not([data-view]) .view-hint .hint-fixes{display:inline;}
+body[data-view="categories"] .view-hint .hint-categories{display:inline;}
+
+/* Worklist styling inside the fixes panel — re-uses the .wl-* tokens
+   established earlier. */
+/* White card around the whole panel; rows inside are hairline-divided. */
+.panel-fixes{background:var(--card);border-radius:10px;padding:14px 12px;}
+.panel-fixes .worklist{display:flex;flex-direction:column;}
+.panel-fixes .wl-row{border-top:1px solid var(--line-2);background:transparent;transition:opacity .15s ease,background .15s ease;}
+.panel-fixes .wl-row:first-child{border-top:none;}
+.panel-fixes .wl-row.open{background:var(--paper);border-radius:6px;border-top-color:transparent;}
+.panel-fixes .wl-row.open + .wl-row{border-top-color:transparent;}
+.panel-fixes .worklist:has(.wl-row.open) .wl-row:not(.open){opacity:.40;}
+.panel-fixes .worklist:has(.wl-row.open) .wl-row:not(.open):hover{opacity:1;}
+.panel-fixes .wl-card{display:flex;align-items:flex-start;gap:14px;padding:12px 14px;cursor:pointer;}
+.panel-fixes .wl-chev{display:none;}
+.panel-fixes .wl-body{flex:1;min-width:0;}
+.panel-fixes .wl-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:nowrap;}
+.panel-fixes .wl-count-block{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:42px;padding-top:2px;}
+.panel-fixes .wl-count{font-family:var(--f-score);font-weight:400;font-size:28px;line-height:1;color:var(--ink);font-feature-settings:"onum" 1;}
+/* Surface-dot strip under the count: three small dots aligned right
+   under the count number. One per surface (docs / tests / examples),
+   filled when this fix-group's action targets that surface (or, for
+   noworkflow, when the surface is already present). Replaces the old
+   micro-bar that compared row sizes — that signal didn't earn the
+   visual weight. */
+.panel-fixes .wl-dots{display:flex;gap:5px;justify-content:flex-end;}
+.panel-fixes .wl-dot{width:7px;height:7px;border-radius:50%;border:1px solid var(--ink-3);background:transparent;box-sizing:border-box;transition:background .12s,border-color .12s;}
+.panel-fixes .wl-dot.on{background:var(--ink);border-color:var(--ink);}
+/* When the fix-group is open, the surface dot lights up in the
+   matching Evidence surface color so the row's visual signal aligns
+   with the receipt below. Closed rows keep the neutral ink fill so
+   the strip reads as a quiet status, not as decoration. */
+.panel-fixes .wl-row.open .wl-dot.dot-docs.on{background:var(--surf-docs);border-color:var(--surf-docs);}
+.panel-fixes .wl-row.open .wl-dot.dot-tests.on{background:var(--surf-tests);border-color:var(--surf-tests);}
+.panel-fixes .wl-row.open .wl-dot.dot-examples.on{background:var(--surf-examples);border-color:var(--surf-examples);}
+.panel-fixes .wl-text{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;}
+.panel-fixes .wl-label{font-family:var(--f-body);font-weight:600;font-size:14px;color:var(--ink);line-height:1.25;}
+.panel-fixes .wl-subtitle{font-family:var(--f-body);font-weight:400;font-size:13px;color:var(--ink-2);line-height:1.4;}
+/* Caption above the worklist — accounting line for the removed bucket,
+   which is a status, not an action. Terse register: ink-3, sentence
+   case, no period flourishes. */
+/* Caption flexes so the leading info icon's middle aligns with the
+   text's middle. Without flex+center, inline-flex children fall to
+   the text baseline by default and the icon rides low. */
+.panel-fixes .wl-caption{font-family:var(--f-body);font-size:12.5px;color:var(--ink-3);line-height:1.45;margin:2px 4px 10px;display:flex;align-items:center;}
+/* Info icon prefixing the caption — small dark-grey filled circle
+   with an upright "i". Signals "informational accounting line, not
+   an action you need to take" so a reader who sees a count number
+   doesn't reflexively treat the caption as a work item. ink-3 keeps
+   it quieter than the wl-count colors above (which carry the actual
+   action weight). */
+.panel-fixes .wl-caption-info{flex:none;display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:var(--ink-3);color:var(--paper);font-family:var(--f-body);font-style:normal;font-weight:700;font-size:9.5px;line-height:1;margin-right:6px;user-select:none;}
+.panel-fixes .wl-caption-info::before{content:"i";display:block;line-height:1;}
+.panel-fixes .wl-sev{display:none;}
+.panel-fixes .wl-samples{display:none;}
+.panel-fixes .wl-m{font-family:var(--f-mono);font-size:11.5px;background:var(--line-2);padding:2px 7px;border-radius:5px;color:var(--ink-2);}
+.panel-fixes .wl-more{font-family:var(--f-ui);font-size:11px;color:var(--ink-3);padding:2px 4px;}
+/* Detail area inherits the open row's bg; left padding aligns the
+   member list under the action label above (14 card pad + 42 count
+   block + 14 gap = 70). */
+.panel-fixes .wl-detail{display:none;padding:6px 14px 14px 70px;background:transparent;}
+.panel-fixes .wl-row.open .wl-detail{display:block;}
+/* Severity sentence at the top of the open detail panel — explains
+   what kind of problem this row represents (the brand "why"). Plain
+   body, smaller and lighter than the subtitle so it reads as context
+   for the member list below, not as a competing title. */
+.panel-fixes .wl-severity{font-family:var(--f-body);font-size:13px;color:var(--ink-2);line-height:1.45;margin:0 0 10px;max-width:62ch;}
+.panel-fixes .wl-members{display:flex;flex-direction:column;gap:8px;}
+.panel-fixes .wl-member{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12px;}
+.panel-fixes .wl-mn{font-family:var(--f-mono);font-size:12px;color:var(--ink);}
+.panel-fixes .wl-refs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-left:auto;}
+.panel-fixes .wl-ref{font-family:var(--f-ui);font-size:10.5px;padding:1px 7px;border-radius:4px;border:1px solid var(--line);}
+.panel-fixes .wl-ref.ref-doc{color:var(--cyan-700);background:var(--cyan-50);border-color:var(--cyan-50);}
+.panel-fixes .wl-ref.ref-contract{color:var(--ink-2);background:var(--line-2);border-color:var(--line-2);}
+.panel-fixes .wl-ref.ref-test{color:var(--green-700);background:var(--green-50);border-color:var(--green-50);}
+.panel-fixes .wl-ref.ref-absent{color:var(--gap-700);background:var(--gap-50);border-color:var(--gap-50);border-style:dashed;}
+.panel-fixes .wl-ref a{color:inherit;text-decoration:none;border-bottom:1px dotted currentColor;}
+.panel-fixes .wl-row.tone-deprecated,.panel-fixes .wl-row.tone-removed{opacity:.78;border-style:dashed;}
+.panel-fixes .wl-row.tone-deprecated .wl-count{color:var(--gap-700);}
+.panel-fixes .wl-row.tone-removed .wl-count{color:var(--ink-2);}
+
+/* v0.3 hero header — strip + a single "fully bridged" tile. */
+.masthead-hero{padding:48px 0 22px;}
+.masthead-hero .strip{font-family:var(--f-display);font-weight:400;font-size:20px;color:var(--ink);line-height:1.3;margin-bottom:24px;}
+.masthead-hero .strip-brand{font-family:var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green-700);vertical-align:1px;}
+.masthead-hero .strip-sep{color:var(--ink-3);margin:0 8px;}
+.masthead-hero .strip-lib{color:var(--ink);}
+.masthead-hero .strip-meta{color:var(--ink-3);font-size:16px;}
+.masthead-hero .strip-count{color:var(--ink-2);font-size:16px;}
+.masthead-hero .hero-tile{display:flex;align-items:baseline;gap:14px;padding:8px 0;}
+.masthead-hero .hero-num{font-family:var(--f-display);font-weight:400;font-size:54px;color:var(--ink);line-height:1;}
+.masthead-hero .hero-den{font-family:var(--f-display);font-weight:400;font-size:22px;color:var(--ink-3);}
+.masthead-hero .hero-lbl{font-family:var(--f-body);font-size:14px;color:var(--ink-2);}
+
+.section{padding:34px 0 0;}
+.sec-substance{padding-top:18px;}
+/* margin-bottom:20px matches the .sh's margin-bottom, so the gap
+   above the tile grid (from its section's h2) equals the gap below
+   the grid (to the next section's h2). Protocols tile → Methods
+   heading now reads at the same 20px as Protocols heading → tile. */
+.surf{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+/* Side-by-side tiers: when each tier shows a single chip, lay the 2-3 tier
+   sections out as equal columns instead of stacking them. */
+.tiers-cols{display:flex;gap:28px;align-items:flex-start;margin-bottom:20px;}
+.tiers-cols .tier-col{flex:1;min-width:0;}
+.tiers-cols .tier-col .surf{grid-template-columns:1fr;margin-bottom:0;}
+/* Concept-doc REACH note. A single descriptive line, NOT a tile and NOT a
+   gauge: counts only, never a percentage, bar, or fill. It reports how far the
+   project's narrative docs reach into the contract — a map of what is and
+   isn't discussed in prose — framed deliberately as orientation, not a grade.
+   Renders only when a concept-doc source is configured (ConceptDocConfigured);
+   full-width, sitting quietly under the surface-tile grid. The leading dot
+   borrows the docs surface hue so it reads as a docs-family annotation without
+   competing with the measured tiles above it. */
+.cd-reach{width:100%;align-self:stretch;display:flex;align-items:flex-start;gap:9px;margin:-4px 0 22px;padding:11px 14px;background:color-mix(in srgb, var(--surf-docs) 6%, var(--card));border:1px solid var(--line);border-left:3px solid var(--surf-docs);border-radius:8px;font-family:var(--f-frame);font-size:13.5px;line-height:1.5;color:var(--ink-2);}
+.cd-reach .cd-reach-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px;background:var(--surf-docs);margin-top:calc((1.5em - 7px) / 2);}
+.cd-reach a{color:inherit;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--surf-docs);text-underline-offset:3px;}
+.cd-reach b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.cd-reach .cd-reach-rest{color:var(--ink-3);}
+.s{border:1px solid var(--line);border-radius:10px;padding:15px;background:var(--card);min-width:0;display:flex;flex-direction:column;}
+/* Warn-state tiles carry a red border + the alert chip in the corner.
+   The extra visual weight wants a touch more breathing room inside,
+   otherwise the chip and the corner radius sit on top of the content. */
+.s:has(> .warn-chip){padding:18px;}
+.s .l{font-family:var(--f-ui);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:600;margin-bottom:9px;display:flex;align-items:center;gap:7px;}
+.s .l .dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px;}
+.s.c-concept .dot{background:var(--surf-docs);}
+.s.c-test .dot{background:var(--surf-tests);}
+.s.c-example .dot{background:var(--surf-examples);}
+.s.c-impl .dot{background:var(--surf-impls);}
+.s .v{font-family:var(--f-score);font-weight:600;font-size:30px;letter-spacing:-.01em;line-height:1;font-feature-settings:"tnum" 1,"lnum" 1;color:var(--ink);}
+.s .v small{font-family:var(--f-ui);font-size:12px;color:var(--ink-3);font-weight:600;font-feature-settings:normal;}
+.s .sub{font-family:var(--f-ui);font-size:11px;color:var(--ink-3);margin-top:6px;font-weight:500;}
+.s .bar{width:100%;height:5px;border-radius:3px;background:var(--line-2);margin-top:11px;overflow:hidden;}
+.s .bar i{display:block;height:100%;border-radius:3px;background:var(--ink-2);}
+.s .reveal{display:inline-block;margin-top:11px;font-family:var(--f-ui);font-size:11px;font-weight:600;color:var(--green-700);cursor:pointer;text-decoration:none;}
+.s .reveal .rt{border-bottom:1px dotted var(--green-700);padding-bottom:1px;}
+.s .reveal:hover .rt{border-bottom-style:solid;}
+.surf-filter-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-ui);font-size:11px;font-weight:600;color:var(--ink-2);background:var(--line-2);padding:3px 8px;border-radius:5px;margin-left:10px;}
+.surf-filter-chip .x{cursor:pointer;color:var(--ink-3);font-weight:700;padding:0 2px;}
+.surf-filter-chip .x:hover{color:var(--ink);}
+
+/* Low-coverage warning chip. Renders inside any .s tile (Concept,
+   Tests, Worked examples) when the tile's percentage is ≤20. Pairs
+   the gap palette's red with a "!" glyph so color isn't the only
+   signal (brand non-negotiable #2). Positioned absolutely in the
+   top-right corner of the tile; tooltip explains the threshold.
+   The tile itself swaps its default grey border for a 1px red one
+   when the chip is present — same signal at the frame, so the
+   alert reads at a glance even before the chip glyph registers. */
+.s{position:relative;}
+.s:has(> .warn-chip){border-color:var(--gap);}
+.s .warn-chip{position:absolute;top:14px;right:14px;width:18px;height:18px;border-radius:50%;background:var(--gap);color:#fffdf8;display:inline-flex;align-items:center;justify-content:center;font-family:var(--f-ui);font-weight:700;font-size:12px;line-height:1;cursor:default;user-select:none;}
+.s .warn-chip::after{content:"!";display:block;}
+/* .s-na — tile in "no scope" mode. Drops the red border the
+   warn-chip:has() rule would apply, tones the figure down to a
+   neutral grey, and uses the same Plex Sans uppercase as a surface
+   label so "N/A" reads as status, not a count. */
+.s.s-na{border-color:var(--line);}
+.s.s-na .v.na{font-family:var(--f-ui);font-weight:600;font-size:18px;letter-spacing:.06em;color:var(--ink-3);}
+.s.s-na .sub{color:var(--ink-3);font-style:normal;}
+
+/* ── Per-tier coverage grid (masthead) ───────────────────────────────
+   2-row × 3-column matrix that replaces the three round tiles when a
+   library exposes two tiers (commands + flags for cobra, methods +
+   fields for FIDL). The split makes the denominator-effect bug
+   impossible to render — a "100% docs" reading that's actually
+   "100% of commands but 0% of flags" now visibly separates.
+
+   Layout: a 4-column CSS grid (label + 3 metric cols). Each metric
+   cell shows the score serif percentage, the raw count in tabular
+   figures, and an optional "←" gap marker rendered when the cell
+   is the weakest in its column (drawn from the same data, not from
+   a class).
+*/
+.tiergrid{display:grid;grid-template-columns:minmax(120px,140px) repeat(3,1fr);gap:0;border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden;margin-bottom:14px;}
+.tiergrid .th{font-family:var(--f-ui);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:600;padding:13px 16px 9px;border-bottom:1px solid var(--line-2);background:var(--card);}
+.tiergrid .th-row{padding-left:16px;}
+.tiergrid .tlabel{font-family:var(--f-ui);font-size:13px;font-weight:600;color:var(--ink);padding:14px 16px 14px;display:flex;flex-direction:column;justify-content:center;gap:2px;border-top:1px solid var(--line-2);background:var(--card);}
+.tiergrid .tlabel small{font-family:var(--f-ui);font-size:11px;font-weight:500;color:var(--ink-3);font-feature-settings:"tnum" 1;}
+.tiergrid .tcell{padding:14px 16px;border-top:1px solid var(--line-2);border-left:1px solid var(--line-2);display:flex;flex-direction:column;gap:3px;background:var(--card);min-width:0;}
+.tiergrid .tcell.weak{background:linear-gradient(90deg,var(--gap-50) 0%, var(--card) 70%);}
+.tiergrid .tpct{font-family:var(--f-score);font-weight:600;font-size:24px;letter-spacing:-.01em;line-height:1;font-feature-settings:"onum" 1;color:var(--ink);}
+.tiergrid .tpct small{font-family:var(--f-ui);font-size:11px;color:var(--ink-3);font-weight:600;font-feature-settings:normal;margin-left:2px;}
+.tiergrid .tpct .gap-mark{font-family:var(--f-ui);font-weight:600;color:var(--gap-700);margin-left:6px;font-size:18px;line-height:1;}
+.tiergrid .tn{font-family:var(--f-ui);font-size:11.5px;color:var(--ink-3);font-weight:500;font-feature-settings:"tnum" 1;}
+
+.apex{font-family:var(--f-body);font-size:13px;color:var(--ink-2);line-height:1.6;margin:8px 0 14px;}
+.apex .apex-row{padding:2px 0;}
+.apex b{color:var(--ink);font-weight:600;font-family:var(--f-ui);font-feature-settings:"tnum" 1;}
+.apex .apex-zero{color:var(--gap-700);font-weight:600;font-family:var(--f-ui);font-feature-settings:"tnum" 1;}
+
+/* Workflow / recipe coverage block. Even when no adapter is wired,
+   the block renders an honest empty state so the reader sees that
+   sheaf isn't measuring the inter-element layer yet. Brand value 5
+   (integrity in the join): name the absence, don't hide it. */
+.wfblock{border:1px dashed var(--line);border-radius:10px;padding:18px 20px;margin-bottom:8px;background:var(--card);}
+.wfblock .wf-head{font-family:var(--f-ui);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:600;margin-bottom:8px;}
+.wfblock .wf-body{font-family:var(--f-frame);font-style:italic;font-size:14px;color:var(--ink-2);line-height:1.5;}
+.wfblock.empty{background:transparent;}
+.wfblock.empty .wf-body{color:var(--ink-3);}
+
+/* Workflow rows + histogram. The Workflows section renders as a
+   peer of the Commands / Flags sections — same h2 + italic
+   subhead — so the row + histogram CSS is not nested under
+   .wfblock anymore. (.wfblock styles below still apply to the
+   dashed empty-state card when no workflow corpus is configured.) */
+.wf-rows{display:flex;flex-direction:column;gap:8px;margin-top:6px;margin-bottom:6px;}
+.wf-row{display:grid;grid-template-columns:minmax(220px,1fr) 1fr 60px;align-items:center;gap:18px;font-family:var(--f-ui);font-size:13px;color:var(--ink-2);}
+.wf-label{color:var(--ink-2);}
+.wf-num{font-family:var(--f-ui);color:var(--ink-3);font-feature-settings:"tnum" 1;}
+.wf-num b{color:var(--ink);font-weight:600;}
+.wf-num .wf-den{color:var(--ink-3);}
+.wf-bar{width:100%;height:6px;background:var(--line-2);border-radius:3px;overflow:hidden;}
+.wf-bar i{display:block;height:100%;background:var(--ink-2);border-radius:3px;}
+.wf-pct{font-family:var(--f-score);font-weight:600;font-size:18px;font-feature-settings:"onum" 1;color:var(--ink);text-align:right;}
+
+.wf-hist{margin-top:18px;padding-top:14px;border-top:1px solid var(--line-2);margin-bottom:8px;}
+.wf-hist-head{font-family:var(--f-ui);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:600;margin-bottom:8px;}
+.wf-hist-row{display:grid;grid-template-columns:64px 1fr 48px;align-items:center;gap:12px;padding:2px 0;font-family:var(--f-ui);font-size:12.5px;color:var(--ink-3);}
+.wf-hist-label{color:var(--ink-2);font-feature-settings:"tnum" 1;}
+.wf-hist-bar{display:block;height:8px;background:var(--line-2);border-radius:2px;overflow:hidden;}
+.wf-hist-bar i{display:block;height:100%;background:var(--ink-2);border-radius:2px;}
+.wf-hist-count{font-family:var(--f-ui);font-feature-settings:"tnum" 1;color:var(--ink);font-weight:600;text-align:right;}
+/* Freshness rows (Guide/Workflow staleness) reuse .wf-hist-row but carry
+   only a doc name + a staleness word — no middle bar. The 3-col histogram
+   grid (64px 1fr 48px) crushed the long ".md" name into the 64px column and
+   wrapped it; a 2-col name|count layout gives the name the full width and
+   keeps the trailing "current"/"Nd behind" word on the same line, hard right.
+   The name ellipsizes instead of wrapping (min-width:0 lets the grid cell
+   shrink below content width). The whole row carries a hover highlight that
+   spans name → count so the selection encloses the staleness word too. */
+.wf-fresh .wf-hist-row{grid-template-columns:1fr auto;gap:14px;padding:3px 8px;margin:0 -8px;border-radius:6px;}
+.wf-fresh .wf-hist-row:hover{background:var(--line-2);}
+.wf-fresh .wf-hist-label{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wf-fresh .wf-steps{color:var(--ink-3);font-weight:400;}
+.wf-fresh .wf-doc-link{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--line);}
+.wf-fresh .wf-doc-link:hover{color:var(--ink);border-bottom-color:var(--ink-3);}
+
+/* Masthead italic insight — replaces the old "CoverageSentence"
+   prose. Re-derived from the per-tier grid every render. Brand rule:
+   italic = a finding the reader couldn't form by glancing. */
+.masthead-insight{font-family:var(--f-frame);font-style:italic;font-size:16px;color:var(--ink-2);line-height:1.5;margin-bottom:18px;max-width:70ch;}
+
+/* Section dividers inside #sec-coverage. Vertical rhythm targets
+   the body baseline grid (IBM Plex Sans 14px × 1.5 ≈ 21px per
+   line). A chapter-break in editorial work breathes equally on
+   both sides — 3 baselines (63px) above the divider and 3 below
+   (between the rule and the next h2). Total break ≈ 6 baselines;
+   reads as a deliberate section change without feeling padded.
+   The default .sh border uses --line (#ece5d6) which is too close
+   to --paper to see; --ink-3 at low alpha gives just enough
+   contrast to register as a rule without competing with the h2. */
+#sec-coverage .sh{border-top-color:rgba(22,32,28,.18);padding-top:63px;margin-top:63px;}
+/* The first section's heading sits directly under the sticky topnav
+   (or the deprecation banner, when present). The 63px padding+margin
+   above is meant to separate Coverage from a preceding section, but
+   when sh-no-divider is set there IS no preceding section — zero
+   both so the top of the report doesn't open with empty paper. */
+#sec-coverage .sh.sh-no-divider{padding-top:0;margin-top:0;}
+
+/* Per-section italic subhead — sits between the section <h2>
+   ("106 Commands" / "897 Flags") and the .surf tile row. Smaller
+   than the masthead-insight at the very top of #sec-coverage; this
+   is a section caption, not a top-level lede. Brand rule: italic
+   only when the sentence names a finding the tiles below can't show
+   directly. Width matches the rounded-rect card row below — these
+   read as labels for that block, not body prose, so the 70ch
+   reading-measure cap doesn't apply. */
+/* Italic lead-in below an .sh heading. Unified margin with .sh-intro
+   (both 24px below) so the "italic Fraunces explaining what's next"
+   role has one rhythm regardless of which class spells it. */
+.section-subhead{font-family:var(--f-frame);font-style:italic;font-size:14.5px;color:var(--ink-2);line-height:1.45;margin:0 0 24px;width:100%;align-self:stretch;}
+
+/* Section heading container.
+   - 56px padding-top + no top border: whitespace alone signals "new
+     section." Reads as editorial structure rather than a ruled grid.
+   - 20px margin-bottom: gives the 26px Display h2 room to breathe
+     before the italic lead-in or first content block. (Previously 8px
+     + a -2px negative margin on the subhead = ~6px, far too tight
+     for a heading of this optical mass.) */
+.sh{display:flex;align-items:baseline;gap:12px;padding-top:56px;margin-bottom:20px;}
+/* First section gets a smaller breath (32px) so the masthead's
+   bottom rule has air below it before the body begins, without the
+   full inter-section 56px gap. */
+.sh.sh-no-divider{padding-top:32px;}
+/* Explicit line-height for the Display h2. Without this it inherited
+   1.5 from the body and the h2's box was ~7px taller than the visible
+   glyphs — silently shifting every downstream margin calc. 1.2 is the
+   standard Display range and aligns the box bottom with the baseline. */
+.sh h2{font-family:var(--f-display);font-weight:400;font-size:26px;line-height:1.2;letter-spacing:-.005em;margin:0;}
+.sh h2 .sh-count{color:var(--ink);font-weight:400;font-size:21px;margin-left:4px;}
+.sh h2 .sh-count .sh-num{font-family:var(--f-score);font-weight:400;font-size:30px;letter-spacing:-.01em;font-feature-settings:"onum" 1;}
+/* Section-count numerals (the "28" in "28 Protocols") use a slightly
+   muted ink so they read as section identifiers rather than primary
+   measurements — the bold near-black ink is reserved for the tile
+   percentages (.s .v) which are the page's actual data points. */
+.sh h2 .sh-num{color:var(--ink-2);}
+/* Protocols + Methods inside the Coverage area are sub-sections of
+   one logical group; the Depth/Workflows/Evidence chapters that
+   follow are peer chapters. Drop the sub-section h2 a step in scale
+   (22px vs 26px) but keep the count typography full-size so the
+   measurement still anchors the heading. */
+#sec-coverage .sh h2{font-size:22px;}
+/* "· Worklist" suffix matches the section headline's display font so
+   the lockup reads as one phrase. Sized to sit on the same baseline as
+   the count. */
+.sh h2 .sh-section-prefix{font-family:var(--f-display);font-weight:400;font-size:26px;color:var(--ink);letter-spacing:0;text-transform:none;margin-left:8px;}
+/* Binary-root prefix in single-binary CLI section headings
+   ("fd · 44 Flags"). Name in display face, separator in muted
+   ink to function as a conjunction rather than a tier divider. */
+.sh h2 .sh-bin{font-family:var(--f-display);font-weight:400;color:var(--ink);}
+.sh h2 .sh-sep{color:var(--ink-3);font-weight:400;margin:0 2px;}
+.sh .ct{font-family:var(--f-ui);font-size:11px;color:var(--ink-3);font-weight:500;}
+/* Italic intro line above a rounded-rect card / visualization block.
+   No reading-measure cap: these are callout sentences that label the
+   block below ("Closing the largest group would move 40% of the
+   debt…"), not body prose, so the line should span the same width
+   as the card it introduces. */
+.sh-intro{font-family:var(--f-frame);font-style:italic;font-size:15.5px;color:var(--ink-2);margin-bottom:24px;line-height:1.45;width:100%;align-self:stretch;}
+/* sh-intro-wide kept as a no-op alias for any external markup that
+   still asks for it; the base .sh-intro is already unconstrained. */
+.sh-intro-wide{max-width:none;}
+
+.upset{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:22px 24px;margin-bottom:8px;}
+.upset-grid{display:grid;grid-template-columns:84px 1fr;gap:0 18px;}
+.combo-head{height:64px;}
+.colhead{display:flex;align-items:flex-end;gap:11px;height:64px;margin-bottom:2px;}
+.colhead span{width:12px;font-family:var(--f-ui);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-2);writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;line-height:12px;text-align:left;}
+.combo{display:flex;align-items:center;padding:7px 0;height:38px;}
+.combo .dot3{display:flex;gap:11px;position:relative;}
+.combo .dot3 i{width:12px;height:12px;border-radius:50%;background:var(--card);border:1.5px solid #d8d1c1;position:relative;z-index:1;}
+.combo .dot3 i:nth-child(1).on{background:var(--indigo-500);border-color:var(--indigo-500);}
+.combo .dot3 i:nth-child(2).on{background:var(--green-500);border-color:var(--green-500);}
+.combo .dot3 i:nth-child(3).on{background:var(--amber);border-color:var(--amber);}
+.combo .dot3.ln-1-3::before{content:"";position:absolute;top:50%;left:6px;right:6px;height:1.5px;background:var(--ink-3);transform:translateY(-50%);z-index:0;}
+.combo .dot3.ln-2-3::before{content:"";position:absolute;top:50%;left:29px;right:6px;height:1.5px;background:var(--ink-3);transform:translateY(-50%);z-index:0;}
+.combo .dot3.ln-1-2::before{content:"";position:absolute;top:50%;left:6px;width:23px;height:1.5px;background:var(--ink-3);transform:translateY(-50%);z-index:0;}
+.bar-cell{display:flex;align-items:center;gap:11px;padding:7px 0;height:38px;}
+.bar-cell .track{flex:1;height:22px;background:var(--paper);border:1px solid var(--line);border-radius:5px;overflow:hidden;position:relative;cursor:pointer;transition:border-color .12s;}
+.bar-cell .track:hover{border-color:var(--green-300);}
+.bar-cell .track i{display:block;height:100%;background:var(--ink-2);}
+.bar-cell .cnt{font-family:var(--f-ui);font-weight:700;font-size:13px;color:var(--ink);width:30px;text-align:right;font-feature-settings:"tnum" 1;}
+.bar-cell .cnt-hl{color:var(--green-700);}
+.bar-cell .lbl{font-family:var(--f-body);font-size:12px;color:var(--ink-3);width:260px;}
+.bar-cell .lbl-hl{color:var(--green-700);font-weight:600;}
+.upset-legend{display:flex;gap:18px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line-2);font-family:var(--f-ui);font-size:11px;color:var(--ink-3);font-weight:500;}
+.upset-expl{font-family:var(--f-body);font-size:13px;color:var(--ink-2);line-height:1.5;font-weight:400;}
+.upset-expl b{color:var(--ink);font-weight:600;}
+
+/* upset2 — redesigned UpSet (side-by-side with Substance donut):
+   LEFT cell: count + (dots above narrative)
+   RIGHT cell: color-coded bar (always visible)
+   Click any row → a panel slides in BELOW the row showing the
+     methods in that group (spans both grid columns).
+   Surface legend lives BELOW & OUTSIDE the rounded rectangle, on the
+   right (so the card content is just the data). */
+/* Captions live ABOVE the upset/donut block, mirroring its
+   two-column geometry so each caption sits over its own graphic. */
+.upset-and-donut-intros{display:flex;align-items:flex-start;gap:18px;}
+.upset-and-donut-intros > .upset-intro{flex:1 1 100%;min-width:0;margin-bottom:14px;}
+/* padding-left = card padding (18px) + the donut SVG's internal left
+   offset (~52px). The donut SVG viewBox is 0 0 600 330; the circle is
+   centered at x=200 with radius 92, so its leftmost point sits at
+   ~108/600 of the rendered width. With a 320px card minus 36px
+   padding = 284px rendered SVG, that's 108 * (284/600) ≈ 51px from
+   SVG-left. Adding card padding gives ~69px total. */
+/* padding-left aligns the intro text's left edge with the donut
+   graphic beneath it (the original 69px positions the text past the
+   donut card's left padding to sit visually flush with the chart). */
+.upset-and-donut-intros > .donut-intro{flex:0 0 320px;margin-bottom:14px;padding-left:100px;}
+
+.upset-and-donut{display:flex;flex-direction:column;gap:22px;}
+.upset-and-donut > .upset2-wrap{display:flex;flex-direction:column;width:100%;}
+.upset-and-donut > .subst-card{width:100%;}
+/* The "Depth" .sh is a flex child of .upset-and-donut
+   (gap:22px), so that flex gap STACKS on the .sh's own 20px
+   margin-bottom and floats the grid 42px below the heading — double
+   every other section's h2 → content gap. Pull the card back up by
+   the flex-gap amount so the heading sits a standard 20px above its
+   dividing line, matching the Evidence heading → search-box gap. */
+.upset-and-donut > .sh + .subst-card{margin-top:-22px;}
+/* Lag carries an italic subhead between its .sh and grid, so it breaks
+   the .sh + .subst-card adjacency above and instead inherits the 22px
+   flex gap on BOTH joins plus the .sh's 20px and the subhead's 24px
+   margins — floating the grid far below the heading. Pull the subhead
+   up under the heading and the grid up under the subhead so the Lag
+   heading → subhead → grid rhythm reads tight, like Depth's. */
+.upset-and-donut > .sh.sh-lag{margin-bottom:0;}
+.upset-and-donut > .sh.sh-lag + .section-subhead{margin-top:-16px;margin-bottom:0;}
+.upset-and-donut > .section-subhead + .subst-card{margin-top:-16px;}
+.upset-and-donut > .sh.sh-depth{margin-bottom:0;}
+.upset-and-donut > .sh.sh-depth + .section-subhead{margin-top:-16px;margin-bottom:0;}
+/* No top padding on the card itself — the .sh's 20px margin-bottom is
+   the only intended gap. */
+.subst-card{width:100%;display:flex;flex-direction:column;gap:4px;padding-top:0;}
+/* Four-row substance grid: one column per grade. Replaces the
+   horizontal segmented bar + dot legend with a count-per-cell read.
+   Same showSubstance() click target as before. */
+.subst4{display:grid;grid-template-columns:repeat(4, 1fr);gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.subst4-row{padding:14px 16px;border-right:1px solid var(--line);cursor:pointer;transition:background .12s ease;}
+.subst4-row:last-child{border-right:none;}
+.subst4-row:hover{background:var(--line-2);}
+.subst4-label{font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);}
+/* The cell figure is the percentage only (no raw count), rendered in
+   the same headline score face as the per-tier coverage tiles above
+   (.s .v) so Depth/Lag read as siblings of the flag/command figures. */
+.subst4-count{font-family:var(--f-score);font-weight:600;font-size:30px;letter-spacing:-.01em;color:var(--ink);font-feature-settings:"tnum" 1,"lnum" 1;line-height:1;margin-top:6px;}
+.subst4-count small{font-family:var(--f-ui);font-size:12px;color:var(--ink-3);font-weight:600;font-feature-settings:normal;}
+.subst4-bar{height:4px;background:var(--line-2);margin-top:10px;border-radius:2px;}
+.subst4-bar i{display:block;height:100%;border-radius:2px;}
+.subst4-row.s-sub .subst4-bar i{background:#16201c;}
+.subst4-row.s-par .subst4-bar i{background:#5a635c;}
+.subst4-row.s-sig .subst4-bar i{background:#9aa49d;}
+/* "None" gets a diagonal hatch so absence reads as an absence, not as
+   another gray fill in the ramp. Same pattern is used in print since
+   the hatch survives color-adjust:economy. */
+.subst4-row.s-abs .subst4-bar i{background:repeating-linear-gradient(135deg, #b8a98a 0 1.5px, transparent 1.5px 5px);}
+/* Lag band inks: neutral ink ramp for the first three; the hatched
+   "danger / absence" fill is reserved for Stale (identical to Depth's
+   "None" band) so the hatch reads consistently across both sections.
+   Band COUNTS stay neutral ink everywhere — alarm color is spent only
+   on the P90 figure, never on a band number. */
+.subst4-row.l-fresh .subst4-bar i{background:#16201c;}
+.subst4-row.l-recent .subst4-bar i{background:#5a635c;}
+.subst4-row.l-aging .subst4-bar i{background:#9aa49d;}
+.subst4-row.l-stale .subst4-bar i{background:repeating-linear-gradient(135deg, #b8a98a 0 1.5px, transparent 1.5px 5px);}
+/* Time axis under the Lag bands — the single cue that announces "this
+   axis is days, not completeness." aria-hidden; band labels carry the
+   accessible meaning. */
+.lag-axis{display:grid;grid-template-columns:repeat(4,1fr);font-family:var(--f-mono);font-size:10px;color:var(--ink-3);letter-spacing:.02em;padding-top:7px;}
+.lag-axis span{position:relative;padding-left:16px;}
+.lag-axis span::before{content:"";position:absolute;left:0;top:-7px;width:1px;height:6px;background:var(--line);}
+/* Provenance block: headline stat + the honesty-valve unknown rate,
+   beside the info icon. Without it a squash-merged repo reads "all
+   Fresh" and the methodology gets discarded. */
+.lag-foot{line-height:1.5;margin-top:16px;display:flex;align-items:flex-start;gap:9px;}
+.lag-foot .i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--ink-3);color:var(--paper);font-weight:700;font-size:9.5px;display:inline-flex;align-items:center;justify-content:center;margin-top:6px;}
+.lag-foot-line{line-height:1.55;}
+.lag-foot .dot{color:var(--ink-3);margin:0 7px;font-weight:400;}
+.lag-foot-stat{font-family:var(--f-ui);font-size:12.5px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.lag-foot-prov{font-family:var(--f-body);font-size:12px;color:var(--ink-3);}
+.lag-foot-prov b{color:var(--ink-2);font-weight:600;font-variant-numeric:tabular-nums;}
+/* Full-width hairline closing the Lag section before Evidence. Only
+   rendered inside the Pairs>0 block, so it never orphans when Lag is
+   suppressed. The 22px .upset-and-donut flex gap sits above it. */
+.lag-rule{width:100%;height:0;border-top:1px solid rgba(22,32,28,.18);margin-top:10px;}
+@media (max-width: 720px){
+  .subst4{grid-template-columns:repeat(2, 1fr);}
+  .subst4-row{border-bottom:1px solid var(--line);}
+  .subst4-row:nth-child(2){border-right:none;}
+  .subst4-row:nth-child(3),
+  .subst4-row:nth-child(4){border-bottom:none;}
+}
+/* Legacy donut-card kept so other code paths don't crash; not used. */
+.donut-card{display:none;}
+.donut-card-title{font-family:var(--f-ui);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);margin-bottom:4px;}
+/* Headline finding above the donut — italic per the brand rule
+   (italic = a sentence the reader couldn't write themselves). Sized
+   to fit the 320px card width without wrapping the typical
+   "Zero of N methods…" sentence. */
+.donut-synopsis{font-family:var(--f-frame);font-style:italic;font-size:14px;line-height:1.35;color:var(--ink);margin-bottom:8px;}
+.donut-card .sub-donut{max-width:100%;width:100%;height:auto;}
+
+.upset2{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:22px 24px;}
+.upset2-grid{display:grid;grid-template-columns:1fr;row-gap:0;align-items:start;}
+
+.u2r-text{display:flex;align-items:flex-start;gap:14px;padding:10px 10px;border-radius:6px;cursor:pointer;transition:background .12s,border-radius .12s;}
+.u2r-text:hover{background:var(--line-2);}
+.u2r-text.sel{background:var(--line-2);border-radius:6px 6px 0 0;}
+.u2r-text > *{align-self:flex-start;margin-top:0;}
+.u2r-count{font-family:var(--f-score);font-weight:400;font-size:30px;letter-spacing:-.01em;color:var(--ink);min-width:48px;text-align:right;font-feature-settings:"tnum" 1 ,"onum" 1;line-height:1;}
+/* Wraps the count + a tiny micro-bar showing this row's share of the
+   largest row's count. Same visual idiom as the worklist's wl-count-block. */
+.u2r-count-block{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:48px;}
+.u2r-bar{width:42px;height:5px;background:transparent;border:1px solid var(--line);border-radius:3px;overflow:hidden;box-sizing:border-box;}
+.u2r-bar i{display:block;height:100%;background:var(--ink-2);}
+
+/* Auto-fade non-selected rows when any row is selected. Lets the
+   reader's focus stay on the selected row without losing the others. */
+.upset2 .u2r-text{transition:opacity .15s ease;}
+.upset2:has(.u2r-text.sel) .u2r-text:not(.sel){opacity:.40;}
+.upset2:has(.u2r-text.sel) .u2r-text:not(.sel):hover{opacity:1;}
+
+/* Tagline visible only on the selected row. Reduces vertical noise
+   on rows the reader isn't focused on. */
+.u2r-text .u2r-tagline{display:none;}
+.u2r-text.sel .u2r-meta .u2r-tagline{display:block;}
+.u2r-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;margin-top:0;padding-top:2px;padding-right:6px;}
+/* Dots stay small circles always; the chip wrapper reveals the
+   label sibling on .sel. Color is always on for present surfaces;
+   absent surfaces render as a hollow grey circle. */
+.u2r-dots{display:flex;gap:6px;align-items:center;transition:gap .2s ease;}
+.sel .u2r-dots{gap:16px;}
+.u2r-chip{display:inline-flex;align-items:center;gap:5px;}
+.u2r-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px;background:transparent;border:1.5px solid #d8d1c1;box-sizing:border-box;}
+.u2r-dot.dpos-1.on{background:var(--indigo-500);border-color:var(--indigo-500);}
+.u2r-dot.dpos-2.on{background:var(--green-500);border-color:var(--green-500);}
+.u2r-dot.dpos-3.on{background:var(--amber);border-color:var(--amber);}
+.u2r-chip-label{max-width:0;opacity:0;overflow:hidden;white-space:nowrap;font-family:var(--f-ui);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);transition:max-width .2s ease,opacity .2s ease;}
+.sel .u2r-chip-label{max-width:90px;opacity:1;}
+.u2r-dot:not(.on) + .u2r-chip-label{color:var(--ink-3);}
+/* When the row is selected, "on" dots show their category color. */
+.u2r-label{font-family:var(--f-body);font-size:13.5px;color:var(--ink-2);line-height:1.4;}
+.u2r-term{font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);}
+/* Row 1 of .u2r-meta: TERM on the left, pills right-aligned. */
+.u2r-term-row{display:flex;align-items:center;gap:14px;}
+.u2r-term-row .u2r-dots{margin-left:auto;}
+/* Default display rule for .u2r-tagline is overridden above (hidden
+   unless the row is .sel) — these are font/color tokens only. */
+.u2r-tagline{font-family:var(--f-body);font-size:13.5px;color:var(--ink-2);line-height:1.4;}
+/* Completed row gets the label emphasis (heavier) but the count
+   stays in default ink — no special green tint. */
+.u2r-text.u2r-hl .u2r-label{color:var(--ink);font-weight:600;}
+
+/* Members panel — full-width row immediately under the .u2r-text
+   it belongs to. Hidden until selection. When shown, shares the
+   selected row's background so the count/narrative and the methods
+   read as one visual block. */
+/* padding-left matches u2r-text's (padding 10 + count min-width 48 + gap 14)
+   so chips start exactly under the narrative text, not under the count. */
+.u2r-members{display:none;flex-direction:column;gap:8px;padding:2px 14px 14px 72px;background:var(--line-2);border-radius:0 0 6px 6px;margin-bottom:6px;}
+.u2r-members.sel{display:flex;}
+.u2m-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.u2m{font-family:var(--f-mono);font-size:11.5px;background:var(--ink);color:var(--paper);padding:3px 8px;border-radius:4px;letter-spacing:.01em;}
+.u2m-more-row{margin-top:2px;}
+.u2m-more{font-family:var(--f-ui);font-size:11px;font-weight:600;color:var(--green-700);cursor:pointer;text-decoration:none;border-bottom:1px dotted var(--green-700);padding-bottom:1px;}
+.u2m-more:hover{border-bottom-style:solid;}
+.u2m-all{display:none;flex-wrap:wrap;gap:6px;width:100%;}
+.u2m-all.open{display:flex;}
+
+/* Bottom-right legend, OUTSIDE the upset2 card. */
+.upset2-extlegend{display:flex;justify-content:flex-end;align-items:center;gap:18px;margin-top:10px;font-family:var(--f-ui);font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ink-2);}
+.upset2-extlegend .lg-item{display:inline-flex;align-items:center;gap:7px;}
+.upset2-extlegend .lg-dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+.upset2-extlegend .lg-d{background:var(--indigo-500);}
+.upset2-extlegend .lg-t{background:var(--green-500);}
+.upset2-extlegend .lg-e{background:var(--amber);}
+
+/* Bar fill colors by combination. d=docs (indigo), t=tests (green),
+   e=examples (amber). Multi-surface combos split the bar into equal
+   segments across present surfaces. The "none" case gets a diagonal
+   hash so empty rows are visually distinct from very small filled bars. */
+.u2r-fill.combo-none{background:repeating-linear-gradient(45deg,var(--paper),var(--paper) 4px,#e6dfd1 4px,#e6dfd1 5px);}
+.u2r-fill.combo-d{background:var(--indigo-500);}
+.u2r-fill.combo-t{background:var(--green-500);}
+.u2r-fill.combo-e{background:var(--amber);}
+.u2r-fill.combo-dt{background:linear-gradient(to right,var(--indigo-500) 0%,var(--indigo-500) 50%,var(--green-500) 50%,var(--green-500) 100%);}
+.u2r-fill.combo-de{background:linear-gradient(to right,var(--indigo-500) 0%,var(--indigo-500) 50%,var(--amber) 50%,var(--amber) 100%);}
+.u2r-fill.combo-te{background:linear-gradient(to right,var(--green-500) 0%,var(--green-500) 50%,var(--amber) 50%,var(--amber) 100%);}
+.u2r-fill.combo-dte{background:linear-gradient(to right,var(--indigo-500) 0%,var(--indigo-500) 33.33%,var(--green-500) 33.33%,var(--green-500) 66.66%,var(--amber) 66.66%,var(--amber) 100%);}
+
+.upset2-foot{margin-top:14px;padding-top:14px;border-top:1px solid var(--line-2);}
+.bar-cell.sel .track{border-color:var(--ink-2);box-shadow:0 0 0 1px var(--ink-2);}
+
+.diag{display:flex;justify-content:center;padding:8px 0 24px;}
+.sub-donut{max-width:560px;width:100%;height:auto;}
+.dn-big{font-family:var(--f-score);font-weight:400;font-size:30px;fill:var(--ink);font-feature-settings:"onum" 1;}
+.dn-sub{font-family:var(--f-ui);font-weight:600;font-size:11px;fill:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;}
+.dn-lbl{font-family:var(--f-ui);font-weight:600;font-size:12px;fill:var(--ink);}
+.dn-pct{font-family:var(--f-score);font-weight:600;font-size:13px;font-feature-settings:"onum" 1;}
+.dn-desc{font-family:var(--f-body);font-size:11px;fill:var(--ink-3);}
+
+.worklist{display:flex;flex-direction:column;gap:10px;}
+.wl-row{border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden;}
+.wl-card{display:flex;align-items:flex-start;gap:14px;padding:16px 18px;cursor:pointer;}
+.wl-chev{font-family:var(--f-ui);color:var(--ink-3);font-size:10px;margin-top:4px;transition:transform .12s;}
+.wl-row.open .wl-chev{transform:rotate(90deg);}
+.wl-body{flex:1;min-width:0;}
+.wl-head{display:flex;align-items:baseline;gap:12px;}
+.wl-count{font-family:var(--f-score);font-weight:600;font-size:28px;line-height:1;color:var(--ink);font-feature-settings:"onum" 1;}
+.wl-label{font-family:var(--f-ui);font-weight:600;font-size:14px;color:var(--ink);}
+.wl-sev{font-family:var(--f-body);font-size:12.5px;color:var(--ink-2);margin-top:5px;}
+.wl-samples{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;}
+.wl-m{font-family:var(--f-mono);font-size:11.5px;background:var(--line-2);padding:2px 7px;border-radius:5px;color:var(--ink-2);}
+.wl-more{font-family:var(--f-ui);font-size:11px;color:var(--ink-3);padding:2px 4px;}
+.wl-detail{display:none;border-top:1px solid var(--line-2);padding:14px 18px 18px;background:var(--paper);}
+.wl-row.open .wl-detail{display:block;}
+.wl-action{font-family:var(--f-body);font-size:13px;color:var(--ink);font-weight:600;margin-bottom:11px;}
+.wl-members{display:flex;flex-direction:column;gap:8px;}
+.wl-member{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12px;}
+.wl-mn{font-family:var(--f-mono);font-size:12px;color:var(--ink);}
+.wl-refs{display:flex;flex-wrap:wrap;gap:6px;}
+.wl-ref{font-family:var(--f-ui);font-size:10.5px;padding:1px 7px;border-radius:4px;border:1px solid var(--line);}
+.wl-ref.ref-doc{color:var(--cyan-700);background:var(--cyan-50);border-color:var(--cyan-50);}
+.wl-ref.ref-contract{color:var(--ink-2);background:var(--line-2);border-color:var(--line-2);}
+.wl-ref.ref-test{color:var(--green-700);background:var(--green-50);border-color:var(--green-50);}
+.wl-ref.ref-absent{color:var(--gap-700);background:var(--gap-50);border-color:var(--gap-50);border-style:dashed;}
+.wl-ref a{color:inherit;text-decoration:none;border-bottom:1px dotted currentColor;}
+.wl-ref a:hover{text-decoration:none;border-bottom-style:solid;}
+
+.show-all{margin-top:16px;font-family:var(--f-ui);font-weight:600;font-size:12.5px;color:var(--paper);background:var(--ink);border:1px solid var(--ink);padding:9px 14px;border-radius:8px;cursor:pointer;}
+.show-all:hover{background:var(--ink-2);border-color:var(--ink-2);}
+.all-wrap{margin-top:14px;}
+#methodSearch{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-family:var(--f-body);font-size:13px;color:var(--ink);}
+/* Search-wrap pairs the input with an absolutely-positioned filter
+   chip that sits inside the search box, right-aligned. The padding-
+   right on #methodSearch reserves room so the chip never overlaps
+   typed text. */
+.search-wrap{position:relative;flex:1;min-width:200px;}
+.search-wrap #methodSearch{padding-right:160px;}
+.search-wrap #surfFilterChip{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;align-items:center;}
+.method-list{margin-top:12px;display:flex;flex-direction:column;}
+.m-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--line-2);font-size:12.5px;}
+.m-row:first-child{border-top:none;}
+.m-surf{display:flex;gap:6px;}
+.m-surf i{width:9px;height:9px;border-radius:50%;background:var(--card);border:1.5px solid #d8d1c1;display:inline-block;}
+.m-surf i:nth-child(1).on{background:var(--indigo-500);border-color:var(--indigo-500);}
+.m-surf i:nth-child(2).on{background:var(--green-500);border-color:var(--green-500);}
+.m-surf i:nth-child(3).on{background:var(--amber);border-color:var(--amber);}
+.m-name{font-family:var(--f-mono);font-size:12px;color:var(--ink);min-width:260px;}
+.m-fix{flex:1;font-family:var(--f-body);font-size:12px;color:var(--ink-2);}
+.m-fix.none{color:var(--green-700);}
+.m-drift{font-family:var(--f-ui);font-size:10.5px;padding:1px 7px;border-radius:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.m-drift.d-domain{color:var(--drift-domain);background:var(--drift-domain-50);}
+.m-drift.d-time{color:var(--drift-time);background:var(--drift-time-50);}
+.empty-note{font-family:var(--f-frame);font-style:italic;color:var(--ink-3);padding:10px 0;}
+
+.anom-group{display:flex;flex-direction:column;gap:14px;}
+.anom-row{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:14px 16px;}
+.anom-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+.anom-name{font-family:var(--f-mono);font-size:13px;color:var(--ink);font-weight:500;}
+.anom-cause{font-family:var(--f-ui);font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;}
+.anom-cause.c-removed{color:var(--gap-700);background:var(--gap-50);}
+.anom-cause.c-version{color:var(--drift-time);background:var(--drift-time-50);}
+.anom-cause.c-polarity{color:var(--amber-700);background:var(--amber-50);}
+.anom-cause.c-gap{color:var(--gap-700);background:var(--gap-50);}
+.anom-cause.c-naming{color:var(--drift-domain);background:var(--drift-domain-50);}
+.anom-conf{margin-left:auto;font-family:var(--f-score);font-weight:600;font-size:14px;color:var(--ink-2);font-feature-settings:"onum" 1;}
+.anom-desc{display:block;font-family:var(--f-body);font-size:13px;color:var(--ink-2);margin-top:7px;line-height:1.5;}
+.anom-links{display:block;margin-top:9px;font-family:var(--f-mono);font-size:11px;}
+.anom-link{color:var(--cyan-700);text-decoration:none;border-bottom:1px dotted var(--cyan-500);margin-right:14px;}
+.anom-link.src-contract{color:var(--ink-2);border-bottom-color:var(--ink-3);}
+.anom-foot{font-family:var(--f-frame);font-style:italic;color:var(--ink-3);font-size:12.5px;margin-top:14px;}
+
+/* === Findings (anomalies) redesign: grouped by cause === */
+.anom-groups{display:flex;flex-direction:column;gap:24px;margin-top:4px;}
+.anom-group2{display:flex;flex-direction:column;gap:6px;}
+.anom-cause-row{display:flex;align-items:center;gap:14px;padding-bottom:6px;}
+.anom-cause-title{display:inline-flex;align-items:baseline;gap:8px;color:var(--ink);line-height:1;}
+.anom-cause-name{font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);}
+.anom-cause-rule{flex:1;height:1px;background:var(--line);align-self:center;}
+.anom-cause-conf{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);}
+.anom-items{display:flex;flex-direction:column;}
+.anom-item{display:grid;grid-template-columns:minmax(180px,auto) 1fr;align-items:baseline;gap:18px;padding:6px 8px;border-top:1px solid var(--line-2);text-decoration:none;color:inherit;border-radius:4px;}
+.anom-item:first-of-type{border-top:none;}
+.anom-item:hover{background:var(--line-2);}
+.anom-item-name{font-family:var(--f-mono);font-size:12.5px;color:var(--ink);font-weight:500;}
+.anom-item-context{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.anom-multi{display:flex;flex-direction:column;border-top:1px solid var(--line-2);padding:8px 0 6px;}
+.anom-multi:first-of-type{border-top:none;}
+.anom-multi .anom-item-head{display:grid;grid-template-columns:minmax(180px,auto) 1fr;align-items:baseline;gap:18px;padding:0 8px 4px;text-decoration:none;color:inherit;border-radius:4px;}
+.anom-multi .anom-sub + .anom-sub{margin-top:3px;}
+.anom-sub{display:block;padding:3px 8px 3px 32px;text-decoration:none;color:inherit;border-radius:4px;}
+.anom-sub:hover{background:var(--line-2);}
+.anom-methodology{margin-top:28px;padding-top:14px;border-top:1px solid var(--line-2);font-family:var(--f-mono);font-size:11px;color:var(--ink-3);line-height:1.55;}
+.anom-methodology .src{font-family:var(--f-mono);color:var(--ink-2);}
+/* Housekeeping/methodology lines that USED to be italic but were
+   demoted per the brand rule (italic = a finding, not a description).
+   Same compact size; plain body family; no italic. */
+.anom-foot-housekeeping{font-family:var(--f-mono);font-style:normal;font-size:11px;color:var(--ink-3);margin-top:14px;}
+/* Methodology caveat above the anomaly rows: full column width
+   (matches the anomaly cards beneath it). Not a reading-measure
+   paragraph; sits between the section's italic insight and the
+   rounded-rect anomaly rows. */
+.anom-caveat{font-family:var(--f-body);font-style:normal;font-size:12.5px;color:var(--ink-3);line-height:1.45;margin-bottom:20px;}
+.src{font-family:var(--f-mono);color:var(--ink-2);}
+
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-family:var(--f-mono);font-size:11px;color:var(--ink-3);}
+
+/* Methodology footnote — one paragraph above .foot that anchors
+   the warn-chip's tooltip ("see methodology note at the page foot").
+   Sets at body sans but smaller and dimmer; sits below all
+   section content so the reader meets it after the findings, not
+   before. */
+.methodology{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-family:var(--f-body);font-size:12.5px;color:var(--ink-3);line-height:1.55;}
+.methodology .method-note{max-width:none;}
+.methodology .method-note b{color:var(--ink-2);font-family:var(--f-ui);font-weight:600;}
+/* Inline mini-chip rendered inside prose ("the red [!] chip…").
+   Self-contained — the .s .warn-chip rule above is scoped to tiles
+   only, so this variant carries its own background + glyph. */
+.methodology .warn-chip-inline{display:inline-flex;width:13px;height:13px;border-radius:50%;background:var(--gap);color:#fffdf8;align-items:center;justify-content:center;font-family:var(--f-ui);font-weight:700;font-size:9px;line-height:1;vertical-align:middle;margin:0 2px;}
+.methodology .warn-chip-inline::after{content:"!";display:block;}
+.foot a{color:var(--ink-2);}
+
+/* Deprecation surfaces */
+.dep-banner{margin:14px 0 4px;padding:13px 18px;border:1px solid var(--gap-50);background:var(--gap-50);border-radius:10px;display:flex;gap:14px;align-items:flex-start;}
+.dep-banner .pill{font-family:var(--f-ui);font-weight:700;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--gap-700);padding:3px 8px;border-radius:5px;margin-top:2px;flex:0 0 auto;}
+.dep-banner .body{font-family:var(--f-body);font-size:13.5px;color:var(--ink);line-height:1.5;}
+.dep-banner .body b{font-weight:600;color:var(--gap-700);}
+.dep-banner .body .vers{font-family:var(--f-mono);font-size:12px;}
+.dep-banner .body .note{font-family:var(--f-frame);font-style:italic;color:var(--ink-2);display:block;margin-top:4px;}
+
+.m-dep,.wl-dep{font-family:var(--f-ui);font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gap-700);background:var(--gap-50);padding:1px 6px;border-radius:4px;margin-left:6px;}
+.m-rm,.wl-rm{font-family:var(--f-ui);font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--ink-2);padding:1px 6px;border-radius:4px;margin-left:6px;}
+.wl-row.tone-deprecated,.wl-row.tone-removed{opacity:.78;border-style:dashed;}
+.wl-row.tone-deprecated .wl-count{color:var(--gap-700);}
+.wl-row.tone-removed .wl-count{color:var(--ink-2);}
+
+/* Sticky report strip — always-visible scope+identity+headline. The default
+   header (the masthead-anchor below) is just a scroll target; this is the
+   visible chrome. Brand: small logo, brand mark (uppercase, tracked, green),
+   library chip (mono on cream), headline number (Fraunces 600 onum), commit
+   SHA prefixed with sha:, scan timestamp. Backdrop blur to float over paper. */
+.report-strip{position:sticky;top:0;z-index:100;background:rgba(250,246,238,.96);border-bottom:1px solid var(--line);backdrop-filter:saturate(1.2) blur(8px);}
+.report-strip .strip-in{max-width:1080px;margin:0 auto;padding:9px 32px;display:flex;align-items:center;gap:12px;font-family:var(--f-mono);font-size:12.5px;color:var(--ink-2);line-height:1.2;flex-wrap:wrap;}
+.report-strip .strip-logo{width:24px;height:24px;border-radius:6px;display:block;flex:0 0 24px;}
+.report-strip .strip-brand{font-family:var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green-700);}
+.report-strip .strip-home-link{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:inherit;transition:opacity .12s;}
+.report-strip .strip-home-link:hover{opacity:.7;}
+.report-strip .strip-lib{font-family:var(--f-mono);font-size:12.5px;color:var(--ink);background:#edeae1;padding:1px 8px;border-radius:5px;}
+.report-strip .strip-headline{display:inline-flex;align-items:baseline;gap:5px;color:var(--ink);}
+.report-strip .strip-headline .strip-num{font-family:var(--f-score);font-weight:600;font-size:17px;color:var(--ink);font-feature-settings:"onum" 1;letter-spacing:-.005em;line-height:1;}
+.report-strip .strip-headline .strip-lbl{font-family:var(--f-ui);font-size:11.5px;color:var(--ink-2);font-weight:500;}
+.report-strip .strip-sha{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3);}
+.report-strip .strip-time{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3);}
+/* States / Worklist switcher slot in the topnav. margin-left:auto
+   pushes it to the right edge of the .strip-in flex row, away from
+   the brand + scan-id chips on the left. */
+.report-strip .strip-view-wrap{margin-left:auto;display:inline-flex;align-items:center;gap:8px;}
+.report-strip .strip-sep{color:#c8c1ad;font-weight:400;}
+/* masthead-anchor is normally just a scroll target — when it's empty,
+   give it no box at all. When the deprecation banner is rendered inside
+   it, let the box expand so the banner doesn't overflow into and overlap
+   the first section below. */
+.masthead-anchor{margin:0;padding:0;scroll-margin-top:60px;}
+.masthead-anchor:not(:has(.dep-banner)){height:0;}
+
+/* =====================================================================
+   Evidence panel — per-element split-pane.
+   ===================================================================== */
+/* No border-top on Evidence — the bordered Depth tiles above it
+   already form a visual edge, and a divider on top of a divider reads
+   as housekeeping. */
+.evidence-sec{margin-top:48px;padding-top:32px;}
+/* Evidence section heading now uses the shared .sh wrapper for
+   parity with every other section heading on the page. This rule
+   only covers attributes the .sh h2 cascade doesn't already provide
+   (it's currently empty because the wrapper fully styles the heading
+   — kept as a hook for any future Evidence-only overrides). */
+.evidence-sec .ev-h2{}
+.evidence-sec .ev-lede{font-family:var(--f-frame, 'Fraunces', Georgia, serif);font-style:italic;font-size:14px;color:var(--ink-3, #7d877f);margin-bottom:18px;max-width:62ch;}
+.ev-split{display:grid;grid-template-columns:minmax(320px,38%) 1fr;gap:32px;align-items:start;}
+/* No sticky / no scroll — both sides flow with the page so content
+   expands in place rather than scrolling independently. The
+   right-side .pane already swaps via display:none rather than
+   scrolling. */
+.ev-list{align-self:start;padding-right:8px;}
+.ev-list-head{font-family:var(--f-ui, 'IBM Plex Sans', system-ui, sans-serif);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3, #7d877f);padding:4px 6px 14px;}
+.ev-fg{margin-bottom:20px;}
+/* Fix-group header: large old-style count on the left, two stacked
+   labels on the right — CAPITALIZED IMPERATIVE on top, sentence-case
+   row label underneath. Mirrors the count-block typography from the
+   retired Worklist section so the same pattern repeats here. */
+.ev-fg-head{display:flex;align-items:flex-start;gap:12px;padding:4px 8px 4px;}
+/* Fixed-width count column so headings, the vertical rail line below
+   them, and member rows all share the same left edge regardless of
+   whether the count is 9 or 117. text-align:right anchors digits to
+   the column's right edge — pairs with the matching margin-left on
+   .ev-members so the line and the headings line up. */
+.ev-fg-count{font-family:var(--f-frame, 'Fraunces', Georgia, serif);font-weight:500;font-size:26px;color:var(--ink, #16201c);font-feature-settings:"onum" 1;line-height:1;flex:0 0 auto;padding-top:1px;min-width:44px;text-align:right;font-variant-numeric:tabular-nums;}
+.ev-fg-text{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.ev-fg-action{font-family:var(--f-ui, 'IBM Plex Sans', system-ui, sans-serif);font-weight:700;font-size:11px;letter-spacing:.10em;text-transform:uppercase;color:var(--ink, #16201c);line-height:1.2;}
+.ev-fg-label{font-family:var(--f-body, 'IBM Plex Sans', system-ui, sans-serif);font-weight:400;font-size:12.5px;color:var(--ink-2, #4a554f);line-height:1.35;}
+.ev-fg-sub{font-family:var(--f-body, 'IBM Plex Sans', system-ui, sans-serif);font-size:12px;color:var(--ink-3, #7d877f);margin-left:auto;}
+/* Member list shares the heading-text column with .ev-fg-text above
+   it (margin-left:64px = 8px .ev-fg-head padding + 44px count + 12px
+   gap). A tight horizontal rule on top separates the subheading from
+   the first member; the rule spans only the member column so it
+   visually ties to the heading-text indent above. In the
+   filtered/flat layout .ev-members has display:contents so the indent
+   and rule fall away naturally — there are no headings to align under
+   in that mode. */
+.ev-members{display:flex;flex-direction:column;margin-left:64px;border-top:1px solid var(--line, #ece5d6);padding-top:4px;}
+.ev-member{display:block;padding:4px 8px;cursor:pointer;color:var(--ink-2, #4a554f);border-radius:5px;}
+/* Hover + selected: same darkened rounded rectangle as the sticky
+   header's library chip (.strip-lib). Hover gives the user a preview
+   of the next selection; .sel persists after click. Both use --line
+   so they're visually identical — the only difference is the dwell
+   semantics. */
+.ev-member:hover{color:var(--ink, #16201c);background:var(--line, #ece5d6);}
+/* Selected member: typographic shift only — no left border. The
+   dotted L-bracket (vertical spine + horizontal arm rendered on the
+   pane) carries the visual connection across the column gap. */
+.ev-member.sel{color:var(--ink, #16201c);background:var(--line, #ece5d6);border-radius:5px 0 0 5px;}
+.ev-member{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;}
+.ev-member .ev-m-name{font-family:var(--f-mono, 'JetBrains Mono', ui-monospace, Menlo, monospace);font-size:12.5px;color:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.ev-member.sel .ev-m-name{font-weight:500;}
+/* Per-member surface dots: docs / tests / examples. Filled = surface
+   present for this method (Concept/Test/Example > 0); hollow ring
+   otherwise. Same visual vocabulary as the fix-group's count dots
+   but per-member, so the eye can scan a column of ●●●/●○○ rows. */
+.ev-m-dots{display:inline-flex;gap:4px;flex:0 0 auto;}
+.ev-m-dot{display:inline-block;width:6px;height:6px;border-radius:50%;border:1px solid var(--ink-3, #7d877f);background:transparent;box-sizing:border-box;transition:background .12s, border-color .12s, box-shadow .12s;}
+.ev-m-dot.on{background:var(--ink, #16201c);border-color:var(--ink, #16201c);}
+/* Selected row — filled dots take their surface colors and pick up a
+   slight shadow so the triplet reads as the receipt for the pane on
+   the right. Dot order in markup is docs, tests, examples. */
+.ev-member.sel .ev-m-dot.on{box-shadow:0 1px 1.5px rgba(22,32,28,.18);}
+.ev-member.sel .ev-m-dot.on:nth-child(1){background:var(--surf-docs);border-color:var(--surf-docs);}
+.ev-member.sel .ev-m-dot.on:nth-child(2){background:var(--surf-tests);border-color:var(--surf-tests);}
+.ev-member.sel .ev-m-dot.on:nth-child(3){background:var(--surf-examples);border-color:var(--surf-examples);}
+.ev-member.sel .ev-m-dot-impl.on{background:var(--surf-impls);border-color:var(--surf-impls);}
+/* Hover affordance — same surface coloring as selected, no shadow,
+   so the row reads as "ready to click" without yet being the
+   committed selection. Hollow dots stay hollow on hover. */
+.ev-member:hover .ev-m-dot.on:nth-child(1){background:var(--surf-docs);border-color:var(--surf-docs);}
+.ev-member:hover .ev-m-dot.on:nth-child(2){background:var(--surf-tests);border-color:var(--surf-tests);}
+.ev-member:hover .ev-m-dot.on:nth-child(3){background:var(--surf-examples);border-color:var(--surf-examples);}
+.ev-member:hover .ev-m-dot-impl.on{background:var(--surf-impls);border-color:var(--surf-impls);}
+/* Overflow rows past UnassignedCap — hidden in the unfiltered rail
+   (the "+ N more" footer hints they exist), revealed when a surface or
+   text filter is active so the filtered population is complete. */
+.ev-overflow{display:none;}
+/* Filtered rail: collapse the grouped layout into a single flat A→Z
+   flex column. .ev-fg / .ev-members are display:contents so .ev-member
+   becomes a direct flex child of .ev-list; CSS `order:N` (set per
+   member by the template from RailRank) sorts them alphabetically.
+   Group headers and the overflow footer disappear because nobody
+   scanning a filter view cares about worklist grouping. */
+.ev-list-filtered{display:flex;flex-direction:column;}
+.ev-list-filtered .ev-fg{display:contents;}
+.ev-list-filtered .ev-members{display:contents;}
+.ev-list-filtered .ev-fg-head{display:none;}
+.ev-list-filtered .ev-fg-overflow{display:none;}
+/* Use the grid display the unfiltered .ev-member rule sets — `revert`
+   here would fall through to the UA <div> default (block), which
+   collapses the 1fr/auto grid and shoves the dots left of the
+   container's right edge. */
+.ev-list-filtered .ev-overflow{display:grid;}
+/* Search row above the split-pane — a white rounded rectangle with a
+   thin --line border. Holds the state label, the dynamic filter chip
+   (injected by showSurface()) and the text input on one row. No
+   border-bottom — the rectangle is its own visual boundary. */
+.ev-search-row{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding:10px 14px;background:var(--card, #fffdf8);border:1px solid var(--line, #ece5d6);border-radius:8px;}
+.ev-search-state{font-family:var(--f-ui, 'IBM Plex Sans', system-ui, sans-serif);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3, #7d877f);flex:0 0 auto;}
+/* Hide the "GROUPED BY WORKLIST" caption while any filter is active —
+   the chip (when present) is the active-state indicator on its own;
+   bare text search just hides without replacement so the row stays
+   tidy. The `is-filtered` class is toggled by filterEvidence() in JS
+   (we don't lean on :has() because it's a runtime sibling-up query
+   the JS already has the context to express directly). */
+.ev-search-row.is-filtered .ev-search-state{display:none;}
+.ev-search-input{font-family:var(--f-mono, 'JetBrains Mono', ui-monospace, Menlo, monospace);font-size:12.5px;color:var(--ink, #16201c);background:transparent;border:none;padding:2px 0;flex:1;outline:none;min-width:0;}
+.ev-search-input::placeholder{color:var(--ink-3, #7d877f);font-family:var(--f-body, 'IBM Plex Sans', system-ui, sans-serif);font-style:normal;}
+/* Filter chip injected when the user clicks a masthead "show the N"
+   reveal. Removable via the inline × button which calls clearSurface(). */
+/* Active-filter chip: white text on the page's ink (near-black), pulled
+   to the trailing edge of the search row via `order:2` (the input keeps
+   the default 0 and so renders first). margin-left:auto alone wasn't
+   enough — input's flex:1 outcompetes the auto margin for free space.
+   text-transform:uppercase keeps the label visually distinct from the
+   placeholder copy in the search box. */
+.ev-search-chip{display:none;align-items:center;gap:8px;font-family:var(--f-ui, 'IBM Plex Sans', system-ui, sans-serif);font-size:10px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:var(--paper, #faf6e8);background:var(--ink, #16201c);padding:4px 6px 4px 10px;border-radius:4px;order:2;flex:0 0 auto;}
+.ev-search-chip.on{display:inline-flex;}
+.ev-search-chip-x{font-family:var(--f-body, 'IBM Plex Sans', system-ui, sans-serif);font-size:14px;line-height:1;color:var(--paper, #faf6e8);background:transparent;border:none;padding:0 4px;cursor:pointer;opacity:.85;}
+.ev-search-chip-x:hover{opacity:1;}
+/* Magnifying-glass icon ahead of the search input. Sits with the input
+   in the flex row so the caret has somewhere obvious to start; the
+   input is autofocused so the page lands with the cursor blinking
+   here — the only place on the page that takes typing. */
+.ev-search-icon{display:inline-flex;align-items:center;color:var(--ink-3, #7d877f);flex:0 0 auto;line-height:0;}
+.ev-search-icon svg{width:14px;height:14px;display:block;}
+/* Trailing bucket — same shape as a fix group but quieter. Members
+   inside have no fix to do; this section is browse, not queue. */
+.ev-fg-unassigned .ev-fg-label{color:var(--ink-3, #7d877f);font-weight:500;}
+.ev-fg-unassigned .ev-fg-count{color:var(--ink-3, #7d877f);}
+.ev-fg-overflow{font-family:var(--f-ui, 'IBM Plex Sans', system-ui, sans-serif);font-size:11px;color:var(--ink-3, #7d877f);padding:6px 8px 0;}
+.ev-member .ev-m-count{font-family:var(--f-mono, 'JetBrains Mono', ui-monospace, Menlo, monospace);font-size:11px;color:var(--ink-3, #7d877f);font-variant-numeric:tabular-nums;}
+.ev-member.sel .ev-m-count{color:var(--ink-2, #4a554f);}
+.ev-pane{padding:4px 0 26px;display:none;position:relative;}
+.ev-pane.sel{display:block;background:var(--line, #ece5d6);border-radius:0 10px 10px 10px;padding:16px 20px 26px;}
+/* When the filter eliminates every member on the left, the right column
+   has nothing coherent to show — hide it rather than leave a stray
+   selected pane stranded next to an empty list. visibility:hidden (not
+   display:none) keeps the grid column's width reserved so the list
+   doesn't reflow to full-width on a transient empty filter. */
+.ev-right.ev-empty{visibility:hidden;}
+/* Horizontal dotted arm bridging the column gap into the selected
+   member's row. Together with .ev-stack::before's vertical spine,
+   the two strokes form a single L-bracket: the eye traces from the
+   selected method name, across the gap, down through the surfaces.
+   Left offset = 32px grid gap + 8px .ev-list padding-right, so the
+   arm lands at the visual right edge of the worklist column. */
+.ev-pane.sel::before{content:"";position:absolute;left:-40px;top:7px;width:28px;border-top:1px dotted var(--ink-3, #7d877f);pointer-events:none;}
+/* Vertical dotted spine runs from the top of Contract through the
+   bottom of Workflows content. Sits between the 64px surface-label
+   gutter and the 18px gap before the body, so all five surface
+   labels read off it like the spine of a printed reference. */
+.ev-stack{position:relative;display:flex;flex-direction:column;gap:22px;}
+.ev-stack::before{content:"";position:absolute;left:-12px;top:3px;bottom:0;border-left:1px dotted var(--ink-3, #7d877f);pointer-events:none;}
+.ev-surface{display:grid;grid-template-columns:64px 1fr;gap:18px;align-items:start;}
+.ev-surface-head{font-family:var(--f-ui, 'IBM Plex Sans', system-ui, sans-serif);font-size:10px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:var(--ink-3, #7d877f);padding-top:3px;}
+.ev-surface-body{display:flex;flex-direction:column;gap:14px;min-width:0;}
+.ev-card{display:flex;flex-direction:column;}
+.ev-cap{font-family:var(--f-mono, 'JetBrains Mono', ui-monospace, Menlo, monospace);font-size:11px;color:var(--ink-3, #7d877f);line-height:1.4;margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;}
+.ev-cap a{color:var(--ink-3, #7d877f);text-decoration:none;border-bottom:1px dotted currentColor;}
+.ev-cap a:hover{color:var(--ink-2, #4a554f);border-bottom-style:solid;}
+.ev-cap-meta{margin-left:10px;color:var(--ink-3, #7d877f);}
+.ev-frag{font-size:12.5px;line-height:1.55;color:var(--ink, #16201c);border-left:2px solid var(--ink-3, #7d877f);padding:2px 0 2px 14px;overflow-x:auto;max-width:100%;}
+.ev-frag-code{font-family:var(--f-mono, 'JetBrains Mono', ui-monospace, Menlo, monospace);white-space:pre;margin:0;}
+.ev-frag-prose{font-family:var(--f-body, 'IBM Plex Sans', system-ui, sans-serif);margin:0;}
+.ev-frag-trunc{font-family:var(--f-ui, 'IBM Plex Sans', system-ui, sans-serif);font-size:11px;color:var(--ink-3, #7d877f);padding:6px 0 0 14px;}
+.ev-frag-trunc a{color:var(--ink-2, #4a554f);text-decoration:none;border-bottom:1px dotted currentColor;}
+.ev-frag-trunc a:hover{color:var(--ink, #16201c);border-bottom-style:solid;}
+.ev-extra{font-family:var(--f-ui, 'IBM Plex Sans', system-ui, sans-serif);font-size:11px;color:var(--ink-3, #7d877f);padding:6px 0 0 14px;}
+.ev-extra a{color:var(--ink-2, #4a554f);text-decoration:none;border-bottom:1px dotted currentColor;}
+.ev-extra a:hover{color:var(--ink, #16201c);border-bottom-style:solid;}
+/* Empty surface row — set in the same mono caption font as a
+   populated card's caption so "N/A" reads as a quiet status label,
+   not a sentence. */
+.ev-empty{font-family:var(--f-mono, 'JetBrains Mono', ui-monospace, Menlo, monospace);font-style:normal;font-size:11px;color:var(--ink-3, #7d877f);padding:2px 0;line-height:1.4;}
+.ev-card.c-contract .ev-frag{border-left-color:var(--ink-2);}
+.ev-card.c-docs     .ev-frag{border-left-color:var(--surf-docs);}
+.ev-card.c-tests    .ev-frag{border-left-color:var(--surf-tests);}
+.ev-card.c-implementations .ev-frag{border-left-color:var(--surf-impls);}
+.ev-card.c-examples .ev-frag{border-left-color:var(--surf-examples);}
+.ev-card.c-workflows .ev-frag{border-left-color:var(--surf-workflows);}
+@media (max-width: 1099.5px){
+  .ev-split{grid-template-columns:1fr;}
+  .ev-list{position:static;max-height:none;overflow:visible;}
+  .ev-pane{display:block;border-top:1px solid var(--line, #ece5d6);margin-top:18px;padding-top:18px;}
+}
+@media print{
+  .ev-split{display:block;}
+  .ev-list{position:static;max-height:none;overflow:visible;margin-bottom:24px;}
+  .ev-pane{display:block !important;page-break-inside:avoid;margin-bottom:32px;border-top:1px solid var(--line, #ece5d6);padding-top:20px;}
+  .ev-frag{print-color-adjust:economy;}
+}
+/* Monorepo run navigation in the sticky strip (only when .Nav set). */
+.strip-home{font-family:var(--f-ui);font-weight:600;font-size:12px;color:var(--green-700);text-decoration:none;}
+.strip-home:hover{text-decoration:underline;}
+.strip-runpos{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);}
+.strip-switch{font-family:var(--f-ui);font-size:11.5px;color:var(--ink-2);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 6px;margin-left:auto;}
+{{if eq .Ecosystem "cpp"}}
+/* ── validation chips + popover (native) ─────────────────────────── */
+.vchip{font:700 9.5px/1 var(--f-ui,system-ui),sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:4px 8px;border-radius:5px;border:1px solid #dfe3e8;background:#f1f3f5;color:#475569;cursor:pointer;display:inline-flex;gap:5px;align-items:center;margin:13px 0 2px;width:fit-content;max-width:max-content;}
+.vchip:hover{background:#e9edf1;border-color:#cfd6de;}
+.vchip.alert{color:#fff;background:#14161b;border-color:#14161b;}
+.vchip.alert:hover{background:#2a2e37;border-color:#2a2e37;}
+.vpop{position:absolute;z-index:99999;display:none;width:370px;max-width:92vw;background:#fff;border:1px solid #e2e5ea;border-radius:11px;box-shadow:0 10px 34px -10px rgba(20,30,60,.4);padding:14px 16px;font:13px/1.55 var(--f-ui,system-ui),sans-serif;color:#1d2330;}
+.vpop .vph{margin-bottom:6px;display:flex;gap:9px;align-items:center;font-size:14px;}
+.vpop .vbadge{font:700 10px/1 var(--f-ui,system-ui),sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:5px;border:1px solid;display:inline-flex;gap:5px;align-items:center;}
+.vpop .vbadge.ok{color:#157347;background:#eafaf0;border-color:#bfe9cf;}
+.vpop .vbadge.lb{color:#1d4ed8;background:#eef3ff;border-color:#cdddff;}
+.vpop .vbadge.nt{color:#b45309;background:#fff7ea;border-color:#f3dca6;}
+.vpop .vbadge.nm{color:#5b6472;background:#f3f4f6;border-color:#e2e5ea;}
+.vpop .vk{font:700 9.5px/1 var(--f-mono,ui-monospace),monospace;letter-spacing:.08em;text-transform:uppercase;color:#9aa1ad;margin:11px 0 3px;}
+.vpop .vv{font-size:12.5px;color:#2b3340;}
+.vpop .vx{position:absolute;top:9px;right:11px;cursor:pointer;color:#9aa1ad;font:700 14px var(--f-ui,system-ui),sans-serif;}
+/* ── "Not applicable" surface note — replaces the per-tier N/A Implementations
+      cards with one quiet line under the grid (see na-note in the body). ── */
+.na-note{width:100%;align-self:stretch;display:flex;align-items:center;gap:9px;margin:-4px 0 22px;padding:9px 14px;background:color-mix(in srgb, var(--surf-impls) 5%, var(--card));border:1px solid var(--line);border-left:3px solid var(--surf-impls);border-radius:8px;font-family:var(--f-frame);font-style:italic;font-size:13px;line-height:1.5;color:var(--ink-2);}
+.na-note .na-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px;background:var(--surf-impls);}
+.na-note .na-why{color:var(--ink-3);font-style:normal;}
+{{end}}
+</style>
+</head>
+<body>
+
+{{/* Sticky strip — see CSS comment above. Headline number = .Total {{.TotalNounPlural}}
+     since that's the most stable, defensible figure for a "what does this surface
+     look like?" first read. Swap to a gap-count if/when that's a first-class field
+     in ReportData. */}}
+<div class="report-strip">
+  <div class="strip-in">
+    {{if .Nav}}<a class="strip-home-link" href="{{.Nav.IndexHref}}" aria-label="All reports — back to the index">{{if .IconDataURI}}<img class="strip-logo" src="{{.IconDataURI}}" alt="">{{end}}<span class="strip-brand">sheaf</span></a>{{else}}{{if .IconDataURI}}<img class="strip-logo" src="{{.IconDataURI}}" alt="">{{end}}<span class="strip-brand">sheaf</span>{{end}}
+    <span class="strip-sep">·</span>
+    {{if .Commit}}<span class="strip-sha">sha:{{.Commit}}</span>
+    <span class="strip-sep">·</span>{{end}}
+    <span class="strip-kind">fragmentation scan</span>
+    <span class="strip-sep">·</span>
+    <span class="strip-lib">{{.Library}}</span>
+    <span class="strip-sep">·</span>
+    <span class="strip-time">{{.GeneratedAt}}</span>
+    {{/* States / Worklist switcher lives in the topnav so it's
+         reachable from anywhere on the page. Clicking either
+         button flips the section that displays the per-element
+         coverage matrix vs. the prioritized worklist. */}}
+    {{/* Worklist / States toggle hidden — the States view is left in
+         the template for later; for now Worklist is the only view. */}}
+    <div class="strip-view-wrap" style="display:none;">
+      <div class="view-toggle" role="group" aria-label="View"><button type="button" class="on" data-view="fixes" onclick="setView(this,'fixes')" aria-label="Worklist view">Worklist</button><span class="view-toggle-sep" aria-hidden="true">·</span><button type="button" data-view="categories" onclick="setView(this,'categories')" aria-label="States view">States</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  {{if eq .HeaderStyle "minimal"}}
+  {{/* Minimal masthead: no inner .strip — the sticky .report-strip
+       above already shows brand · lib · sha · time. Duplicating it
+       inline produced a visible second header that read as a layout
+       bug. The masthead remains as an anchor target for #sec-findings
+       plus the (rare) deprecation banner; everything visible content
+       is delegated to the sticky strip. */}}
+  <div id="sec-findings" class="masthead masthead-minimal">
+    {{if .LibraryDeprecation.IsDeprecated}}
+    <div class="dep-banner">
+      <span class="pill">Deprecated library{{if .LibraryDeprecation.Inferred}} (inferred){{end}}</span>
+      <div class="body">
+        {{if .LibraryDeprecation.Inferred -}}
+        Most of this library's surface is marked <b>deprecated</b> upstream — coverage gaps are expected, and new work should target the replacement library.
+        {{- else -}}
+        This whole library is marked <b>deprecated</b>{{with .LibraryDeprecation.DeprecatedIn}} <span class="vers">(@available deprecated={{.}})</span>{{end}}{{with .LibraryDeprecation.RemovedIn}}, scheduled to be removed <span class="vers">@ {{.}}</span>{{end}}. Coverage gaps on these {{.TotalNounPlural}} are expected — new work should target the replacement surface.
+        {{- end}}
+        {{with .LibraryDeprecation.Note}}<span class="note">{{.}}</span>{{end}}
+      </div>
+    </div>
+    {{end}}
+  </div>
+  {{else if eq .HeaderStyle "hero"}}
+  <div id="sec-findings" class="masthead masthead-hero">
+    <div class="strip">
+      <span class="strip-brand">sheaf</span>
+      <span class="strip-sep">·</span>
+      <span class="strip-lib">{{.Library}}</span>
+      <span class="strip-sep">·</span>
+      <span class="strip-meta">scan {{.GeneratedAt}}</span>
+      <span class="strip-sep">·</span>
+      <span class="strip-count">{{.Total}} {{.TotalNounPlural}}</span>
+    </div>
+    {{if .LibraryDeprecation.IsDeprecated}}
+    <div class="dep-banner">
+      <span class="pill">Deprecated library{{if .LibraryDeprecation.Inferred}} (inferred){{end}}</span>
+      <div class="body">
+        {{if .LibraryDeprecation.Inferred -}}
+        Most of this library's surface is marked <b>deprecated</b> upstream — coverage gaps are expected, and new work should target the replacement library.
+        {{- else -}}
+        This whole library is marked <b>deprecated</b>{{with .LibraryDeprecation.DeprecatedIn}} <span class="vers">(@available deprecated={{.}})</span>{{end}}{{with .LibraryDeprecation.RemovedIn}}, scheduled to be removed <span class="vers">@ {{.}}</span>{{end}}. Coverage gaps on these {{.TotalNounPlural}} are expected — new work should target the replacement surface.
+        {{- end}}
+        {{with .LibraryDeprecation.Note}}<span class="note">{{.}}</span>{{end}}
+      </div>
+    </div>
+    {{end}}
+    <div class="hero-tile">
+      <div class="hero-num">{{.Bridged}}<span class="hero-den"> / {{.Total}}</span></div>
+      <div class="hero-lbl">fully bridged — explained, proven, and shown</div>
+    </div>
+  </div>
+  {{else}}
+  {{/* Default header: the sticky .report-strip outside .wrap carries
+       brand/lib/headline/SHA/timestamp. The masthead here is a thin
+       anchor target for #sec-findings plus the (rare) deprecation
+       banner. The big "Fragmentation scan: <lib>" H1 and the
+       unconstrained meta-icon have been removed — the strip says
+       everything the H1 was saying, and the H1 was duplicating it. */}}
+  <div id="sec-findings" class="masthead-anchor">
+    {{if .LibraryDeprecation.IsDeprecated}}
+    <div class="dep-banner">
+      <span class="pill">Deprecated library{{if .LibraryDeprecation.Inferred}} (inferred){{end}}</span>
+      <div class="body">
+        {{if .LibraryDeprecation.Inferred -}}
+        Most of this library's surface is marked <b>deprecated</b> upstream — coverage gaps are expected, and new work should target the replacement library.
+        {{- else -}}
+        This whole library is marked <b>deprecated</b>{{with .LibraryDeprecation.DeprecatedIn}} <span class="vers">(@available deprecated={{.}})</span>{{end}}{{with .LibraryDeprecation.RemovedIn}}, scheduled to be removed <span class="vers">@ {{.}}</span>{{end}}. Coverage gaps on these {{.TotalNounPlural}} are expected — new work should target the replacement surface.
+        {{- end}}
+        {{with .LibraryDeprecation.Note}}<span class="note">{{.}}</span>{{end}}
+      </div>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  <div id="sec-coverage" class="section">
+    {{/* The top-of-masthead italic was removed — its job
+         (cross-tier framing) is already covered by the three
+         per-section subheads beneath each h2 and the Workflows
+         insight, so the banner read as a redundant restatement of
+         numbers the reader is about to see in context. */}}
+
+    {{if or .ModifierTotal .ContainerTotal}}
+    {{/* Multi-tier layout — one .surf block per tier. Renders when
+         the ecosystem has either a modifier tier (cobra: Flags) or
+         a container tier (FIDL: Protocols). The Container section
+         renders ABOVE Primary so parents (Protocols) display above
+         their children (Methods). The old chip style is preserved
+         verbatim; only the section heading and per-tile numbers
+         change between blocks. Each "show the N →" link passes its
+         tier ('container' / 'primary' / 'modifier') as a second
+         argument so renderMethods can constrain the reveal to the
+         calling section's tier. */}}
+    {{/* Container tier — parent surface above the primary detail
+         tier. For FIDL: Protocols above Methods. The container
+         section renders only when the ecosystem declares a container
+         tier AND that tier has at least one element in the library
+         (e.g. cobra has no container tier; FIDL libraries with only
+         TYPE elements have no PROTOCOL parents). The tile grid
+         mirrors the primary section so a reader can compare the
+         parent-surface coverage to its children at the same glance. */}}
+    <div class="tiers{{if .TiersSideBySide}} tiers-cols{{end}}">
+    {{if .ContainerTotal}}
+    <div class="tier-col">
+    <div class="sh sh-no-divider"><h2><span class="sh-num">{{.ContainerTotal}}</span> {{.ContainerNoun}}</h2></div>
+    {{if .ContainerSubhead}}<p class="section-subhead">{{.ContainerSubhead}}</p>{{end}}
+    <div class="surf">
+      {{if .ShowConceptTile}}
+      <div class="s c-concept">
+        {{if le .ContainerConceptPct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Reference docs</div>
+        <div class="v">{{.ContainerConceptPct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "container" "concept")}}{{else}}<div class="sub">{{.ContainerConceptN}} with doc evidence</div>{{end}}
+        <div class="bar"><i style="width:{{.ContainerConceptPct}}%"></i></div>
+        {{if .ContainerConceptN}}<a class="reveal" onclick="showSurface('concept','container')"><span class="rt">show the {{.ContainerConceptN}}{{if eq .Ecosystem "cpp"}} with doc evidence{{end}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-concept','container')"><span class="rt">{{.ContainerTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+      {{if .ShowTestTile}}
+      <div class="s c-test">
+        {{if le .ContainerTestPct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Tests</div>
+        <div class="v">{{.ContainerTestPct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "container" "test")}}{{else}}<div class="sub">{{.ContainerTestN}} with test evidence</div>{{end}}
+        <div class="bar"><i style="width:{{.ContainerTestPct}}%"></i></div>
+        {{if .ContainerTestN}}<a class="reveal" onclick="showSurface('test','container')"><span class="rt">show the {{.ContainerTestN}}{{if eq .Ecosystem "cpp"}} with test evidence{{end}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-test','container')"><span class="rt">{{.ContainerTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+      {{if and .ShowImplementationsTile .HasImplementsSignal}}
+      <div class="s c-impl">
+        {{if le .ContainerImplementationsPct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Implementations</div>
+        <div class="v">{{.ContainerImplementationsPct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "container" "implementations")}}{{else}}<div class="sub">{{.ContainerImplementationsN}} of {{.ContainerTotal}} with impl class(es)</div>{{end}}
+        <div class="bar"><i style="width:{{.ContainerImplementationsPct}}%"></i></div>
+        {{if .ContainerImplementationsN}}<a class="reveal" onclick="showSurface('impl','container')"><span class="rt">show the {{.ContainerImplementationsN}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-impl','container')"><span class="rt">{{.ContainerTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+      {{if .ShowExampleTile}}
+      <div class="s c-example">
+        {{if le .ContainerExamplePct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Usage</div>
+        <div class="v">{{.ContainerExamplePct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "container" "example")}}{{else}}<div class="sub">{{.ContainerExampleN}} in docs / RFCs</div>{{end}}
+        <div class="bar"><i style="width:{{.ContainerExamplePct}}%"></i></div>
+        {{if .ContainerExampleN}}<a class="reveal" onclick="showSurface('example','container')"><span class="rt">show the {{.ContainerExampleN}}{{if eq .Ecosystem "cpp"}} in docs / RFCs{{end}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-example','container')"><span class="rt">{{.ContainerTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+    </div>
+    </div>
+    {{end}}
+
+    {{if not .SuppressPrimaryTier}}
+    <div class="tier-col">
+    <div class="sh sh-no-divider"><h2><span class="sh-num">{{.PrimaryTotal}}</span> {{.PrimaryNoun}}</h2></div>
+    <div class="surf">
+      {{if .ShowConceptTile}}
+      <div class="s c-concept">
+        {{if le .PrimaryConceptPct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Reference docs</div>
+        <div class="v">{{.PrimaryConceptPct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "primary" "concept")}}{{else}}<div class="sub">{{.PrimaryConceptN}} with doc evidence</div>{{end}}
+        <div class="bar"><i style="width:{{.PrimaryConceptPct}}%"></i></div>
+        {{if .PrimaryConceptN}}<a class="reveal" onclick="showSurface('concept','primary')"><span class="rt">show the {{.PrimaryConceptN}}{{if eq .Ecosystem "cpp"}} with doc evidence{{end}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-concept','primary')"><span class="rt">{{.PrimaryTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+      {{if .ShowTestTile}}
+      <div class="s c-test">
+        {{if le .PrimaryTestPct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Tests</div>
+        <div class="v">{{.PrimaryTestPct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "primary" "test")}}{{else}}<div class="sub">{{.PrimaryTestN}} with test evidence</div>{{end}}
+        <div class="bar"><i style="width:{{.PrimaryTestPct}}%"></i></div>
+        {{if .PrimaryTestN}}<a class="reveal" onclick="showSurface('test','primary')"><span class="rt">show the {{.PrimaryTestN}}{{if eq .Ecosystem "cpp"}} with test evidence{{end}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-test','primary')"><span class="rt">{{.PrimaryTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+      {{if and .ShowImplementationsTile .HasImplementsSignal}}
+      <div class="s c-impl">
+        {{if le .PrimaryImplementationsPct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Implementations</div>
+        <div class="v">{{.PrimaryImplementationsPct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "primary" "implementations")}}{{else}}<div class="sub">{{.PrimaryImplementationsN}} of {{.PrimaryTotal}} with impl class(es)</div>{{end}}
+        <div class="bar"><i style="width:{{.PrimaryImplementationsPct}}%"></i></div>
+        {{if .PrimaryImplementationsN}}<a class="reveal" onclick="showSurface('impl','primary')"><span class="rt">show the {{.PrimaryImplementationsN}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-impl','primary')"><span class="rt">{{.PrimaryTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+      {{if .ShowExampleTile}}
+      <div class="s c-example">
+        {{if le .PrimaryExamplePct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Usage</div>
+        <div class="v">{{.PrimaryExamplePct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "primary" "example")}}{{else}}<div class="sub">{{.PrimaryExampleN}} in docs / RFCs</div>{{end}}
+        <div class="bar"><i style="width:{{.PrimaryExamplePct}}%"></i></div>
+        {{if .PrimaryExampleN}}<a class="reveal" onclick="showSurface('example','primary')"><span class="rt">show the {{.PrimaryExampleN}}{{if eq .Ecosystem "cpp"}} in docs / RFCs{{end}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-example','primary')"><span class="rt">{{.PrimaryTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+    </div>
+    </div>
+    {{end}}
+
+    {{/* Modifier section heading. For single-binary CLIs the
+         Primary tier above is suppressed and the binary identifies
+         itself in the modifier heading via an interpunct
+         conjunction ("fd · 44 Flags"). The binary's name is an
+         identifier, not a measurement — no count, no surface
+         tile — so the reader's eye reads container then contents
+         without translating a degenerate "1 of 1" denominator. */}}
+    {{if .ModifierTotal}}
+    <div class="tier-col">
+    <div class="sh {{if .SuppressPrimaryTier}}sh-no-divider{{end}}"><h2>{{if .BinaryRoot}}<span class="sh-bin">{{.BinaryRoot}}</span> <span class="sh-sep">&middot;</span> {{end}}<span class="sh-num">{{.ModifierTotal}}</span> {{.ModifierNoun}}</h2></div>
+    <div class="surf">
+      {{if .ShowConceptTile}}
+      <div class="s c-concept">
+        {{if le .ModifierConceptPct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Reference docs</div>
+        <div class="v">{{.ModifierConceptPct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "modifier" "concept")}}{{else}}<div class="sub">{{.ModifierConceptN}} with doc evidence</div>{{end}}
+        <div class="bar"><i style="width:{{.ModifierConceptPct}}%"></i></div>
+        {{if .ModifierConceptN}}<a class="reveal" onclick="showSurface('concept','modifier')"><span class="rt">show the {{.ModifierConceptN}}{{if eq .Ecosystem "cpp"}} with doc evidence{{end}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-concept','modifier')"><span class="rt">{{.ModifierTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+      {{if .ShowTestTile}}
+      <div class="s c-test">
+        {{if le .ModifierTestPct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Tests</div>
+        <div class="v">{{.ModifierTestPct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "modifier" "test")}}{{else}}<div class="sub">{{.ModifierTestN}} with test evidence</div>{{end}}
+        <div class="bar"><i style="width:{{.ModifierTestPct}}%"></i></div>
+        {{if .ModifierTestN}}<a class="reveal" onclick="showSurface('test','modifier')"><span class="rt">show the {{.ModifierTestN}}{{if eq .Ecosystem "cpp"}} with test evidence{{end}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-test','modifier')"><span class="rt">{{.ModifierTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+      {{if and .ShowImplementationsTile .HasImplementsSignal}}
+      <div class="s c-impl">
+        {{if le .ModifierImplementationsPct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Implementations</div>
+        <div class="v">{{.ModifierImplementationsPct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "modifier" "implementations")}}{{else}}<div class="sub">{{.ModifierImplementationsN}} of {{.ModifierTotal}} with impl class(es)</div>{{end}}
+        <div class="bar"><i style="width:{{.ModifierImplementationsPct}}%"></i></div>
+        {{if .ModifierImplementationsN}}<a class="reveal" onclick="showSurface('impl','modifier')"><span class="rt">show the {{.ModifierImplementationsN}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-impl','modifier')"><span class="rt">{{.ModifierTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+      {{if .ShowExampleTile}}
+      <div class="s c-example">
+        {{if le .ModifierExamplePct 20}}<span class="warn-chip" title="Low coverage — ≤20%. See methodology note at the page foot."></span>{{end}}
+        <div class="l"><span class="dot"></span>Usage</div>
+        <div class="v">{{.ModifierExamplePct}}<small>%</small></div>
+        {{if eq .Ecosystem "cpp"}}{{template "vchip" (.Chip "modifier" "example")}}{{else}}<div class="sub">{{.ModifierExampleN}} in docs / RFCs</div>{{end}}
+        <div class="bar"><i style="width:{{.ModifierExamplePct}}%"></i></div>
+        {{if .ModifierExampleN}}<a class="reveal" onclick="showSurface('example','modifier')"><span class="rt">show the {{.ModifierExampleN}}{{if eq .Ecosystem "cpp"}} in docs / RFCs{{end}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-example','modifier')"><span class="rt">{{.ModifierTotal}} missing</span> &rarr;</a>{{end}}
+      </div>
+      {{end}}
+    </div>
+    </div>
+    {{end}}{{/* end .ModifierTotal gate around the Modifier section */}}
+    </div>{{/* end .tiers side-by-side wrapper */}}
+{{if and .ShowImplementationsTile (not .HasImplementsSignal)}}    <p class="na-note"><span class="na-dot"></span>Not applicable: Implementations <span class="na-why">(no impl tree in scope)</span></p>{{end}}
+    {{/* Concept-doc reach note — under the per-tier surface grids, a map of
+         how far the narrative docs reach. Counts only, gated, no chip. */}}
+    {{template "conceptDocReach" .}}
+
+    {{/* Workflow coverage section is rendered below, just above
+         Evidence — moved out of the per-tier coverage stack so the
+         recipe-tier signal sits next to its receipts. */}}
+
+    {{else}}
+    {{/* Legacy single-tier layout for ecosystems with no modifier
+         tier (CML, FIDL-without-fields). */}}
+    <div class="sh sh-no-divider"><h2>{{range $i, $t := .HeaderTiers}}{{if $i}} <span class="sh-count">&middot; {{end}}<span class="sh-num">{{zeroOr $t.Count}}</span> {{$t.Label}}{{if $i}}</span>{{end}}{{end}}</h2></div>
+    <p class="sh-intro sh-intro-wide">{{.CoverageSentence}}</p>
+    <div class="surf">
+      <div class="s c-concept">
+        <div class="l"><span class="dot"></span>Reference docs</div>
+        <div class="v">{{.ConceptPct}}<small>%</small></div>
+        <div class="sub">{{.ConceptCount}} with doc evidence</div>
+        <div class="bar"><i style="width:{{.ConceptPct}}%"></i></div>
+        {{if .ConceptCount}}<a class="reveal" onclick="showSurface('concept')"><span class="rt">show the {{.ConceptCount}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-concept')"><span class="rt">{{.Total}} missing</span> &rarr;</a>{{end}}
+      </div>
+      <div class="s c-test">
+        <div class="l"><span class="dot"></span>Tests</div>
+        <div class="v">{{.TestPct}}<small>%</small></div>
+        <div class="sub">{{.TestCount}} test references</div>
+        <div class="bar"><i style="width:{{.TestPct}}%"></i></div>
+        {{if .TestCount}}<a class="reveal" onclick="showSurface('test')"><span class="rt">show the {{.TestCount}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-test')"><span class="rt">{{.Total}} missing</span> &rarr;</a>{{end}}
+      </div>
+      <div class="s c-example">
+        <div class="l"><span class="dot"></span>Examples</div>
+        <div class="v">{{.ExamplePct}}<small>%</small></div>
+        <div class="sub">{{.ExampleCount}} in docs / RFCs</div>
+        <div class="bar"><i style="width:{{.ExamplePct}}%"></i></div>
+        {{if .ExampleCount}}<a class="reveal" onclick="showSurface('example')"><span class="rt">show the {{.ExampleCount}}</span> &rarr;</a>
+        {{else}}<a class="reveal" onclick="showSurface('no-example')"><span class="rt">{{.Total}} missing</span> &rarr;</a>{{end}}
+      </div>
+    </div>
+
+    {{/* Concept-doc reach note — under the surface grid, a map of how far the
+         narrative docs reach. Counts only, gated, no chip. */}}
+    {{template "conceptDocReach" .}}
+
+    {{/* Workflows block removed from this single-tier branch — the
+         section now renders unified below Evidence (see ~line 1620). */}}
+    {{end}}
+  </div>
+
+  <div id="sec-methods" class="section">
+    <div class="sh sh-methods">
+      <h2><span class="sh-num">{{zeroOr .GapCount}}</span> Gaps <span class="sh-section-prefix">&middot; Worklist</span></h2>
+    </div>
+    <div class="upset-and-donut-intros">
+      <p class="sh-intro upset-intro view-hint">
+        <span class="hint-categories">{{.CategorizationInsight}}</span>
+        <span class="hint-fixes">{{.FixPriorityInsight}}</span>
+      </p>
+    </div>
+    <div class="upset-and-donut">
+      <div class="upset2-wrap view-stage">
+        <div class="view-track">
+          <div class="view-panel panel-categories">
+            <div class="upset2">
+              <div class="upset2-grid">
+                {{range $i, $r := .Overlap}}
+                {{/* Hide states with zero members — there's no signal there
+                    and the row just adds noise. The fully-bridged row
+                    stays even at 0 only if Highlight is set AND Count>0;
+                    we don't want a "0 — fully bridged" tile teaching the
+                    wrong thing about what the goal looks like. */}}
+                {{if $r.Count}}
+                <div class="u2r-text{{if $r.Highlight}} u2r-hl{{end}}" data-row="{{$i}}" data-combo="{{$r.ComboClass}}" data-fix="{{$r.FixKey}}" onclick="upsetSelect(this)" data-expl="<b>{{$r.Count}} {{$.NounPlural}}</b> — {{$r.Explanation}}">
+                  <div class="u2r-count-block"><span class="u2r-count">{{$r.Count}}</span><div class="u2r-bar"><i style="width:{{$r.BarPct}}%"></i></div></div>
+                  <div class="u2r-meta">
+                    <div class="u2r-term-row">
+                      <span class="u2r-label">{{if $r.Term}}<b class="u2r-term">{{$r.Term}}</b>{{else}}{{$r.Label}}{{end}}</span>
+                      <div class="u2r-dots">
+                        {{if $.ShowConceptTile}}<span class="u2r-chip"><i class="u2r-dot dpos-1{{if $r.Concept}} on{{end}}"></i><span class="u2r-chip-label">DOCS</span></span>{{end}}
+                        {{if $.ShowTestTile}}<span class="u2r-chip"><i class="u2r-dot dpos-2{{if $r.Test}} on{{end}}"></i><span class="u2r-chip-label">TESTS</span></span>{{end}}
+                        {{if $.ShowExampleTile}}<span class="u2r-chip"><i class="u2r-dot dpos-3{{if $r.Example}} on{{end}}"></i><span class="u2r-chip-label">EXAMPLES</span></span>{{end}}
+                      </div>
+                    </div>
+                    {{if $r.Tagline}}<span class="u2r-tagline">{{$r.Tagline}}</span>{{end}}
+                  </div>
+                </div>
+                <div class="u2r-members" data-row="{{$i}}" data-combo="{{$r.ComboClass}}">
+                  <div class="u2m-chips">
+                    {{range $j, $name := $r.Members}}{{if lt $j 6}}<span class="u2m">{{$name}}</span>{{end}}{{end}}
+                  </div>
+                  {{if gt (len $r.Members) 6}}<div class="u2m-more-row"><a class="u2m-more" data-term="{{$r.Term}}" onclick="event.stopPropagation(); upsetShowAll(this)">show all {{len $r.Members}} →</a></div>{{end}}
+                  <div class="u2m-all" style="display:none;">
+                    {{range $r.Members}}<span class="u2m">{{.}}</span>{{end}}
+                  </div>
+                </div>
+                {{end}}
+                {{end}}
+              </div>
+            </div>
+            <!-- Bottom legend removed: clicking a row morphs its dots
+                 into labeled pills (DOCS / TESTS / EXAMPLES) so the
+                 surface mapping teaches itself inline. -->
+          </div>
+          <div class="view-panel panel-fixes">
+            {{/* Removed and deprecated buckets are status, not actions;
+                 they roll up into a single caption above the worklist
+                 so the row count of actual work isn't inflated. */}}
+            {{if .WorklistCaption}}<p class="wl-caption"><span class="wl-caption-info" aria-hidden="true"></span>{{.WorklistCaption}}</p>{{end}}
+            <div class="worklist">
+              {{range $i, $g := .FixGroups}}
+              {{if and (ne $g.Key "removed") (ne $g.Key "deprecated")}}
+              <div class="wl-row tone-{{$g.Tone}}" data-i="{{$i}}" data-key="{{$g.Key}}">
+                <div class="wl-card" onclick="toggleFix({{$i}})">
+                  <div class="wl-body">
+                    <div class="wl-head">
+                      <div class="wl-count-block"><span class="wl-count">{{len $g.Items}}</span><div class="wl-dots" aria-hidden="true"><span class="wl-dot dot-docs{{if $g.DotDocs}} on{{end}}" title="Docs"></span><span class="wl-dot dot-tests{{if $g.DotTests}} on{{end}}" title="Tests"></span><span class="wl-dot dot-examples{{if $g.DotExamples}} on{{end}}" title="Examples"></span></div></div>
+                      <div class="wl-text">
+                        <span class="wl-label">{{$g.ShortAction}}</span>
+                        {{if $g.Action}}<span class="wl-subtitle">{{$g.Action}}</span>{{end}}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="wl-detail">
+                  <div class="wl-members">
+                    {{range $g.Items}}
+                    <div class="wl-member">
+                      <span class="wl-mn">{{.ShortName}}{{if .Removed}}<span class="wl-rm" title="Removed at API level {{$.TargetAPILevel}} (removed={{.Deprecation.RemovedIn}})">Removed</span>{{else if .Deprecation.IsDeprecated}}<span class="wl-dep">Deprecated</span>{{end}}</span>
+                      <span class="wl-refs">{{range .Refs}}{{if eq .Kind "contract"}}<span class="wl-ref ref-{{.Kind}}">{{if .Url}}<a href="{{.Url}}" target="_blank" rel="noopener">{{.Label}}</a>{{else}}{{.Label}}{{end}}</span>{{end}}{{end}}</span>
+                    </div>
+                    {{end}}
+                  </div>
+                </div>
+              </div>
+              {{end}}
+              {{end}}
+            </div>
+          </div>
+        </div>
+      </div>
+      {{if gt .SubstanceTotal 0}}
+      <div class="sh sh-depth"><h2>Depth</h2></div>
+      <p class="section-subhead">Coverage counts the docs that exist; depth weighs what they actually say &mdash; from full behavioral prose down to a bare signature stub.</p>
+      <div class="subst-card">
+        {{$tot := .SubstanceTotal}}{{$sub := index .SubstanceCounts "SUBSTANTIVE"}}{{$par := index .SubstanceCounts "PARTIAL"}}{{$sig := index .SubstanceCounts "SIGNATURE_ONLY"}}{{$abs := index .SubstanceCounts "ABSENT"}}
+        {{$dp := pcts $tot $sub $par $sig $abs}}
+        <div class="subst4" role="group" aria-label="Depth distribution">
+          <div class="subst4-row s-sub" onclick="showSubstance('SUBSTANTIVE', '{{if .SuppressPrimaryTier}}modifier{{else}}primary{{end}}')" title="Show {{.NounPlural}} with full behavioral docs">
+            <div class="subst4-label">Full</div>
+            <div class="subst4-count">{{index $dp 0}}<small>%</small></div>
+            <div class="subst4-bar"><i style="width:{{index $dp 0}}%;"></i></div>
+          </div>
+          <div class="subst4-row s-par" onclick="showSubstance('PARTIAL', '{{if .SuppressPrimaryTier}}modifier{{else}}primary{{end}}')" title="Show {{.NounPlural}} with brief docs">
+            <div class="subst4-label">Brief</div>
+            <div class="subst4-count">{{index $dp 1}}<small>%</small></div>
+            <div class="subst4-bar"><i style="width:{{index $dp 1}}%;"></i></div>
+          </div>
+          <div class="subst4-row s-sig" onclick="showSubstance('SIGNATURE_ONLY', '{{if .SuppressPrimaryTier}}modifier{{else}}primary{{end}}')" title="Show {{.NounPlural}} with stub docs (signature only)">
+            <div class="subst4-label">Stub</div>
+            <div class="subst4-count">{{index $dp 2}}<small>%</small></div>
+            <div class="subst4-bar"><i style="width:{{index $dp 2}}%;"></i></div>
+          </div>
+          <div class="subst4-row s-abs" onclick="showSubstance('ABSENT', '{{if .SuppressPrimaryTier}}modifier{{else}}primary{{end}}')" title="Show {{.NounPlural}} with no docs">
+            <div class="subst4-label">None</div>
+            <div class="subst4-count">{{index $dp 3}}<small>%</small></div>
+            <div class="subst4-bar"><i style="width:{{index $dp 3}}%;"></i></div>
+          </div>
+        </div>
+      </div>
+      {{end}}
+      {{if .Lag.Unavailable}}
+      {{/* Shallow clone: git history is truncated, so a computed lag would be
+           a false "0 days, all fresh." Suppress the distribution and disclose
+           why instead of printing a fake zero. Inline-styled (no CSS class) to
+           match the other Lag empty-states and keep the shared <style> block
+           untouched. */}}
+      <div class="sh sh-lag"><h2>Lag</h2></div>
+      <div style="display:flex;gap:8px;align-items:flex-start;border:1px dotted var(--ink-3);border-radius:8px;padding:9px 12px;margin-top:4px;">
+        <span style="flex:none;width:14px;height:14px;border-radius:50%;background:var(--ink-3);color:var(--paper);font-weight:700;font-size:9.5px;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">i</span>
+        <div style="font-family:var(--f-body);font-size:11px;font-weight:400;color:var(--ink-3);line-height:1.55;">Doc-lag is unavailable: this is a <b>shallow clone</b>, so git history is truncated &mdash; every file resolves to the same boundary commit and the distribution would be a false &ldquo;0 days behind, all fresh.&rdquo; Re-run against a full checkout (<code>git fetch --unshallow</code>) to measure doc staleness.</div>
+      </div>
+      <div class="lag-rule" aria-hidden="true"></div>
+      {{else}}
+      {{if gt .Lag.Pairs 0}}
+      <div class="sh sh-lag"><h2>Lag</h2></div>
+      <p class="section-subhead">How far the <b>non-reference</b> docs have fallen behind the code — measured in days, from git commit timestamps.</p>
+      <div class="subst-card">
+        {{$lp := pcts .Lag.Pairs (index .Lag.Buckets 0) (index .Lag.Buckets 1) (index .Lag.Buckets 2) (index .Lag.Buckets 3)}}
+        <div class="subst4" role="group" aria-label="Lag distribution">
+          <div class="subst4-row l-fresh" onclick="showSurface('FRESH', '')" title="Show {{.NounPlural}} whose docs are current (0d behind)">
+            <div class="subst4-label">Fresh</div>
+            <div class="subst4-count">{{index $lp 0}}<small>%</small></div>
+            <div class="subst4-bar"><i style="width:{{index $lp 0}}%;"></i></div>
+          </div>
+          <div class="subst4-row l-recent" onclick="showSurface('RECENT', '')" title="Show {{.NounPlural}} 1–30 days behind">
+            <div class="subst4-label">Recent</div>
+            <div class="subst4-count">{{index $lp 1}}<small>%</small></div>
+            <div class="subst4-bar"><i style="width:{{index $lp 1}}%;"></i></div>
+          </div>
+          <div class="subst4-row l-aging" onclick="showSurface('AGING', '')" title="Show {{.NounPlural}} 31–180 days behind">
+            <div class="subst4-label">Aging</div>
+            <div class="subst4-count">{{index $lp 2}}<small>%</small></div>
+            <div class="subst4-bar"><i style="width:{{index $lp 2}}%;"></i></div>
+          </div>
+          <div class="subst4-row l-stale" onclick="showSurface('STALE', '')" title="Show {{.NounPlural}} more than 180 days behind">
+            <div class="subst4-label">Stale</div>
+            <div class="subst4-count">{{index $lp 3}}<small>%</small></div>
+            <div class="subst4-bar"><i style="width:{{index $lp 3}}%;"></i></div>
+          </div>
+        </div>
+        <div class="lag-axis" aria-hidden="true">
+          <span>0d</span><span>1&ndash;30d</span><span>31&ndash;180d</span><span>&gt;180d</span>
+        </div>
+        <div class="lag-foot">
+          <span class="i">i</span>
+          <div class="lag-foot-line"><span class="lag-foot-stat">{{.Lag.P50}}d median lag<span class="dot">&middot;</span>P90 lag of {{.Lag.P90}} days</span><span class="dot">&middot;</span><span class="lag-foot-prov">{{.Lag.Pairs}} matched&nbsp;(element&nbsp;&rarr;&nbsp;doc) pairs<span class="dot">&middot;</span>{{.Lag.Inline}} inline doc comments excluded (version-locked).{{if gt .Lag.Unknown 0}} <b>{{pct .Lag.Unknown (plus .Lag.Pairs .Lag.Unknown)}}%</b> of pairs had unresolved git history and are not counted.{{end}}</span></div>
+        </div>
+      </div>
+      <div class="lag-rule" aria-hidden="true"></div>
+      {{else}}{{if .Guides}}
+      {{/* Lag-absent case: the run-level (element → doc) lag found no
+           resolvable pairs — typically because the contract and the
+           reference are generated (no git history to difference). Render
+           the Lag heading with an info note instead of silently dropping
+           the whole section, and point to the cross-repo Guide freshness
+           when that authored-doc signal is available. */}}
+      <div class="sh sh-lag"><h2>Lag</h2></div>
+      {{/* Not-present note: a quiet dotted, rounded callout. Inline-styled
+           (not a CSS class) so the shared <style> block — and thus the
+           byte-identical self-scan golden — stays untouched; this branch
+           only renders when run-level lag is empty. Text is uniform
+           small/light: no bold, code, or stat emphasis. */}}
+      <div style="display:flex;gap:8px;align-items:flex-start;border:1px dotted var(--ink-3);border-radius:8px;padding:9px 12px;margin-top:4px;">
+        <span style="flex:none;width:14px;height:14px;border-radius:50%;background:var(--ink-3);color:var(--paper);font-weight:700;font-size:9.5px;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">i</span>
+        <div style="font-family:var(--f-body);font-size:11px;font-weight:400;color:var(--ink-3);line-height:1.55;">Per-element doc-lag isn&rsquo;t available here: no (element&nbsp;&rarr;&nbsp;doc) pair resolved a git commit on both sides &mdash; the contract or its reference docs aren&rsquo;t tracked in this repo&rsquo;s own history. Cross-repo guide staleness is measured instead &mdash; see <a href="#sec-workflows" style="color:inherit;text-decoration:underline;">Guide freshness</a> below: {{.GuidesStaleN}} of {{len .Guides}} need review.</div>
+      </div>
+      <div class="lag-rule" aria-hidden="true"></div>
+      {{else}}
+      {{/* No guides and no cross-file pairs (e.g. a contract-only scan with
+           no documentation surface wired). Render the Lag heading with an
+           info note explaining the absence rather than dropping it. */}}
+      <div class="sh sh-lag"><h2>Lag</h2></div>
+      <div style="display:flex;gap:8px;align-items:flex-start;border:1px dotted var(--ink-3);border-radius:8px;padding:9px 12px;margin-top:4px;">
+        <span style="flex:none;width:14px;height:14px;border-radius:50%;background:var(--ink-3);color:var(--paper);font-weight:700;font-size:9.5px;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;">i</span>
+        <div style="font-family:var(--f-body);font-size:11px;font-weight:400;color:var(--ink-3);line-height:1.55;">{{if gt .Lag.Inline 0}}Doc-lag measures how far cross-file reference documentation has fallen behind the code. This library documents inline &mdash; {{.Lag.Inline}} in-source comments co-located with the code &mdash; so there&rsquo;s no cross-file drift to measure.{{else}}Doc-lag isn&rsquo;t available here: this scan has no documentation surface to difference against the code.{{end}}</div>
+      </div>
+      <div class="lag-rule" aria-hidden="true"></div>
+      {{end}}{{end}}{{end}}
+    </div>
+
+    {{/* The "Show all N methods" flat-list explorer was retired —
+         the Evidence rail's trailing "Bridged / Out of scope" bucket
+         plus the search input above it now cover the browse path. */}}
+  </div>
+
+  {{/* Findings (#sec-anomalies) was removed: the worklist below
+       already surfaces per-element fix actions, and the empty-state
+       copy that previously occupied this slot read as housekeeping
+       rather than a finding. */}}
+
+  {{/* Workflows now sits below Evidence — see after the evidence
+       section, ~line 1635. */}}
+
+  {{if .EvidencePanels}}
+  {{/* Evidence — per-element split-pane. Worklist members on the
+       left, the receipt (5-surface evidence) for the selected member
+       on the right. Falls back to a stacked single-column layout
+       below 1100px and in print, so every member's evidence is
+       reachable without the right pane. */}}
+  <section class="evidence-sec" id="sec-evidence" aria-labelledby="ev-heading">
+    <div class="sh"><h2 class="ev-h2" id="ev-heading">Evidence</h2></div>
+    <div class="ev-search-row" role="search">
+      <span class="ev-search-state">GROUPED BY WORKLIST</span>
+      <span class="ev-search-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg></span>
+      <span id="evSurfaceChip" class="ev-search-chip" role="status" aria-live="polite"><span id="evSurfaceChipLabel"></span><button type="button" class="ev-search-chip-x" onclick="clearSurface()" aria-label="Remove filter">&times;</button></span>
+      <input id="evSearchInput" class="ev-search-input" type="text" placeholder="Search" oninput="filterEvidence(this.value)" autocomplete="off" autofocus aria-label="Search">
+    </div>
+    <div class="ev-split">
+      <div class="ev-list" role="listbox" aria-label="Worklist members">
+        {{range $gi, $g := .RailFixGroups}}
+        {{if and (ne $g.Key "removed") (ne $g.Key "deprecated") (gt (len $g.Items) 0)}}
+        <div class="ev-fg">
+          <div class="ev-fg-head">
+            <span class="ev-fg-count">{{len $g.Items}}</span>
+            <div class="ev-fg-text">
+              {{if $g.ShortAction}}<span class="ev-fg-action">{{$g.ShortAction}}</span>{{end}}
+              <span class="ev-fg-label">{{$g.Label}}</span>
+            </div>
+          </div>
+          <div class="ev-members">
+            {{range $g.Items}}
+            {{$p := index $.PanelByID .Name}}
+            {{if $p}}
+            <div class="ev-member" tabindex="0" role="option" data-eid="{{.Name}}" data-tier="{{.Tier}}" data-substance="{{.Substance}}" data-lag="{{.LagBucket}}" data-concept="{{if gt .Concept 0}}1{{else}}0{{end}}" data-test="{{if gt .Test 0}}1{{else}}0{{end}}" data-example="{{if gt .Example 0}}1{{else}}0{{end}}" data-impl="{{if gt .Implementations 0}}1{{else}}0{{end}}" style="order:{{index $.RailRank .Name}}" onclick="selectEvidence(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectEvidence(this);}">
+              <span class="ev-m-name">{{.ShortName}}</span>
+              <span class="ev-m-dots" aria-hidden="true"><i class="ev-m-dot{{if gt .Concept 0}} on{{end}}" title="Docs"></i><i class="ev-m-dot{{if gt .Test 0}} on{{end}}" title="Tests"></i><i class="ev-m-dot{{if gt .Example 0}} on{{end}}" title="Examples"></i>{{if $.HasImplementsSignal}}<i class="ev-m-dot ev-m-dot-impl{{if gt .Implementations 0}} on{{end}}" title="Implementations"></i>{{end}}</span>
+            </div>
+            {{end}}
+            {{end}}
+          </div>
+        </div>
+        {{end}}
+        {{end}}
+        {{/* Trailing "Bridged / Out of scope" bucket — every method
+             not claimed by a rendered fix group above. Renders with
+             the same shape as a fix group (count, label, members)
+             so it slots into the rail naturally. Capped at
+             .UnassignedCap rows with a "+ N more" overflow footer
+             so wide libraries (kubectl's 967 bridged commands) don't
+             blow up the rail height. */}}
+        {{if .UnassignedMembers}}
+        <div class="ev-fg ev-fg-unassigned">
+          <div class="ev-fg-head">
+            <span class="ev-fg-count">{{len .UnassignedMembers}}</span>
+            <div class="ev-fg-text">
+              <span class="ev-fg-label">{{.UnassignedLabel}}</span>
+            </div>
+          </div>
+          <div class="ev-members">
+            {{range $i, $m := .UnassignedMembers}}
+            {{$p := index $.PanelByID $m.Name}}
+            {{if $p}}
+            <div class="ev-member{{if ge $i $.UnassignedCap}} ev-overflow{{end}}" tabindex="0" role="option" data-eid="{{$m.Name}}" data-tier="{{$m.Tier}}" data-substance="{{$m.Substance}}" data-lag="{{$m.LagBucket}}" data-concept="{{if gt $m.Concept 0}}1{{else}}0{{end}}" data-test="{{if gt $m.Test 0}}1{{else}}0{{end}}" data-example="{{if gt $m.Example 0}}1{{else}}0{{end}}" data-impl="{{if gt $m.Implementations 0}}1{{else}}0{{end}}" style="order:{{index $.RailRank $m.Name}}" onclick="selectEvidence(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectEvidence(this);}">
+              <span class="ev-m-name">{{$m.ShortName}}</span>
+              <span class="ev-m-dots" aria-hidden="true"><i class="ev-m-dot{{if gt $m.Concept 0}} on{{end}}" title="Docs"></i><i class="ev-m-dot{{if gt $m.Test 0}} on{{end}}" title="Tests"></i><i class="ev-m-dot{{if gt $m.Example 0}} on{{end}}" title="Examples"></i>{{if $.HasImplementsSignal}}<i class="ev-m-dot ev-m-dot-impl{{if gt $m.Implementations 0}} on{{end}}" title="Implementations"></i>{{end}}</span>
+            </div>
+            {{end}}
+            {{end}}
+            {{if gt .UnassignedOverflow 0}}
+            <div class="ev-fg-overflow">+ {{.UnassignedOverflow}} more (use a filter or search to surface them)</div>
+            {{end}}
+          </div>
+        </div>
+        {{end}}
+      </div>
+      <div class="ev-right" role="region" aria-labelledby="ev-heading">
+        {{range $i, $p := .EvidencePanels}}
+        <div class="ev-pane{{if eq $i 0}} sel{{end}}" data-eid="{{$p.ElementID}}" id="ev-pane-{{$i}}">
+          <div class="ev-stack">
+            {{range $p.Surfaces}}
+            {{$s := .}}
+            <div class="ev-surface">
+              <div class="ev-surface-head">{{.Label}}</div>
+              <div class="ev-surface-body">
+                {{if .Cards}}
+                  {{range .Cards}}
+                  <div class="ev-card c-{{$s.Key}}">
+                    <div class="ev-cap">{{if .URL}}<a href="{{.URL}}" target="_blank" rel="noopener">{{.Path}}:{{.Line}}</a>{{else}}{{.Path}}:{{.Line}}{{end}}{{if .MetaLabel}}<span class="ev-cap-meta">{{.MetaLabel}}</span>{{end}}</div>
+                    {{if .Text}}
+                      {{if eq .Kind "code"}}<pre class="ev-frag ev-frag-code">{{.Text}}</pre>{{else}}<p class="ev-frag ev-frag-prose">{{.Text}}</p>{{end}}
+                    {{end}}
+                    {{if gt .TruncMore 0}}<div class="ev-frag-trunc">+ {{.TruncMore}} more {{.TruncNoun}}{{if .TruncURL}} · <a href="{{.TruncURL}}" target="_blank" rel="noopener">read full {{if eq .Kind "prose"}}section{{else}}file{{end}}</a>{{end}}</div>{{end}}
+                  </div>
+                  {{end}}
+                  {{if gt .ExtraRefs 0}}<div class="ev-extra">+ {{.ExtraRefs}} more {{.ExtraNoun}}{{if .ExtraURL}} · <a href="{{.ExtraURL}}" target="_blank" rel="noopener">open all in source</a>{{end}}</div>{{end}}
+                {{else}}
+                  <p class="ev-empty">{{.EmptyCopy}}</p>
+                {{end}}
+              </div>
+            </div>
+            {{end}}
+          </div>
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </section>
+  <script>
+  // Surface filter state — set by showSurface() from masthead reveals,
+  // cleared by clearSurface(). Combined with the text input in
+  // filterEvidence(). __evSurfaceTier scopes the filter to one tier
+  // (container/primary/modifier) so a "9 Protocols with impl" reveal
+  // matches container-tier members only, not every method that
+  // happens to have implementations.
+  window.__evSurface = '';
+  window.__evSurfaceTier = '';
+  function filterEvidence(q){
+    q = (q || '').trim().toLowerCase();
+    var list = document.querySelector('.ev-split .ev-list');
+    if (!list) return;
+    var surf = window.__evSurface || '';
+    var surfTier = window.__evSurfaceTier || '';
+    var filterActive = surf !== '' || q !== '';
+    // Flip the rail to its flat A→Z layout while a filter is active.
+    // CSS does the heavy lifting via display:contents + the per-member
+    // `order:N` from RailRank. The search row also gets an `is-filtered`
+    // class so it can hide the "GROUPED BY WORKLIST" caption — the
+    // chip + flat list speak for themselves.
+    list.classList.toggle('ev-list-filtered', filterActive);
+    var searchRow = document.querySelector('.ev-search-row');
+    if (searchRow) searchRow.classList.toggle('is-filtered', filterActive);
+    // Map of surface filter → predicate against a member's data-*
+    // flags. "no-X" means the member LACKS that surface; bare "X"
+    // means it HAS it. surfTier additionally constrains to the tier
+    // the chip was emitted from.
+    function passes(m){
+      if (surfTier && m.getAttribute('data-tier') !== surfTier) return false;
+      if (!surf) return true;
+      switch (surf){
+        case 'concept':    return m.getAttribute('data-concept') === '1';
+        case 'no-concept': return m.getAttribute('data-concept') === '0';
+        case 'test':       return m.getAttribute('data-test') === '1';
+        case 'no-test':    return m.getAttribute('data-test') === '0';
+        case 'example':    return m.getAttribute('data-example') === '1';
+        case 'no-example': return m.getAttribute('data-example') === '0';
+        case 'impl':       return m.getAttribute('data-impl') === '1';
+        case 'no-impl':    return m.getAttribute('data-impl') === '0';
+        case 'SUBSTANTIVE':    return m.getAttribute('data-substance') === 'SUBSTANTIVE';
+        case 'PARTIAL':        return m.getAttribute('data-substance') === 'PARTIAL';
+        case 'SIGNATURE_ONLY': return m.getAttribute('data-substance') === 'SIGNATURE_ONLY';
+        case 'ABSENT':         return m.getAttribute('data-substance') === 'ABSENT';
+        case 'FRESH':          return m.getAttribute('data-lag') === 'FRESH';
+        case 'RECENT':         return m.getAttribute('data-lag') === 'RECENT';
+        case 'AGING':          return m.getAttribute('data-lag') === 'AGING';
+        case 'STALE':          return m.getAttribute('data-lag') === 'STALE';
+        default:           return true;
+      }
+    }
+    var visibleMembers = [];
+    list.querySelectorAll('.ev-fg').forEach(function(g){
+      var any = false;
+      g.querySelectorAll('.ev-member').forEach(function(m){
+        // Match against the visible short-name only, NOT the full FQN
+        // in data-eid — searching the FQN means typing "w" matches
+        // every element in `fuchsia.driver.framework` because the
+        // library prefix contains a "w", which is the opposite of
+        // what the user reads off the rail.
+        var nameEl = m.querySelector('.ev-m-name');
+        var name = (nameEl ? nameEl.textContent : '').toLowerCase();
+        var hitName = q === '' || name.indexOf(q) !== -1;
+        var hitSurf = passes(m);
+        var hit = hitName && hitSurf;
+        m.style.display = hit ? '' : 'none';
+        if (hit) { any = true; visibleMembers.push(m); }
+      });
+      // Hide a fix-group header when it has no visible members. (In
+      // the filtered layout the .ev-fg becomes display:contents via
+      // CSS, so this only matters in the unfiltered grouped view.)
+      g.style.display = any ? '' : 'none';
+    });
+    // Empty-list → invisible right column. A selected pane stranded
+    // next to an empty list reads as a stale receipt; better to blank
+    // the right side until the user widens the filter. Toggle on the
+    // split regardless of whether a filter is active — covers both the
+    // chip-narrows-to-zero case and the genuinely-empty-library case.
+    var splitEl = list.closest('.ev-split');
+    var right = splitEl ? splitEl.querySelector('.ev-right') : null;
+    if (right) right.classList.toggle('ev-empty', visibleMembers.length === 0);
+    // Selection housekeeping when a filter is active:
+    //   - 0 visible: clear the prior .sel so the right pane (which
+    //     only renders when a pane carries .sel) collapses to empty.
+    //   - >0 visible but the previously selected member is now
+    //     hidden: auto-pick the first visible (lowest `order:` =
+    //     A→Z) so the right pane always shows something coherent.
+    //   - >0 visible and prior selection still visible: leave alone.
+    if (filterActive) {
+      var split = list.closest('.ev-split');
+      if (visibleMembers.length === 0) {
+        list.querySelectorAll('.ev-member.sel').forEach(function(m){
+          m.classList.remove('sel'); m.setAttribute('aria-selected','false');
+        });
+        if (split) split.querySelectorAll('.ev-pane.sel').forEach(function(p){p.classList.remove('sel');});
+      } else {
+        var currentSel = list.querySelector('.ev-member.sel');
+        if (!currentSel || currentSel.style.display === 'none') {
+          visibleMembers.sort(function(a, b){
+            return (parseInt(a.style.order, 10) || 0) - (parseInt(b.style.order, 10) || 0);
+          });
+          selectEvidence(visibleMembers[0]);
+        }
+      }
+    }
+  }
+  function selectEvidence(memberEl){
+    if (!memberEl) return;
+    var eid = memberEl.getAttribute('data-eid');
+    var split = memberEl.closest('.ev-split');
+    if (!split) return;
+    split.querySelectorAll('.ev-member.sel').forEach(function(el){el.classList.remove('sel');el.setAttribute('aria-selected','false');});
+    split.querySelectorAll('.ev-pane.sel').forEach(function(el){el.classList.remove('sel');});
+    memberEl.classList.add('sel');
+    memberEl.setAttribute('aria-selected','true');
+    var pane = split.querySelector('.ev-pane[data-eid="' + (window.CSS && CSS.escape ? CSS.escape(eid) : eid.replace(/"/g,'\\"')) + '"]');
+    if (pane) {
+      pane.classList.add('sel');
+      // Align the pane's top with the selected member's row. The
+      // right-column container is the pane's offsetParent in the
+      // grid; compute the offset using bounding rects so the pane
+      // starts at the same vertical as the member that selected it.
+      var right = pane.parentElement;
+      if (right){
+        // Clear previous offset so the rect-diff measurement is taken
+        // from the natural top of the right column, not from where
+        // the previously-selected pane was sitting.
+        pane.style.marginTop = '';
+        // Reading getBoundingClientRect forces layout — that's fine
+        // here, it's one click.
+        var memberRect = memberEl.getBoundingClientRect();
+        var rightRect = right.getBoundingClientRect();
+        var offset = memberRect.top - rightRect.top;
+        // Clamp to >= 0 — a negative offset would pull the pane above
+        // its container and overlap the heading above the split.
+        if (offset > 0) pane.style.marginTop = offset + 'px';
+      }
+    }
+  }
+  (function(){
+    var split = document.querySelector('.ev-split');
+    if (!split) return;
+    var first = split.querySelector('.ev-member');
+    if (first && !split.querySelector('.ev-member.sel')){
+      selectEvidence(first);
+    }
+  })();
+  </script>
+  {{end}}
+
+  {{/* Workflows — placed BELOW Evidence. The recipe-tier signal is
+       the bottom of the surface stack: a reader who got here has
+       already seen the per-element receipts and is now asking "do
+       any of these elements compose into a documented sequence?". */}}
+  {{if .WorkflowConfigured}}
+  <section class="section" id="sec-workflows">
+    <div class="sh"><h2><span class="sh-num">{{.WorkflowsTotal}}</span> Workflows</h2></div>
+    {{if .WorkflowSubhead}}<p class="section-subhead">{{.WorkflowSubhead}}</p>{{end}}
+    <div class="wf-rows">
+      <div class="wf-row">
+        <div class="wf-label">{{.PrimaryNoun}} in &ge;1 workflow</div>
+        <div class="wf-bar"><i style="width:{{.PrimaryInWorkflowPct}}%"></i></div>
+        <div class="wf-pct">{{.PrimaryInWorkflowPct}}%</div>
+      </div>
+      {{if .ModifierNoun}}
+      <div class="wf-row">
+        <div class="wf-label">{{.ModifierNoun}} in &ge;1 workflow</div>
+        <div class="wf-bar"><i style="width:{{.ModifierInWorkflowPct}}%"></i></div>
+        <div class="wf-pct">{{.ModifierInWorkflowPct}}%</div>
+      </div>
+      {{end}}
+    </div>
+    {{if .WorkflowLengthHist}}
+    <div class="wf-hist">
+      <div class="wf-hist-head">Length distribution</div>
+      {{range .WorkflowLengthHist}}
+      <div class="wf-hist-row">
+        <span class="wf-hist-label">{{.Label}}</span>
+        <span class="wf-hist-bar"><i style="width:{{.BarPct}}%"></i></span>
+        <span class="wf-hist-count">{{.Count}}</span>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+    {{if .Guides}}
+    {{/* Cross-repo guide freshness. When the authored docs live in a
+         different repo from the code (the snapshot recorded a workflows
+         docs_dir), guide lag is computed across both git trees — guide
+         commit time from the docs repo vs each command's from the code
+         repo — and supersedes the single-repo workflow freshness, which
+         can't resolve timestamps across repos. */}}
+    <div class="wf-hist wf-fresh">
+      <div class="wf-hist-head">Guide freshness &mdash; cross-repo{{if gt .GuidesStaleN 0}} &middot; {{.GuidesStaleN}} of {{len .Guides}} need review{{end}}</div>
+      {{range .Guides}}
+      <div class="wf-hist-row" data-lag="{{.LagBucket}}" title="{{if gt .LagDays 0}}{{.WorstCommand}} changed {{.LagDays}}d after this guide was last edited &mdash; review it{{else}}no command this guide teaches has changed since it was written{{end}}">
+        <span class="wf-hist-label">{{if .URL}}<a class="wf-doc-link" href="{{.URL}}" target="_blank" rel="noopener">{{.ShortName}}</a>{{else}}{{.ShortName}}{{end}} <span class="wf-steps">&middot; {{.Length}} cmds</span></span>
+        <span class="wf-hist-count">{{if gt .LagDays 0}}{{.LagDays}}d behind{{else}}current{{end}}</span>
+      </div>
+      {{end}}
+    </div>
+    {{else}}{{if .Workflows}}
+    <div class="wf-hist wf-fresh">
+      <div class="wf-hist-head">Freshness{{if gt .WorkflowsStaleN 0}} &mdash; {{.WorkflowsStaleN}} of {{.WorkflowsTotal}} need review{{end}}</div>
+      {{range .Workflows}}
+      <div class="wf-hist-row" data-lag="{{.LagBucket}}" title="{{if gt .LagDays 0}}{{.WorstElement}} changed {{.LagDays}}d after this workflow doc &mdash; review the sequence{{else}}no referenced element has changed since this workflow{{end}}">
+        <span class="wf-hist-label">{{if .URL}}<a class="wf-doc-link" href="{{.URL}}" target="_blank" rel="noopener">{{.ShortName}}</a>{{else}}{{.ShortName}}{{end}} <span class="wf-steps">&middot; {{.Length}} steps</span></span>
+        <span class="wf-hist-count">{{if gt .LagDays 0}}{{.LagDays}}d behind{{else}}current{{end}}</span>
+      </div>
+      {{end}}
+    </div>
+    {{end}}{{end}}
+  </section>
+  {{else}}{{if .EvidencePanels}}
+  <section class="section" id="sec-workflows">
+    <div class="sh"><h2>Workflows</h2></div>
+    <div class="wfblock empty">
+      <div class="wf-head">Workflow coverage</div>
+      <div class="wf-body">No workflow corpus configured. The substance and worklist views above measure whether elements are documented, tested, and demonstrated <em>in isolation</em> &mdash; they do not measure whether elements appear together in any documented sequence. Configure a <code>workflows</code> rendered-reference block to surface this layer.</div>
+    </div>
+  </section>
+  {{end}}{{end}}
+
+
+  <div class="foot">sheaf scanner · {{.Total}} {{.TotalNounPlural}} · {{.Ecosystem}} surface · {{.GeneratedAt}}</div>
+
+</div>
+
+<script>
+const METHODS = {{.MethodsJSON}};
+const NOUN_PL = {{.NounPlural | json}};
+
+function navTo(btn){
+  document.querySelectorAll('.topnav-tabs .tab').forEach(t=>t.classList.toggle('on', t===btn));
+  const target = document.getElementById(btn.dataset.target);
+  const y = target.getBoundingClientRect().top + window.scrollY - 64;
+  window.scrollTo({top: Math.max(0,y), behavior:'smooth'});
+}
+
+function explainRow(cell){
+  document.querySelectorAll('.upset .bar-cell.sel').forEach(c=>c.classList.remove('sel'));
+  cell.classList.add('sel');
+  document.getElementById('upset-expl').innerHTML = cell.dataset.expl;
+}
+
+function upsetSelect(el){
+  // Each row in upset2 spans three grid cells sharing a data-row:
+  //   1. .u2r-text   (count + dots + narrative — left)
+  //   2. .u2r-right  (bar — right)
+  //   3. .u2r-members (full-width panel BELOW; hidden until selected)
+  // Clicking any cell toggles selection for the row. All three cells
+  // get .sel — text gets the row highlight, dots colorize, the
+  // members panel becomes visible. Clicking again deselects.
+  const grid = el.closest('.upset2-grid');
+  if(!grid) return;
+  const row = el.dataset.row;
+  if(row == null) return;
+  const cells = Array.from(grid.querySelectorAll(`[data-row="${row}"]`));
+  const wasSelected = el.classList.contains('sel');
+  grid.querySelectorAll('.sel').forEach(c => c.classList.remove('sel'));
+  grid.querySelectorAll('.u2m-all.open').forEach(a => a.classList.remove('open'));
+  // Reset any per-row "show more" state so re-opening a row starts fresh.
+  grid.querySelectorAll('.u2r-members').forEach(m => {
+    Array.from(m.children).forEach(ch => {
+      if(ch.classList && (ch.classList.contains('u2m') || ch.classList.contains('u2m-more'))){
+        ch.style.display = '';
+      }
+    });
+  });
+  if(!wasSelected){
+    cells.forEach(c => c.classList.add('sel'));
+  }
+}
+
+function upsetShowAll(link){
+  // Open the full methods list filtered to this upset row's state
+  // term (Established / Asserted / Completed / …). Replaces the
+  // older "expand the inline chips" behavior — the methods panel
+  // has search, the per-element receipts, drift badges, and the
+  // surface-filter chip, all of which are more useful than a
+  // chip-grid expansion. The Term passed via data-term matches the
+  // hardcoded name set in buildOverlap (compute.go).
+  const term = (link && link.dataset && link.dataset.term) || '';
+  if(term) showState(term);
+}
+
+// stateNameFor returns the upset state term for a method based on its
+// (concept, test, example) presence triple — same mapping as the
+// catalog in compute.go buildOverlap, kept in sync by hand. Used by
+// renderMethods when the surface filter is "state:<Term>".
+function stateNameFor(m){
+  const c = (m.Concept||0) > 0;
+  const t = (m.Test||0)    > 0;
+  const e = (m.Example||0) > 0;
+  if(!c && !t && !e) return 'Unclaimed';
+  if( c && !t && !e) return 'Asserted';
+  if(!c &&  t && !e) return 'Exercised';
+  if(!c && !t &&  e) return 'Sketched';
+  if( c &&  t && !e) return 'Established';
+  if( c && !t &&  e) return 'Shown';
+  if(!c &&  t &&  e) return 'Practiced';
+  return 'Completed';
+}
+
+// showState opens the methods panel and applies a state filter (one
+// of the upset categorization terms). The filter chip inside the
+// search box shows the term in uppercase ("ESTABLISHED").
+function showState(name){
+  const w = document.getElementById('allWrap');
+  const b = document.getElementById('showAllBtn');
+  if(!w || !b) return;
+  if(w.style.display === 'none'){
+    w.style.display = '';
+    b.textContent = 'Hide full method list ↑';
+  }
+  window.__surfaceFilter = 'state:' + name;
+  const search = document.getElementById('methodSearch');
+  if(search) search.value = '';
+  renderMethods();
+  renderFilterChip();
+  w.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function toggleFix(i){
+  const row = document.querySelector(`.wl-row[data-i="${i}"]`);
+  if(!row) return;
+  const wasOpen = row.classList.contains('open');
+  // Exclusive: close all other open rows in the same worklist so only
+  // one fix-priority row is expanded at a time (matches the gaps
+  // view's single-selection treatment).
+  const worklist = row.closest('.worklist');
+  if (worklist){
+    worklist.querySelectorAll('.wl-row.open').forEach(r => r.classList.remove('open'));
+  }
+  if (!wasOpen) row.classList.add('open');
+  // After the row's open-state changes, the panel's height changes
+  // too — refit the stage so the section below doesn't overlap or
+  // leave a gap. Double rAF: first frame lets style recalc settle
+  // (display:none → display:block on .wl-detail), second lets layout
+  // settle (the detail's wl-refs flex-wrap children reflow once their
+  // computed widths are known). A single rAF measures too early and
+  // captures a pre-reflow height, leaving the row's bottom rounded
+  // corner clipped by .view-stage's overflow:hidden — visually the
+  // subst-card below appears to overlap the row's border. Matches
+  // the init path's double-rAF on line ~1576.
+  const v = document.body.getAttribute('data-view') || 'fixes';
+  requestAnimationFrame(() => requestAnimationFrame(() => fitStageToActivePanel(v)));
+}
+
+function renderMethods(){
+  const q = (document.getElementById('methodSearch').value||'').toLowerCase().trim();
+  const list = document.getElementById('methodList');
+  if(!list) return;
+  const surf = window.__surfaceFilter || '';
+  const tier = window.__tierFilter || '';
+  // tierPass restricts to commands ('primary') or flags ('modifier')
+  // when the calling reveal link passed a tier. Empty tier means
+  // "all tiers" — single-tier ecosystems and the upset-state reveals
+  // fall through here unchanged.
+  const tierPass = (m) => !tier || (m.Tier || '') === tier;
+  const surfPass = (m) => {
+    // Upset-state filter: "state:Established" / "state:Completed" /
+    // etc. Fired from the per-row "show all N →" link.
+    if(surf.indexOf('state:') === 0){
+      return stateNameFor(m) === surf.slice(6);
+    }
+    switch(surf){
+      case 'concept':    return (m.Concept||0) > 0;
+      case 'test':       return (m.Test||0)    > 0;
+      case 'example':    return (m.Example||0) > 0;
+      case 'no-concept': return !((m.Concept||0) > 0);
+      case 'no-test':    return !((m.Test||0)    > 0);
+      case 'no-example': return !((m.Example||0) > 0);
+      // Substance-grade filters fired from the green substance bar.
+      // Methods are graded SUBSTANTIVE/PARTIAL/SIGNATURE_ONLY/ABSENT
+      // by elementSubstance() at scan time; the per-method MethodRow
+      // carries the grade in m.Substance.
+      case 'SUBSTANTIVE':    return m.Substance === 'SUBSTANTIVE';
+      case 'PARTIAL':        return m.Substance === 'PARTIAL';
+      case 'SIGNATURE_ONLY': return m.Substance === 'SIGNATURE_ONLY';
+      case 'ABSENT':         return m.Substance === 'ABSENT';
+      default:           return true;
+    }
+  };
+  const rows = METHODS.filter(m => tierPass(m) && surfPass(m) && (!q || (m.Name||'').toLowerCase().includes(q) || (m.ShortName||'').toLowerCase().includes(q)));
+  list.innerHTML = rows.map(m=>{
+    const dots = [m.Concept,m.Test,m.Example].map(n=>`<i class="${n>0?'on':''}"></i>`).join('');
+    const driftLabel = m.Drift==='time' ? 'stale' : (m.Drift==='domain' ? 'mismatch' : '');
+    const drift = (m.Drift && m.Drift!=='none') ? `<span class="m-drift d-${m.Drift}">${driftLabel}</span>` : '';
+    const isDep = m.Deprecation && (m.Deprecation.DeprecatedIn || m.Deprecation.RemovedIn);
+    let depBadge = '';
+    if (m.Removed) {
+      depBadge = `<span class="m-rm" title="removed @ ${m.Deprecation && m.Deprecation.RemovedIn}">removed</span>`;
+    } else if (isDep) {
+      depBadge = `<span class="m-dep" title="deprecated${m.Deprecation.DeprecatedIn?' @ '+m.Deprecation.DeprecatedIn:''}${m.Deprecation.RemovedIn?' removed @ '+m.Deprecation.RemovedIn:''}">deprecated</span>`;
+    }
+    return `<div class="m-row">
+      <span class="m-surf" title="concept · test · example">${dots}</span>
+      <span class="m-name" title="${m.Name||''}">${m.ShortName||m.Name||''}${depBadge}</span>
+      <span class="m-fix ${m.Bridged && (!m.Drift || m.Drift==='none')?'none':''}">${m.Fix||''}</span>
+      ${drift}
+    </div>`;
+  }).join('');
+  document.getElementById('emptynote').style.display = rows.length?'none':'block';
+}
+
+function toggleAll(){
+  const w=document.getElementById('allWrap'), b=document.getElementById('showAllBtn');
+  if(!w||!b) return;
+  const open = w.style.display==='none';
+  w.style.display = open ? '' : 'none';
+  b.textContent = open ? 'Hide full method list ↑' : `Show all ${METHODS.length} ${NOUN_PL} ↓`;
+  if(open) {
+    renderMethods();
+  } else {
+    // Reset filter when the panel closes so the next open is clean.
+    window.__surfaceFilter = '';
+    renderFilterChip();
+  }
+}
+
+const SURF_LABELS = {
+  'concept':         'with reference docs',
+  'test':            'with tests',
+  'example':         'with examples',
+  'no-concept':      'missing reference docs',
+  'no-test':         'missing tests',
+  'no-example':      'missing examples',
+  'SUBSTANTIVE':     'with full behavioral docs',
+  'PARTIAL':         'with brief docs',
+  'SIGNATURE_ONLY':  'with stub docs',
+  'ABSENT':          'with no docs',
+};
+
+// showSubstance: thin convenience that fires from the Depth subst4
+// rows. The substance counts in the donut are scoped to the
+// primary-detail tier (or the modifier tier when the primary tier is
+// suppressed for single-binary CLIs) — pass the same tier through so
+// the rail filter's denominator matches what the donut showed. Without
+// this, container-tier elements with a stray Substance grade slip into
+// the rail and the count won't match the chip the user just clicked.
+function showSubstance(grade, tier){
+  showSurface(grade, tier || '');
+}
+
+// Masthead "show the N" reveals filter the Evidence rail. Tier scopes
+// the filter to container/primary/modifier so a Protocols-tier reveal
+// doesn't surface Method-tier hits with the same data-impl flag, and
+// vice versa.
+function showSurface(kind, tier){
+  const labels = {
+    'concept':        'Reference docs',
+    'no-concept':     'Missing reference docs',
+    'test':           'Tests',
+    'no-test':        'Missing tests',
+    'example':        'Usage',
+    'no-example':     'Missing examples',
+    'impl':           'Implementations',
+    'no-impl':        'Missing implementations',
+    // Substance grades — fired from the Depth section's subst4 rows.
+    // The chip subsumes any prior chip (window.__evSurface is a single
+    // slot), matching the user expectation that one substance click
+    // replaces whatever else was filtering.
+    'SUBSTANTIVE':    'Full',
+    'PARTIAL':        'Brief documentation',
+    'SIGNATURE_ONLY': 'Stub (signature only)',
+    'ABSENT':         'No documentation',
+    // Lag buckets — fired from the Lag quartile bands, filtering the
+    // rail on each member's data-lag (its worst doc-lag bucket).
+    'FRESH':          'Fresh — docs current',
+    'RECENT':         'Recent — 1–30d behind',
+    'AGING':          'Aging — 31–180d behind',
+    'STALE':          'Stale — >180d behind',
+  };
+  if (!labels[kind]) return;
+  window.__evSurface = kind;
+  window.__evSurfaceTier = tier || '';
+  const chip = document.getElementById('evSurfaceChip');
+  const chipLabel = document.getElementById('evSurfaceChipLabel');
+  if (chip && chipLabel){
+    chipLabel.textContent = labels[kind];
+    chip.classList.add('on');
+  }
+  // Drop any prior .sel before filterEvidence runs so its
+  // "current selection no longer visible → pick first" branch fires
+  // unconditionally for the new chip — the user expects the first
+  // match under the new filter to be the selected/highlighted row.
+  const list = document.querySelector('.ev-split .ev-list');
+  if (list){
+    list.querySelectorAll('.ev-member.sel').forEach(function(m){
+      m.classList.remove('sel'); m.setAttribute('aria-selected','false');
+    });
+    const split = list.closest('.ev-split');
+    if (split) split.querySelectorAll('.ev-pane.sel').forEach(function(p){p.classList.remove('sel');});
+  }
+  // Clear any stale text query when a new chip is selected — the user
+  // expects a fresh filter, not a chip layered on top of a search they
+  // started earlier. Without this clear the first-item auto-select can
+  // land on whatever item happens to match BOTH the chip and the stale
+  // query (or nothing at all if they don't intersect).
+  const input = document.getElementById('evSearchInput');
+  if (input) input.value = '';
+  filterEvidence(input ? input.value : '');
+  // Caret stays in the search input — the only place that takes typing.
+  if (input) input.focus({preventScroll: true});
+  const sec = document.getElementById('sec-evidence');
+  if (sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function clearSurface(){
+  window.__evSurface = '';
+  window.__evSurfaceTier = '';
+  const chip = document.getElementById('evSurfaceChip');
+  if (chip) chip.classList.remove('on');
+  const input = document.getElementById('evSearchInput');
+  filterEvidence(input ? input.value : '');
+}
+
+function setView(btn, v){
+  document.querySelectorAll('.view-toggle button').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  // The CSS-driven swipe happens automatically when data-view flips:
+  // the .view-track inside the .view-stage translates from 0 to -50%
+  // (or back), revealing the other panel.
+  document.body.setAttribute('data-view', v);
+  // URL hash captures the choice so deep links remember it.
+  try {
+    const h = (window.location.hash || '').replace(/^#/, '')
+      .split('&').filter(p => p && !p.startsWith('view=')).filter(Boolean);
+    h.unshift('view=' + v);
+    history.replaceState(null, '', '#' + h.join('&'));
+  } catch(_){}
+  fitStageToActivePanel(v);
+  // When the toggle was invoked from a click (i.e. there's a btn
+  // arg — not the URL-hash restore path on initial load), scroll
+  // the Gaps headline into view so the data the click affects is
+  // visible. Account for the sticky topnav so the headline lands
+  // *below* the strip, not behind it.
+  if (btn) {
+    const target = document.getElementById('sec-methods');
+    if (target) {
+      const strip = document.querySelector('.report-strip');
+      const stripH = strip ? strip.getBoundingClientRect().height : 0;
+      const y = target.getBoundingClientRect().top + window.scrollY - stripH - 16;
+      window.scrollTo({top: Math.max(0, y), behavior: 'smooth'});
+    }
+  }
+}
+
+// Measure the active view-panel and set .view-stage height to it so
+// the Surfaces bar below the stage doesn't trail empty whitespace
+// when the active panel is shorter (e.g. Worklist) than the other
+// (States). CSS transition on .view-stage height animates the
+// reflow in lockstep with the panel's slide.
+function fitStageToActivePanel(v){
+  const stage = document.querySelector('.upset2-wrap.view-stage');
+  if (!stage) return;
+  const sel = (v === 'fixes') ? '.panel-fixes' : '.panel-categories';
+  const panel = stage.querySelector(sel);
+  if (!panel) return;
+  // Use the larger of offsetHeight / scrollHeight, plus 1px buffer.
+  // Two failure modes this guards against:
+  //   1. Sub-pixel rounding leaves the row's bottom rounded corner
+  //      half a pixel below the stage's overflow:hidden edge — the
+  //      .subst-card below appears to clip the rounded border.
+  //   2. Content reflow after the rAF tick (font swap, late-loaded
+  //      sub-elements) bumps scrollHeight past offsetHeight.
+  // The +1 is the cheapest fix; an "exact" measurement isn't worth
+  // the complexity given the alternative is a visible clip.
+  // 8px buffer (was 1px): the panel has rounded corners, and several
+  // re-renders measured scrollHeight short by ~2–5px when fonts were
+  // still settling, leaving the row's bottom border visibly clipped.
+  // 8px is invisible if unused and big enough to swallow the worst
+  // measurement skew we've seen in practice.
+  const h = Math.max(panel.offsetHeight, panel.scrollHeight) + 8;
+  stage.style.height = h + 'px';
+}
+
+// readViewFromURL restores the view on page load from the URL hash.
+// Default view is "fixes" (Worklist) — the first button is .on in markup.
+function readViewFromURL(){
+  const h = (window.location.hash || '').replace(/^#/, '');
+  const m = h.match(/view=(categories|fixes)/);
+  if (m) {
+    const btn = document.querySelector('.view-toggle button[data-view="' + m[1] + '"]');
+    if (btn) setView(btn, m[1]);
+  }
+}
+
+// Auto-select the first UpSet row on load — the largest-by-count
+// row is the dominant pattern in the scan and the best default
+// focus for the reader's eye.
+function initSelectCompleted(){
+  const row = document.querySelector('.upset2 .u2r-text');
+  if (row && !row.classList.contains('sel')) {
+    try { upsetSelect(row); } catch(_){}
+  }
+}
+
+function _initView(){
+  readViewFromURL();
+  initSelectCompleted();
+  // Auto-expand the top fix-priority row so its action + receipts
+  // are visible without a click when the user toggles to fixes view.
+  const topFix = document.querySelector('.panel-fixes .wl-row');
+  if (topFix && !topFix.classList.contains('open')) topFix.classList.add('open');
+  // Initial stage-height fit — runs after the panels are laid out so
+  // offsetHeight reflects their final size.
+  const initView = (document.body.getAttribute('data-view')) || 'fixes';
+  // Two-tick wait: once for the panel auto-expand to settle, once
+  // more for fonts/layout to finalize before measuring.
+  requestAnimationFrame(() => requestAnimationFrame(() => fitStageToActivePanel(initView)));
+  // Also refit on viewport resize (rows wrap differently at narrower widths).
+  window.addEventListener('resize', () => {
+    const v = document.body.getAttribute('data-view') || 'fixes';
+    fitStageToActivePanel(v);
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initView);
+} else {
+  _initView();
+}
+
+// Land the caret in the Evidence search field on every load — the only
+// place on the page that takes typed input, so it's the natural
+// starting point. autofocus alone doesn't fire when the document
+// doesn't have focus (e.g. inside an iframe preview); calling .focus()
+// from JS handles both cases. preventScroll keeps the masthead in view.
+function _focusEvSearch(){
+  var input = document.getElementById('evSearchInput');
+  if (input) { try { input.focus({preventScroll: true}); } catch(_) { input.focus(); } }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _focusEvSearch);
+} else {
+  _focusEvSearch();
+}
+
+function renderFilterChip(){
+  const host = document.getElementById('surfFilterChip');
+  if(!host) return;
+  const surf = window.__surfaceFilter || '';
+  if(!surf){
+    host.innerHTML = '';
+    return;
+  }
+  // State filter (from upset "show all N →"): bare uppercase term,
+  // no "filter:" prefix. Reads as a single-word chip identifying the
+  // upset category the methods list is scoped to.
+  if(surf.indexOf('state:') === 0){
+    const label = surf.slice(6).toUpperCase();
+    host.innerHTML = `<span class="surf-filter-chip">${label}<span class="x" onclick="clearSurface()" title="clear filter">✕</span></span>`;
+    return;
+  }
+  const label = SURF_LABELS[surf] || surf;
+  // Tier suffix: when the reveal came from one of the per-tier
+  // sections in the masthead, include the tier in the chip so the
+  // reader sees why the count in the list matches the chip in the
+  // masthead they just clicked.
+  const tier = window.__tierFilter || '';
+  const tierLabel = tier === 'primary' ? ' · commands'
+                  : tier === 'modifier' ? ' · flags'
+                  : '';
+  host.innerHTML = `<span class="surf-filter-chip">filter: ${label}${tierLabel}<span class="x" onclick="clearSurface()" title="clear filter">✕</span></span>`;
+}
+{{if eq .Ecosystem "cpp"}}
+/* validation chip popovers (native) */
+(function(){
+  function vpop(){var p=document.getElementById('vpop');if(!p){p=document.createElement('div');p.id='vpop';p.className='vpop';document.body.appendChild(p);}return p;}
+  function vaway(e){var p=document.getElementById('vpop');if(p&&p.style.display==='block'&&!p.contains(e.target)&&!e.target.classList.contains('vchip')){p.style.display='none';document.removeEventListener('mousedown',vaway);}}
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'){var p=document.getElementById('vpop');if(p)p.style.display='none';}});
+  function vsec(k,v){return v?('<div class="vk">'+k+'</div><div class="vv">'+v+'</div>'):'';}
+  document.querySelectorAll('.vchip').forEach(function(ch){ch.addEventListener('click',function(e){
+    e.stopPropagation();var p=vpop();var d=ch.dataset;
+    p.innerHTML='<span class="vx" title="close">×</span>'
+      +'<div class="vph"><span class="vbadge '+d.vc+'">'+d.vg+' '+d.vd+'</span> <b>'+d.vs+'</b></div>'
+      +vsec('The number',d.vnum)+vsec('Provenance',d.vprov)+vsec('Issues',d.viss)+vsec('Remediation',d.vrem);
+    p.style.display='block';
+    var r=ch.getBoundingClientRect();
+    p.style.top=(r.bottom+window.scrollY+8)+'px';
+    p.style.left=Math.max(8,Math.min(r.left+window.scrollX,window.scrollX+document.documentElement.clientWidth-p.offsetWidth-12))+'px';
+    p.querySelector('.vx').onclick=function(){p.style.display='none';};
+    setTimeout(function(){document.addEventListener('mousedown',vaway);},0);
+  });});
+})();
+{{end}}
+</script>
+</body>
+</html>{{end}}
+
+{{/* Concept-doc REACH line — a single honest descriptive note, rendered under
+     the surface-tile grid. This is NOT the concept-doc coverage chip (there is
+     none — the surface-tile row stays the existing fill-the-bar surfaces); it
+     is a map of how far the project's narrative docs reach into the contract.
+     Counts ONLY: clear (docs single this element out), ambiguous (named but
+     never disambiguated from same-spelled kin), and "the rest" (not discussed
+     in prose — the expected default). Deliberately no percentage, no bar, no
+     fill: dividing "discussed" by "total contract" would invent a grade out of
+     a map. Gated on ConceptDocConfigured so a repo with no concept-doc source
+     wired renders nothing rather than a misleading "0 of N". */}}
+{{define "vchip"}}{{if .Show}}<button type="button" class="vchip{{if .Alert}} alert{{end}}" data-vd="{{.Verdict}}" data-vg="{{.Glyph}}" data-vc="{{.Class}}" data-vs="{{.Surface}}" data-vnum="{{.Number}}" data-vprov="{{.Provenance}}" data-viss="{{.Issues}}" data-vrem="{{.Remediation}}">{{.Glyph}} {{.Verdict}}</button>{{end}}{{end}}
+{{define "conceptDocReach"}}{{if .ConceptDocConfigured}}<div class="cd-reach"><span class="cd-reach-dot"></span><span>Concept docs clearly reference {{if .ConceptDocsHref}}<a class="cd-reach-link" href="{{.ConceptDocsHref}}"><b>{{.ConceptDocClear}}</b> of <b>{{.Total}}</b> {{if eq .Total 1}}entity{{else}}entities{{end}}{{if .ConceptDocAmbiguous}}; <b>{{.ConceptDocAmbiguous}}</b> named ambiguously{{end}}</a>{{else}}<b>{{.ConceptDocClear}}</b> of <b>{{.Total}}</b> {{if eq .Total 1}}entity{{else}}entities{{end}}{{if .ConceptDocAmbiguous}}; <b>{{.ConceptDocAmbiguous}}</b> named ambiguously{{end}}{{end}}<span class="cd-reach-rest">; the rest aren&rsquo;t discussed in narrative docs (expected).</span></span></div>{{end}}{{end}}

@@ -1,0 +1,36 @@
+// TestCase — a unit of validated behavior emitted by test parsers.
+
+syntax = "proto3";
+
+package sheaf.testcase.v1;
+
+option go_package = "github.com/sheaf-data/sheaf/proto/testcase";
+
+import "common.proto";
+import "google/protobuf/struct.proto";
+
+// AssertionRef is a reference to a specific assertion within a test.
+// Currently used by the gtest adapter to surface EXPECT/ASSERT lines.
+message AssertionRef {
+  uint32 line = 1;
+  string macro = 2;            // "EXPECT_EQ", "ASSERT_TRUE", etc.
+  string excerpt = 3;          // short excerpt of the assertion expression
+}
+
+message TestCase {
+  string id = 1;                                // canonical ID, e.g. "FooTest.BarReturnsTrue"
+  string framework = 2;                         // "gtest" | "rust-test" | "bats" | ...
+  sheaf.common.v1.SourceLocation location = 3;
+  string source_hash = 4;                       // content hash of test body
+  string name = 5;                              // raw name from source
+  repeated string name_tokens = 6;              // normalized tokens for matching
+  repeated string imports = 7;                  // imported modules / namespaces / packages
+  repeated AssertionRef assertions = 8;
+  repeated string contract_refs = 9;            // ContractElement IDs (populated by indexer)
+  google.protobuf.Struct ecosystem_meta = 10;
+
+  // provenance records which tier produced this test case. Deterministic
+  // for all slice-1 test parsers; the field exists so LLM-adjudicated
+  // attribution edges (slice 2) can carry tier without a schema change.
+  sheaf.common.v1.RowProvenance provenance = 11;
+}

@@ -1,0 +1,154 @@
+// ContractElement and Relationship — the addressable units of an API surface.
+//
+// Every adapter that parses contract sources emits values of these types.
+
+syntax = "proto3";
+
+package sheaf.contract.v1;
+
+option go_package = "github.com/sheaf-data/sheaf/proto/contract";
+
+import "common.proto";
+import "google/protobuf/struct.proto";
+
+// ContractElementKind enumerates the kinds of addressable items Sheaf
+// recognizes on a contract surface. Adapters map their native concepts
+// to one of these.
+enum ContractElementKind {
+  KIND_UNSPECIFIED = 0;
+  METHOD = 1;
+  FLAG = 2;
+  SUBCOMMAND = 3;
+  TYPE = 4;          // FIDL struct/table/union/enum/bits
+  SYSCALL = 5;
+  POSITIONAL = 6;
+  SWITCH = 7;
+  PROTOCOL = 8;      // FIDL protocol as a first-class element
+  CPP_CLASS = 9;     // C++ class used as IMPLEMENTS target
+  RUST_TYPE = 10;    // Rust struct/enum/trait used similarly
+  LIBRARY = 11;      // A whole library / namespace, as a synthetic element.
+                     // Used to attach library-level metadata (e.g. an
+                     // @available annotation that deprecates the entire
+                     // surface) to a single addressable record. ID is
+                     // the bare library name (no "/").
+  CONFIG_KNOB = 12;  // A persistent configuration setting declared by a
+                     // contract surface — e.g. a field in a Fuchsia
+                     // structured-config block in a .cml file, or an
+                     // argh CLI flag whose annotation includes
+                     // `default = "..."` (signalling it represents
+                     // persistent state rather than a per-invocation
+                     // input).
+  CONFIG_FACET = 13; // One of multiple declarations of the same logical
+                     // config knob (env var + CLI flag + config-file
+                     // key for the same setting). Reserved for the
+                     // cross-source matching (SAME_AFFORDANCE) pass;
+                     // not emitted by single-source adapters in v1.
+  CPP_MACRO = 14;          // C++ #define-style API entry (e.g. PW_LOG_DEBUG).
+  CPP_FREE_FUNCTION = 15;  // C++ free function not attached to a class.
+  CPP_METHOD = 16;         // C++ member function declared inside a class/struct.
+  CPP_ENUM = 17;           // C++ enum / enum class declared in a header.
+}
+
+enum RelationshipKind {
+  RELATIONSHIP_UNSPECIFIED = 0;
+  COMPOSED_FROM = 1;
+  COMPOSED_BY = 2;
+  INHERITED_FROM = 3;
+  ACCEPTS_TYPE = 4;
+  RETURNS_TYPE = 5;
+  REFERENCES_TYPE = 6;
+  IMPLEMENTS = 7;
+  IMPLEMENTED_BY = 8;
+  REPLACED_BY = 9;
+  REPLACES = 10;
+  ALIASES = 11;
+  SAME_AFFORDANCE = 12;  // Two ContractElement rows represent the same
+                         // underlying capability reached through different
+                         // declaration surfaces (e.g. a CONFIG_KNOB in a
+                         // .cml + a CONFIG_KNOB from an argh option with
+                         // default, both named the same and same type).
+                         // Emitted by the affordance matcher pass; carries
+                         // a confidence score on the Relationship message.
+  FACET_OF = 13;         // A directional refinement of SAME_AFFORDANCE: the
+                         // source element is one facet of the target's
+                         // canonical declaration. Reserved for v2 when the
+                         // matcher learns to pick a canonical side
+                         // (e.g. `.cml` over a generated env var binding).
+                         // v1 matcher emits SAME_AFFORDANCE only.
+  SAME_AS = 14;          // Bidirectional identity link between contract
+                         // elements that represent the same logical thing
+                         // in different ecosystems (e.g. a proto message
+                         // and its pwpb-generated C++ class). Materialized
+                         // by a future codegen_bridge consumer.
+}
+
+// A directed relationship from this ContractElement to another.
+// Only the outbound direction is stored; the indexer materializes
+// the inverse at load time.
+message Relationship {
+  RelationshipKind kind = 1;
+  string target_element_id = 2;
+  string note = 3;
+  sheaf.common.v1.SourceLocation declaration_site = 4;
+  // Match confidence in [0, 1]. Only meaningful for relationship
+  // kinds whose source is heuristic — currently SAME_AFFORDANCE and
+  // FACET_OF. Structural relationships (COMPOSED_FROM, IMPLEMENTS,
+  // ACCEPTS_TYPE, …) leave this at zero; they're either present or
+  // absent, never partial. Above-threshold relationships are
+  // returned in default agent-facing queries; below-threshold go to
+  // the anomaly stream for human review (F8.17 separation).
+  double confidence = 5;
+}
+
+// Parameter of a method/syscall/subcommand.
+message Parameter {
+  string name = 1;
+  string type_ref = 2;       // free-form type reference, ecosystem-specific
+  string description = 3;
+  bool required = 4;
+  string default_value = 5;
+}
+
+// TypeRef points at another ContractElement (typically a TYPE kind).
+message TypeRef {
+  string element_id = 1;
+  string display = 2;        // human-readable rendering of the type
+}
+
+// VersionConstraint expresses an availability constraint
+// (FIDL @available, Rust #[cfg(feature = ...)], etc.).
+message VersionConstraint {
+  string ecosystem = 1;
+  string added = 2;          // version where this element first appeared
+  string deprecated = 3;
+  string removed = 4;
+  string note = 5;
+}
+
+// ContractElement — the central addressable unit.
+message ContractElement {
+  string id = 1;                                // canonical ID, ecosystem-specific format
+  ContractElementKind kind = 2;
+  string ecosystem = 3;                         // "fidl" | "argh" | "cpp" | "rust" | ...
+  string library = 4;
+  sheaf.common.v1.SourceLocation location = 5;
+  repeated Parameter parameters = 6;
+  repeated TypeRef return_types = 7;
+  string doc_comment_excerpt = 8;               // raw /// or argh description text
+  repeated VersionConstraint version_constraints = 9;
+  repeated Relationship relationships = 10;
+  google.protobuf.Struct ecosystem_meta = 11;
+
+  // Alternate IDs that name the same element. Used for CLI aliases
+  // (e.g. `docker container ls` aliases ["docker container list",
+  // "docker container ps", "docker ps"]). The indexer consults
+  // these when matching tests/docs whose tokens line up with an
+  // alias's form rather than the canonical ID.
+  repeated string aliases = 12;
+
+  // provenance records which tier (deterministic adapter vs LLM)
+  // produced this element. Drives the two-tier report and the
+  // hardening doc. Unset implies deterministic for back-compat with
+  // adapters that predate provenance threading.
+  sheaf.common.v1.RowProvenance provenance = 13;
+}

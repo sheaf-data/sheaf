@@ -1,0 +1,3 @@
+pw_static_library("system_clock") {
+  public = [ "public/pw_chrono_zephyr/system_clock_inline.h" ]
+}

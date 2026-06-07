@@ -1,0 +1,19 @@
+# Default values for values-demo.
+# This is a YAML-formatted file.
+
+# -- The number of replicas of the controller to run.
+replicaCount: 1
+
+image:
+  # -- The container image repository to deploy.
+  repository: example/app
+  # -- Override the image tag to deploy. If unset, the chart appVersion is used.
+  tag: ""
+
+# -- Additional command line flags to pass to the binary.
+extraArgs: []
+
+service:
+  # -- The port the service listens on.
+  port: 8080
+  undocumented: ""

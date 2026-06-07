@@ -1,0 +1,46 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Hardware · Networking & Radio" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.hardware.bluetooth/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.ethernet.board/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.network/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.network.driver/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.nfc/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.telephony.transport/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.uwb/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.vsock/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/connectivity/network/drivers/network-device/**/*-test.cc"
+    include: "src/connectivity/network/drivers/network-device/**/*_test.cc"
+    include: "src/connectivity/ethernet/drivers/**/*-test.cc"
+    include: "src/connectivity/ethernet/drivers/**/*_test.cc"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/connectivity/network/drivers/network-device/**/*.cc"
+  include: "src/connectivity/network/drivers/network-device/**/*.h"
+  include: "src/connectivity/ethernet/drivers/**/*.cc"
+  include: "src/connectivity/ethernet/drivers/**/*.h"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

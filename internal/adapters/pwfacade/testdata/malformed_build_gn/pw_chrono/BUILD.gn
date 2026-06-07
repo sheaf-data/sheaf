@@ -1,0 +1,9 @@
+# Malformed — unterminated target block. The recognizer should log a
+# warning and skip this file without aborting the walk.
+
+pw_facade("system_clock") {
+  backend = pw_chrono_SYSTEM_CLOCK_BACKEND
+  public = [
+    "public/pw_chrono/system_clock.h",
+  ]
+  # missing closing brace

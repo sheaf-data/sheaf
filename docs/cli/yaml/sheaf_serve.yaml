@@ -1,0 +1,27 @@
+command: sheaf serve
+short: Start the MCP server.
+long: |
+  Run the ingest → index pipeline once and then keep the corpus live
+  behind an MCP server. Coding agents and the scanner binary consume
+  the server's contract-element lookup, coverage-profile lookup,
+  worked-example retrieval, library_snapshot, and review_pr ops.
+usage: sheaf serve [--config path] [--repo path] [--bind host] [--port n]
+pname: sheaf
+plink: sheaf.yaml
+options:
+  - option: config
+    value_type: string
+    default_value: ""
+    description: Path to sheaf.textproto.
+  - option: repo
+    value_type: string
+    default_value: "."
+    description: Project repo root.
+  - option: bind
+    value_type: string
+    default_value: ""
+    description: Override mcp_server.bind.
+  - option: port
+    value_type: int
+    default_value: "0"
+    description: Override mcp_server.port.

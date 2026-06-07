@@ -1,0 +1,82 @@
+command: sheaf verify
+short: Adversarially check a snapshot's top-line numbers (vs the join + disk) before a report is shown.
+long: |
+  Re-checks a sheaf scan's headline numbers against the snapshot it was
+  rendered from and (optionally) the repository on disk, BEFORE the report is
+  shown to anyone. It reconciles every shown figure to its numerator and
+  denominator, decomposes blended percentages per tier (so the denominator
+  effect can't hide), and flags every surface at or below the low-coverage
+  threshold — including, at highest priority, any surface reading exactly 0%.
+  It prints a human "trust ledger" and can emit a machine-readable report.
+
+  With --disk (and a --repo) it also runs the on-disk oracle: a high-precision
+  false-negative search over the tracked tree, and — with --check-urls —
+  doc-URL resolution that flags dead published links. With --json it emits a
+  deterministic, bounded `assertions` array of attributed claims for an agent
+  to adjudicate; the verdicted file feeds `sheaf verify summarize` for
+  per-library precision.
+
+  The honesty rail is non-negotiable: a number is called wrong only when it is
+  provably wrong (a reconcile mismatch, or a disk-confirmed false claim).
+  Anything verify cannot check is surfaced as an explicit caveat, never a
+  finding.
+usage: sheaf verify --from-snapshot path [--repo path] [--ecosystem id] [--disk] [--check-urls] [--json path] [--ledger path] [--strict]
+pname: sheaf
+plink: sheaf.yaml
+options:
+  - option: from-snapshot
+    value_type: string
+    default_value: ""
+    description: Snapshot JSON to verify (produced by `sheaf snapshot`). Provide this or --config.
+  - option: config
+    value_type: string
+    default_value: ""
+    description: One-shot — build the snapshot in-process from this sheaf.textproto (with --repo and --library) and verify it, instead of --from-snapshot. Auto-locates categorization-rules.textproto next to the config.
+  - option: library
+    value_type: string
+    default_value: ""
+    description: Library to scan for the --config one-shot path.
+  - option: repo
+    value_type: string
+    default_value: ""
+    description: Repo root, for disk-oracle checks and source resolution.
+  - option: ecosystem
+    value_type: string
+    default_value: ""
+    description: Ecosystem view id (cli|fidl|proto|cpp|...). Empty uses the scanner default.
+  - option: low-coverage-threshold
+    value_type: float
+    default_value: "0.15"
+    description: Flag any per-tier or pooled coverage at or below this fraction for validation.
+  - option: disk
+    value_type: bool
+    default_value: "false"
+    description: Run the on-disk oracle (false-negative search, doc-URL resolution, ground-truth count). Requires --repo.
+  - option: check-urls
+    value_type: bool
+    default_value: "false"
+    description: With --disk, resolve a bounded sample of published doc URLs (HTTP HEAD/GET) and flag dead links. Network side effect; default off.
+  - option: max-disk-elements
+    value_type: int
+    default_value: "0"
+    description: Cap how many elements the disk oracle samples (0 = built-in default).
+  - option: sample-assertions
+    value_type: int
+    default_value: "0"
+    description: Cap elements sampled into the verify.json assertions array for the attribution-precision workflow (0 = built-in default of 50).
+  - option: expected-elements
+    value_type: int
+    default_value: "-1"
+    description: Authoritative element count (from protoc / fidlc --json / the --help tree) to cross-check the denominator against; -1 = unset. Used with --disk.
+  - option: json
+    value_type: string
+    default_value: ""
+    description: Write the machine-readable verify report (including the assertions array) here.
+  - option: ledger
+    value_type: string
+    default_value: ""
+    description: Write the human trust ledger here (default stdout).
+  - option: strict
+    value_type: bool
+    default_value: "false"
+    description: Exit non-zero (3) when the verdict is BROKEN. For CI gating.

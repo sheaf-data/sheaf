@@ -1,0 +1,94 @@
+# Config used to produce example-reports/fuchsia-driver-framework-family.html
+#
+# Scope: 10 fuchsia.driver.* FIDL libraries (DFv2 framework + adjacent
+# pieces — host runtime, indexer, loader, compat shim, registrar, test
+# harness, token service, logger) joined against the same driver_manager
+# / driver_host / driver_index C++ test corpus and impl-classes used by
+# the single-library FDF report.
+#
+# Same shape as fuchsia-driver-framework-coverage-config.textproto, but
+# the contract_anchor enumerates each library's sdk/fidl/ subtree
+# explicitly so the index stays tight. The scanner narrows display via
+# the comma-separated --library flag passed by
+# scripts/regen-example-reports.sh.
+
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Driver Framework family" }
+
+# scope is left empty; the scanner --library flag narrows display to
+# the 10 driver libraries enumerated below.
+scope {}
+
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.driver.framework/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.development/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.host/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.compat/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.index/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.loader/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.registrar/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.token/**/*.fidl"
+    include: "sdk/fidl/fuchsia.driver.test.logger/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+
+test_parser {
+  name: "gtest"
+  gtest {
+    # Live C++ gtest trees touching the fuchsia.driver.* surface — mirror
+    # of the tests.unit_tests category paths in
+    # fuchsia-driver-framework-coverage-rules.textproto. driver-host /
+    # driver-index are Rust-only at HEAD; their C++ predecessors
+    # (driver_host2, driver_loader, driver_framework, driver_tools) have
+    # no _test.cc files, so they're omitted.
+    include: "src/devices/bin/driver_manager/**/*_test.cc"
+    include: "src/devices/bin/driver_manager/**/*_unittest.cc"
+    include: "src/devices/bin/driver_runtime/**/*_test.cc"
+    include: "src/devices/bin/driver_runtime/**/*_unittest.cc"
+    include: "src/devices/testing/driver-runtime-main/**/*_test.cc"
+    include: "src/devices/testing/driver-runtime-main/**/*_unittest.cc"
+    include: "src/devices/tests/v2/**/*_test.cc"
+    include: "src/devices/tests/v2/**/*_unittest.cc"
+    include: "src/lib/driver_symbols/**/*_test.cc"
+    include: "src/lib/driver_symbols/**/*_unittest.cc"
+  }
+}
+
+implements_map {
+  name: "cpp-fidl-wireserver"
+  # Same C++ trees as the gtest test_parser, plus the matching impl
+  # sources, so IMPLEMENTS edges land on FIDL elements regardless of
+  # whether the wireserver is in driver_manager or driver_runtime.
+  include: "src/devices/bin/driver_manager/**/*.h"
+  include: "src/devices/bin/driver_manager/**/*.cc"
+  include: "src/devices/bin/driver_runtime/**/*.h"
+  include: "src/devices/bin/driver_runtime/**/*.cc"
+  include: "src/devices/bin/driver_host2/**/*.h"
+  include: "src/devices/bin/driver_host2/**/*.cc"
+  include: "src/devices/bin/driver_loader/**/*.h"
+  include: "src/devices/bin/driver_loader/**/*.cc"
+  include: "src/devices/testing/driver-runtime-main/**/*.h"
+  include: "src/devices/testing/driver-runtime-main/**/*.cc"
+  include: "src/lib/driver_symbols/**/*.h"
+  include: "src/lib/driver_symbols/**/*.cc"
+}
+
+analyzer { name: "missing-in-category" severity: WARNING
+  config { key: "alert_for_categories" string_value: "tests.unit_tests" }
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+
+# Same surface set as the single-library FDF report — see that file's
+# trailing comment block for the reasoning. tests is intentionally absent from
+# surfaces_required: the FIDL element is an interface; the impl class
+# carries the unit-test evidence and links back via the implementations
+# surface.
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "implementations"

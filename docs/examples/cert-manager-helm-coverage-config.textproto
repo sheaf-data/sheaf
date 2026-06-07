@@ -1,0 +1,84 @@
+# Sheaf config for scanning the cert-manager Helm chart's VALUES surface.
+#
+# This exercises the helmvalues contract-anchor adapter on its PREFERRED
+# input: values.schema.json. cert-manager ships a formal JSON-Schema
+# values contract (Helm 3) generated from its values.yaml, so the chart's
+# value keys AND their documentation arrive in the same file. The adapter
+# walks the schema's `properties` recursively — resolving JSON-Schema
+# `$ref` into `#/$defs/...` — and emits:
+#   - one LIBRARY per chart      (cert-manager)
+#   - one CONFIG_KNOB per value  (replicaCount, image.tag, webhook.*, ...)
+#
+# Each value's schema `description` becomes its doc_comment_excerpt; a key
+# with no description is a real undocumented finding (left blank, not
+# synthesized). Findings are mechanically derived — no LLM, no cluster
+# access, and NO raw Helm template parsing (the adapter reads only
+# values.schema.json / values.yaml, never templates/*.yaml). Ecosystem =
+# "helm" (never "kubernetes").
+#
+# HONESTY CAVEAT (see KNOWN_LIMITATIONS.md): a chart's values surface
+# — even its published values.schema.json — is NOT guaranteed to be the
+# full reference set. The true surface is whatever the chart's templates
+# actually reference, and a template may read a value the schema omits.
+# This report inventories the values surface as published; it is not a
+# proof of completeness. (For the values.yaml fallback path the gap is
+# wider: defaults are an even looser approximation of the real surface.)
+#
+# Prereq — fetch the cert-manager chart into a scratch checkout (helm
+# required; T7 recommended). The adapter's input is values.schema.json
+# inside the chart, NOT the chart templates:
+#   helm repo add jetstack https://charts.jetstack.io
+#   helm repo update
+#   mkdir -p /Volumes/T7/sheaf-workspace/checkouts/helm-fixtures-scan
+#   helm pull jetstack/cert-manager --untar \
+#     --untardir /Volumes/T7/sheaf-workspace/checkouts/helm-fixtures-scan
+#   # confirm the schema is present:
+#   ls /Volumes/T7/sheaf-workspace/checkouts/helm-fixtures-scan/cert-manager/values.schema.json
+#
+# To run a scan + render the report:
+#   go build -o sheaf ./cmd/sheaf
+#   go build -o scanner ./cmd/scanner
+#   cp docs/examples/cert-manager-helm-coverage-rules.textproto \
+#      /Volumes/T7/sheaf-workspace/checkouts/helm-fixtures-scan/categorization-rules.textproto
+#   sheaf serve --config docs/examples/cert-manager-helm-coverage-config.textproto \
+#               --repo /Volumes/T7/sheaf-workspace/checkouts/helm-fixtures-scan --port 7813 &
+#   scanner --server http://127.0.0.1:7813 --library cert-manager \
+#           --ecosystem helm \
+#           --repo-root /Volumes/T7/sheaf-workspace/checkouts/helm-fixtures-scan \
+#           --source-url-template \
+#             "https://github.com/cert-manager/cert-manager/blob/v1.20.2/deploy/charts/cert-manager/{path}#L{line}" \
+#           -o example-reports/cert-manager-helm.html
+#   kill %1
+#
+# --repo-root (same path as --repo) lets the scanner read source so the
+# evidence panel renders. The report is scoped to Contract + Docs
+# surfaces only: tests/examples/workflows are intentionally not shown —
+# no such corpus is ingested for Helm values; the inline value
+# `description` is the doc surface.
+
+version: 1
+
+project {
+  name: "cert-manager-helm"
+  display_name: "cert-manager (Helm values)"
+  homepage: "https://cert-manager.io/docs/installation/helm/"
+}
+
+scope {
+  library: "cert-manager"
+}
+
+contract_anchor {
+  name: "helmvalues"
+  helm_values {
+    # The chart lives under cert-manager/. Default includes match
+    # values.schema.json + values.yaml; the schema path wins when both
+    # are present (cert-manager ships both, so the schema is used).
+    include: "cert-manager/values.schema.json"
+    include: "cert-manager/values.yaml"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }

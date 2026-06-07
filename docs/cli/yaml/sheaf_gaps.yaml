@@ -1,0 +1,33 @@
+command: sheaf gaps
+short: List findings filterable by kind, library, and severity.
+long: |
+  Runs the same pipeline as `sheaf scan` and prints the resulting
+  Finding list, filtered client-side. Output as text, json, or csv.
+usage: sheaf gaps [--config path] [--repo path] [--kind k] [--library prefix] [--severity sev] [--format fmt]
+pname: sheaf
+plink: sheaf.yaml
+options:
+  - option: config
+    value_type: string
+    default_value: ""
+    description: Path to sheaf.textproto.
+  - option: repo
+    value_type: string
+    default_value: "."
+    description: Project repo root.
+  - option: kind
+    value_type: string
+    default_value: ""
+    description: Filter by finding kind (MISSING_IN_CATEGORY, THIN_REFERENCE, …).
+  - option: library
+    value_type: string
+    default_value: ""
+    description: Filter by library / element-ID prefix.
+  - option: severity
+    value_type: string
+    default_value: "INFO"
+    description: Minimum severity (INFO|WARNING|ERROR).
+  - option: format
+    value_type: string
+    default_value: "text"
+    description: Output format — text, json, or csv.

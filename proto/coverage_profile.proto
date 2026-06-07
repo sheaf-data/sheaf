@@ -1,0 +1,159 @@
+// CoverageProfile — the per-element coverage matrix.
+//
+// The primary v1 artifact. Every consumer (MCP, PR-bot, CLI, reporter)
+// reads CoverageProfile.
+
+syntax = "proto3";
+
+package sheaf.coverage.v1;
+
+option go_package = "github.com/sheaf-data/sheaf/proto/coverage";
+
+import "common.proto";
+
+// Doc coverage: references to this element from documentation artifacts.
+message DocCoverage {
+  message Reference {
+    // Typed buckets for the FIDL-shaped Fuchsia adapters. New
+    // rendered-reference adapters should NOT add typed fields here
+    // — route their refs into the `by_adapter` map below instead.
+    // That way the indexer, analyzers, PR-bot, and CLI surfaces all
+    // pick up the new refs without having to be edited every time a
+    // new adapter ships.
+    repeated sheaf.common.v1.DocRef fidldoc = 1;
+    repeated sheaf.common.v1.DocRef clidoc = 2;
+    repeated sheaf.common.v1.DocRef dockerdoc = 4;
+
+    // by_adapter holds doc refs keyed by the producing adapter's
+    // Name() (e.g. "markdowncli", "kubectldoc"). All consumers should
+    // enumerate this map alongside the typed fields above; use the
+    // helpers in internal/coverage/refs to do so consistently.
+    map<string, DocRefList> by_adapter = 3;
+  }
+
+  message DocRefList {
+    repeated sheaf.common.v1.DocRef refs = 1;
+  }
+  Reference reference = 1;
+  repeated sheaf.common.v1.DocRef concept = 2;
+  repeated sheaf.common.v1.DocRef tutorial = 3;
+  message Guide {
+    repeated sheaf.common.v1.DocRef migration = 1;
+    repeated sheaf.common.v1.DocRef troubleshooting = 2;
+    repeated sheaf.common.v1.DocRef cookbook = 3;
+  }
+  Guide guide = 4;
+  message Proposal {
+    repeated sheaf.common.v1.DocRef rfc = 1;
+    repeated sheaf.common.v1.DocRef design = 2;
+  }
+  Proposal proposal = 5;
+  repeated sheaf.common.v1.DocRef release_notes = 6;
+  repeated sheaf.common.v1.DocRef faq = 7;
+
+  // llm_inferred holds LLM-tier doc edges (citation-gated, provenance
+  // tier=LLM) proposed by the attribution pass. Kept in a SEPARATE
+  // bucket so deterministic consumers (analyzers, the trusted coverage
+  // %, gaps) never count it — the moat. Only the two-tier report reads
+  // it, rendered as a flagged, lower-trust tier.
+  repeated sheaf.common.v1.DocRef llm_inferred = 8;
+}
+
+message ExampleCoverage {
+  repeated sheaf.common.v1.CodeRef in_tree = 1;
+  repeated sheaf.common.v1.CodeRef in_docs = 2;
+  repeated sheaf.common.v1.CodeRef external = 3;
+
+  // llm_inferred holds LLM-tier example edges (citation-gated, the focal
+  // element confirmed at its cited line) proposed by the usage classifier
+  // in internal/workflowextract. Kept in a SEPARATE bucket so
+  // deterministic consumers (analyzers, the trusted example count, gaps)
+  // never count it — the moat. The trusted example count remains
+  // in_tree + in_docs + external. Mirrors DocCoverage/TestCoverage
+  // llm_inferred. Only the two-tier report reads it, as a flagged tier.
+  repeated sheaf.common.v1.CodeRef llm_inferred = 4;
+}
+
+message TestCoverage {
+  repeated sheaf.common.v1.TestRef unit = 1;
+  repeated sheaf.common.v1.TestRef integration = 2;
+  repeated sheaf.common.v1.TestRef e2e = 3;
+  repeated sheaf.common.v1.TestRef ctf = 4;
+  repeated sheaf.common.v1.TestRef performance = 5;
+  repeated sheaf.common.v1.TestRef fuzz = 6;
+  repeated sheaf.common.v1.TestRef golden = 7;
+
+  // llm_inferred holds LLM-tier test edges (citation-gated, provenance
+  // tier=LLM) proposed by the attribution pass. Kept in a SEPARATE
+  // bucket so deterministic consumers (analyzers, the trusted coverage
+  // %, gaps) never count it — the moat. Only the two-tier report reads
+  // it, rendered as a flagged, lower-trust tier.
+  repeated sheaf.common.v1.TestRef llm_inferred = 8;
+}
+
+// ImplementationCoverage lists the impl elements (CPP_CLASS,
+// RUST_TYPE, …) that implement an interface element via an IMPLEMENTS
+// relationship. Populated for interface kinds (METHOD / TYPE /
+// PROTOCOL / SYSCALL) by indexer.Build from the corpus's IMPLEMENTS
+// edges. Renders as a surface on interface-element coverage pages
+// (one row per impl, cross-linking to the impl element's own page).
+//
+// The implementations surface answers "what implements this
+// interface?", not "is the implementation tested?". The latter
+// question is answered by clicking through to the impl element's
+// own coverage page, which has its own tests / docs.reference
+// claims.
+message ImplementationCoverage {
+  repeated ImplementationRef impls = 1;
+}
+
+message ImplementationRef {
+  // The impl element's canonical ID (e.g. "driver_manager::Driver").
+  string impl_element_id = 1;
+  // The impl element's kind, rendered as the enum value's String()
+  // form (e.g. "CPP_CLASS", "RUST_TYPE"). Stored as a string to
+  // avoid a cross-package proto import between coverage and contract;
+  // the renderer only needs this for display.
+  string impl_kind = 2;
+  // Source location of the impl class declaration.
+  string path = 3;
+  uint32 line = 4;
+  // Relative path of the impl's own coverage page within the same
+  // report. Populated by the report renderer, not the indexer.
+  // Empty when the impl element is out of scope for the current scan
+  // (e.g. the impl tree wasn't indexed).
+  string coverage_page = 5;
+}
+
+message UsageCoverage {
+  sheaf.common.v1.UsageAggregate internal = 1;
+  sheaf.common.v1.UsageAggregate sdk_consumer = 2;
+  repeated sheaf.common.v1.CodeRef bindings = 3;
+}
+
+message GapNote {
+  string category = 1;        // dotted path, e.g. "tests.ctf"
+  string reason = 2;          // human-readable explanation
+}
+
+message GapsSummary {
+  repeated string missing = 1;        // dotted paths with zero entries
+  repeated GapNote thin = 2;          // entries present but thin (e.g., SIGNATURE_ONLY ref)
+  repeated string notable = 3;        // human-readable warnings (orphan element, etc.)
+}
+
+message CoverageProfile {
+  string element_id = 1;
+  sheaf.common.v1.Provenance provenance = 2;
+
+  DocCoverage docs = 3;
+  ExampleCoverage examples = 4;
+  TestCoverage tests = 5;
+  UsageCoverage usage = 6;
+
+  GapsSummary gaps_summary = 7;
+
+  // implementations: populated for interface kinds (METHOD / TYPE /
+  // PROTOCOL / SYSCALL) from the corpus's IMPLEMENTS relationships.
+  ImplementationCoverage implementations = 8;
+}

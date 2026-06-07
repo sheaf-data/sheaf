@@ -1,0 +1,58 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Bluetooth" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.bluetooth/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.a2dp/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.affordances/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.avdtp.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.avrcp/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.avrcp.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.bredr/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.bredr.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.deviceid/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.fastpair/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.gatt/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.gatt2/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.hfp/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.hfp.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.host/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.internal.a2dp/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.le/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.map/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.pandora/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.power/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.rfcomm.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.snoop/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.sys/**/*.fidl"
+    include: "sdk/fidl/fuchsia.bluetooth.test/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/connectivity/bluetooth/core/bt-gap/src/**/*.rs"
+    include: "src/connectivity/bluetooth/profiles/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/connectivity/bluetooth/core/bt-gap/src/**/*.rs"
+  include: "src/connectivity/bluetooth/profiles/**/*.rs"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

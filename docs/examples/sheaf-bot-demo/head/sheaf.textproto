@@ -1,0 +1,10 @@
+version: 1
+project { name: "widgets" display_name: "Widget Service" }
+scope { library: "widgets" closure { mode: STRICT } }
+contract_anchor { name: "fidl" fidl { include: "sdk/fidl/**/*.fidl" } }
+test_parser { name: "gtest" gtest { include: "src/**/*_test.cc" } }
+analyzer { name: "missing-in-category" severity: WARNING
+  config { key: "alert_for_categories" string_value: "tests.unit_tests" } }
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }

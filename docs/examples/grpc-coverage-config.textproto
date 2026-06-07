@@ -1,0 +1,126 @@
+# Sheaf config for scanning gRPC's OSS repo (github.com/grpc/grpc).
+#
+# Joins the protobuf-derived contract surface (services, methods,
+# messages, enums under src/proto/grpc/) against the markdown docs
+# under doc/. Output is one coverage row per contract element.
+#
+# Prereqs:
+#   - protoc on PATH (brew install protobuf)
+#   - the grpc repo cloned somewhere; point `sheaf scan --repo` at it
+#
+# To run:
+#   sheaf scan --config docs/examples/grpc-coverage-config.textproto \
+#              --repo /path/to/grpc
+#
+# To browse interactively:
+#   sheaf serve --config docs/examples/grpc-coverage-config.textproto \
+#               --repo /path/to/grpc --port 7700 &
+#   go run ./cmd/scanner --server http://127.0.0.1:7700 \
+#                          --ecosystem proto --library grpc.health.v1 \
+#                          -o /tmp/grpc-health-report.html
+
+version: 1
+project {
+  name: "grpc"
+  display_name: "gRPC (grpc/grpc)"
+  homepage: "https://grpc.io/"
+  # Project-level identifier prefix the body-parsing matchers use to
+  # decide which dotted tokens in tests / docs look like contract IDs
+  # vs. ordinary identifiers. "grpc" catches grpc.health.v1.Health.*,
+  # grpc.reflection.v1.ServerReflection.*, etc.
+  idl_prefix: "grpc"
+  # Common gRPC nouns that would otherwise be noisy single-word
+  # attribution candidates. Extends the built-in English-word list.
+  # Most of these are channelz message-type names that overlap with
+  # ordinary test vocabulary ("address", "security", "promise"…) —
+  # before adding them, channelz.v1/Security pulled 464 unrelated
+  # tests via the name-token matcher.
+  noisy_words: "service"
+  noisy_words: "request"
+  noisy_words: "response"
+  noisy_words: "stream"
+  noisy_words: "channel"
+  noisy_words: "status"
+  noisy_words: "address"
+  noisy_words: "security"
+  noisy_words: "promise"
+  noisy_words: "data"
+  noisy_words: "entity"
+  noisy_words: "subchannel"
+  noisy_words: "transport"
+  noisy_words: "server"
+  noisy_words: "trace"
+  noisy_words: "load"
+}
+
+# No scope.library filter — emit elements for every package the
+# matched .proto files declare. Users can narrow per-scan via
+# `sheaf gaps --library grpc.health.v1`.
+scope {}
+
+contract_anchor {
+  name: "proto"
+  proto {
+    # Only the publicly-shipped service surface under src/proto/grpc.
+    # Skips internal/test-only protos under src/proto/grpc/testing
+    # and the gcp/ shim package.
+    include: "src/proto/grpc/**/*.proto"
+    exclude: "src/proto/grpc/testing/**"
+    exclude: "src/proto/grpc/gcp/**"
+    # grpc's protos use src/proto-relative imports
+    # (`import "src/proto/grpc/channelz/v2/property_list.proto"`) as
+    # well as their own package-rooted form, so we list both as -I.
+    # protoc auto-includes its bundled google/protobuf well-knowns.
+    proto_path: "."
+    proto_path: "src/proto"
+  }
+}
+
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "doc/**/*.md"
+    # The doc/ tree mixes a few language-style guides we don't want
+    # noising up the contract-coverage join.
+    exclude: "doc/c-style-guide.md"
+    exclude: "doc/cpp-style-guide.md"
+    exclude: "doc/g_stands_for.md"
+  }
+}
+
+# grpc's C++ tests live under test/cpp and test/core and use the
+# googletest TEST / TEST_F / TEST_P macros. The gtest adapter extracts
+# qualified `grpc::<lib>::<Service>::<Method>(...)` invocations from
+# test bodies (via fidlmatch's IDLPrefix-aware regex set), so the
+# "grpc" idl_prefix above is what makes the attribution work for this
+# project.
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "test/cpp/**/*_test.cc"
+    include: "test/cpp/**/*_tests.cc"
+    include: "test/core/**/*_test.cc"
+    include: "test/core/**/*_tests.cc"
+    # Generated / fuzz-corpus subtrees aren't real tests.
+    exclude: "test/core/**/fuzzer_corpus/**"
+    exclude: "test/core/**/*fuzz*/**"
+    exclude: "third_party/**"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }
+
+# proto element coverage is computed against
+# {docs.reference, docs.concepts, implementations} — NOT tests. The
+# implements-map / name-token attribution paths produced 50% FP on
+# this report (cross-method bleed within
+# channelz_service_test.cc — GetChannel tests credited to
+# GetTopChannels, GetServers, GetSubchannel via shared name tokens).
+# Real test coverage of the gRPC interface lives at the C++ impl
+# classes; this report renders IMPLEMENTS edges via the
+# `implementations` surface.
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "implementations"

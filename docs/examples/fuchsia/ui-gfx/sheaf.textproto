@@ -1,0 +1,64 @@
+# Config used to produce example-reports/fuchsia-ui-gfx.html
+#
+# fuchsia.ui.gfx is the predecessor of fuchsia.ui.composition. It
+# carries 270 @available(deprecated=…) markers and 135 removed=
+# markers across its 11 FIDL files — making it the canonical example
+# of a library mid-migration. The Fix-priority view rolls those
+# buckets into a single caption above the worklist ("N elements are
+# removed at this API level and N are deprecated upstream — shown
+# in the States view, not as work") so the actionable rows stay
+# focused on work the reader can still do.
+#
+# Test corpus is the scenic integration + unit tests; many existing
+# tests still reference gfx surfaces, which makes the
+# documented-untested / tested-undocumented splits visible.
+
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — fuchsia.ui.gfx (deprecated)" }
+
+scope {
+  library: "fuchsia.ui.gfx"
+}
+
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/ui/scenic/tests/**/*_test.cc"
+    include: "src/ui/scenic/tests/**/*_unittest.cc"
+    include: "src/ui/scenic/lib/**/*_unittest.cc"
+    include: "src/ui/scenic/lib/**/*_test.cc"
+  }
+}
+
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/ui/scenic/lib/**/*.h"
+  include: "src/ui/scenic/lib/**/*.cc"
+}
+
+analyzer { name: "missing-in-category" severity: WARNING
+  config { key: "alert_for_categories" string_value: "tests.unit_tests" }
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+
+# FIDL element coverage is computed against
+# {docs.reference, docs.concepts, examples, implementations} — NOT
+# tests. The implements-map heuristic produced 100% FP on this report
+# (cross-FIDL-library namesakes: Metrics, Value, ImportToken collide
+# with same-named types in fuchsia.ui.display.singleton, Cobalt
+# mock-metrics, and fuchsia.ui.composition). Tests of impl classes
+# attribute to the impl element directly; the FIDL element renders
+# its IMPLEMENTS edges via the `implementations` surface.
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "implementations"

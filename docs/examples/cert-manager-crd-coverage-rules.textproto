@@ -1,0 +1,16 @@
+# Source map for the cert-manager CRD scan.
+#
+# Buckets elements by the CRD bundle file they come from. cert-manager
+# ships one file per resource family under the release bundle, so the
+# path patterns line up with the on-disk CRD YAML. The default
+# "api.core" bucket catches the cert-manager.io group; acme.* lands in
+# its own bucket.
+
+version: 1
+
+category { dotted_path: "api.core" }
+
+category {
+  dotted_path: "api.acme"
+  paths: "**/*acme*"
+}

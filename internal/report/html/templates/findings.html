@@ -1,0 +1,36 @@
+{{define "content"}}
+<h2>Findings</h2>
+<div class="summary">
+  {{range .FindingsByKind}}
+    <div class="card">
+      <div class="label">{{.Kind}}</div>
+      <div class="value">{{.Count}}</div>
+    </div>
+  {{end}}
+</div>
+
+<input type="search" class="tablesearch" data-target="#findings" placeholder="Filter by subject, kind, message…">
+
+<table id="findings" class="sortable">
+  <thead>
+    <tr>
+      <th data-sort="num">Severity</th>
+      <th data-sort="str">Kind</th>
+      <th data-sort="str">Subject</th>
+      <th>Message</th>
+      <th data-sort="str">Analyzer</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Findings}}
+    <tr>
+      <td data-val="{{.SeverityRank}}">{{severityPill .Severity}}</td>
+      <td>{{.Kind}}</td>
+      <td><a href="elements/{{.Slug}}.html"><code>{{.Subject}}</code></a></td>
+      <td>{{.Message}}</td>
+      <td><span class="pill pill-gray">{{.Analyzer}}</span></td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{end}}

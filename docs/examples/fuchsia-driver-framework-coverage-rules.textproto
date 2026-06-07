@@ -1,0 +1,34 @@
+# Source map used to produce example-reports/fuchsia-driver-framework.html
+# and example-reports/fuchsia-driver-framework-family.html. The two reports
+# share this rules file because the relevant C++ test corpus is the same set
+# of trees — narrowing happens at scope/--library, not here.
+#
+# Test trees enumerated below are the live C++ gtest leaves under
+# src/devices touching the fuchsia.driver.* FIDL surface as of Fuchsia HEAD:
+#   - driver_manager: DFv2 framework / binder / node ops          (~14 _test.cc)
+#   - driver_runtime: dispatcher + arena + channel runtime         (~12 _test.cc)
+#   - testing/driver-runtime-main: gtest harness for runtime
+#   - tests/v2: DFv2 integration tests
+#   - lib/driver_symbols: symbol-allowlist enforcement
+# driver-host / driver-index are intentionally absent — those are Rust
+# (driver-host/, driver-index/) and the gtest adapter doesn't scan them;
+# driver_host2 / driver_loader / driver_framework / driver_tools have no
+# _test.cc today.
+
+version: 1
+
+category { dotted_path: "docs.reference" }
+
+category {
+  dotted_path: "tests.unit_tests"
+  paths: "src/devices/bin/driver_manager/**/*_test.cc"
+  paths: "src/devices/bin/driver_manager/**/*_unittest.cc"
+  paths: "src/devices/bin/driver_runtime/**/*_test.cc"
+  paths: "src/devices/bin/driver_runtime/**/*_unittest.cc"
+  paths: "src/devices/testing/driver-runtime-main/**/*_test.cc"
+  paths: "src/devices/testing/driver-runtime-main/**/*_unittest.cc"
+  paths: "src/devices/tests/v2/**/*_test.cc"
+  paths: "src/devices/tests/v2/**/*_unittest.cc"
+  paths: "src/lib/driver_symbols/**/*_test.cc"
+  paths: "src/lib/driver_symbols/**/*_unittest.cc"
+}

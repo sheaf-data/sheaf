@@ -1,0 +1,39 @@
+// Finding — a single gap report emitted by an analyzer.
+
+syntax = "proto3";
+
+package sheaf.finding.v1;
+
+option go_package = "github.com/sheaf-data/sheaf/proto/finding";
+
+import "common.proto";
+import "google/protobuf/timestamp.proto";
+
+enum FindingKind {
+  FINDING_KIND_UNSPECIFIED = 0;
+  DOCUMENTED_UNTESTED = 1;
+  TESTED_UNDOCUMENTED = 2;
+  MISSING_IN_CATEGORY = 3;
+  THIN_REFERENCE = 4;
+  EXTERNAL_MENTION_ONLY = 5;
+  COVERAGE_DELTA = 6;
+  STALE_DOC = 7;
+}
+
+message EvidencePointer {
+  string description = 1;
+  sheaf.common.v1.SourceLocation location = 2;
+  string url = 3;
+}
+
+message Finding {
+  string id = 1;
+  FindingKind kind = 2;
+  string subject = 3;                         // ContractElement ID or doc path
+  sheaf.common.v1.Severity severity = 4;
+  repeated EvidencePointer evidence = 5;
+  sheaf.common.v1.Provenance provenance = 6;
+  google.protobuf.Timestamp created_at = 7;
+  string analyzer = 8;                        // name of the producing analyzer
+  string message = 9;                         // short human-readable summary
+}

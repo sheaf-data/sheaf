@@ -1,0 +1,33 @@
+command: sheaf snapshot
+short: Emit a library's Snapshot JSON (in-process; pipe to scanner --from-snapshot).
+long: |
+  Scans the project in-process — no server — and emits the library Snapshot
+  JSON: the exact data the report builder consumes and the MCP server's
+  library_snapshot op serves. Pipe it into `scanner --from-snapshot` to render
+  a report offline, diff it across commits to see contract movement, or feed
+  it to another tool. The snapshot carries a schema_version; a snapshot whose
+  version does not match the reader's build is rejected.
+usage: sheaf snapshot --library name [--config path] [--repo path] [--library-label label] [--out path]
+pname: sheaf
+plink: sheaf.yaml
+options:
+  - option: config
+    value_type: string
+    default_value: ""
+    description: Path to sheaf.textproto (default <repo>/sheaf.textproto).
+  - option: repo
+    value_type: string
+    default_value: "."
+    description: Project repo root.
+  - option: library
+    value_type: string
+    default_value: ""
+    description: Library to snapshot. Accepts a comma-separated list to roll several libraries into one snapshot.
+  - option: library-label
+    value_type: string
+    default_value: ""
+    description: Label for a multi-library snapshot (default comma-joined names). Ignored for a single library.
+  - option: out
+    value_type: string
+    default_value: ""
+    description: Write the snapshot JSON here (default stdout).

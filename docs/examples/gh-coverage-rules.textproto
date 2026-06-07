@@ -1,0 +1,121 @@
+# Source map for the GitHub CLI (gh) scan.
+#
+# Buckets gh subcommands using the same command groups `gh --help`
+# itself prints (CORE COMMANDS, GITHUB ACTIONS COMMANDS, ALIAS
+# COMMANDS, ADDITIONAL COMMANDS). The large ADDITIONAL group is split
+# along functional lines (API/extensibility, keys & attestations,
+# discovery, secrets/variables, preview) so no single oversized row
+# hides the coverage shape.
+#
+# Path patterns match against:
+#   - YAML filenames in cobra.yaml_dir (gh_issue_create.yaml,
+#     gh_pr_list.yaml) emitted by cmd/kubectl-yamlgen --binary gh
+#   - Markdown filenames in markdowncli.docs_dir (gh_issue_create.md)
+#     emitted by gh's own cmd/gen-docs --website
+# so each pattern is written once and matches both ingest paths (gh's
+# YAML and markdown share the gh_<sub>_<sub> leaf-filename convention).
+#
+# Update this list whenever gh grows a new top-level command; the
+# default "docs.reference" bucket catches anything unmatched.
+
+version: 1
+
+category { dotted_path: "docs.reference" }
+
+# ---- Core commands ------------------------------------------------
+# gh's "CORE COMMANDS" group: the day-to-day GitHub object surface.
+category {
+  dotted_path: "subcommands.core"
+  paths: "**/gh_auth*"
+  paths: "**/gh_browse*"
+  paths: "**/gh_codespace*"
+  paths: "**/gh_gist*"
+  paths: "**/gh_issue*"
+  paths: "**/gh_org*"
+  paths: "**/gh_pr*"
+  paths: "**/gh_project*"
+  paths: "**/gh_release*"
+  paths: "**/gh_repo*"
+  paths: "**/gh_skill*"
+}
+
+# ---- GitHub Actions -----------------------------------------------
+# gh's "GITHUB ACTIONS COMMANDS" group.
+category {
+  dotted_path: "subcommands.actions"
+  paths: "**/gh_cache*"
+  paths: "**/gh_run*"
+  paths: "**/gh_workflow*"
+}
+
+# ---- Alias --------------------------------------------------------
+# The built-in `co` alias for `pr checkout`. Matched with a trailing
+# dot so it does NOT swallow gh_codespace* / gh_config* / gh_completion*.
+category {
+  dotted_path: "subcommands.alias"
+  paths: "**/gh_co.*"
+}
+
+# ---- API & extensibility ------------------------------------------
+# Raw API access plus the machinery for shaping/extending gh itself.
+category {
+  dotted_path: "subcommands.api"
+  paths: "**/gh_api*"
+  paths: "**/gh_extension*"
+  paths: "**/gh_alias*"
+  paths: "**/gh_completion*"
+  paths: "**/gh_config*"
+}
+
+# ---- Keys & attestations ------------------------------------------
+# Identity/material management and supply-chain verification.
+category {
+  dotted_path: "subcommands.keys"
+  paths: "**/gh_gpg-key*"
+  paths: "**/gh_ssh-key*"
+  paths: "**/gh_attestation*"
+  paths: "**/gh_ruleset*"
+}
+
+# ---- Discovery ----------------------------------------------------
+# Cross-repo search, status, and label surfacing.
+category {
+  dotted_path: "subcommands.discovery"
+  paths: "**/gh_search*"
+  paths: "**/gh_status*"
+  paths: "**/gh_label*"
+}
+
+# ---- Secrets & variables ------------------------------------------
+# Actions/Dependabot/Codespaces secret + variable plumbing.
+category {
+  dotted_path: "subcommands.secrets"
+  paths: "**/gh_secret*"
+  paths: "**/gh_variable*"
+}
+
+# ---- Preview ------------------------------------------------------
+# Commands gh marks "(preview)" — agent tasks, Copilot CLI, the
+# preview umbrella.
+category {
+  dotted_path: "subcommands.preview"
+  paths: "**/gh_agent-task*"
+  paths: "**/gh_copilot*"
+  paths: "**/gh_preview*"
+}
+
+# ---- Misc ---------------------------------------------------------
+category {
+  dotted_path: "subcommands.misc"
+  paths: "**/gh_licenses*"
+}
+
+# ---- Root command -------------------------------------------------
+# The standalone `gh` entry holds the persistent/global-flag surface.
+# Keeping it in its own bucket stops one oversized row from skewing
+# per-family coverage.
+category {
+  dotted_path: "subcommands.root"
+  paths: "**/gh.yaml"
+  paths: "**/gh.md"
+}

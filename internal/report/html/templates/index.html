@@ -1,0 +1,50 @@
+{{define "content"}}
+<div class="summary">
+  <div class="card"><div class="label">Elements</div><div class="value">{{.ElementCount}}</div></div>
+  <div class="card"><div class="label">Deterministic</div><div class="value">{{.DeterministicCount}}</div></div>
+  <div class="card"><div class="label">LLM-inferred</div><div class="value">{{.LLMCount}}</div></div>
+  <div class="card"><div class="label">Documented</div><div class="value">{{.DocumentedCount}}</div></div>
+  <div class="card"><div class="label">Tested</div><div class="value">{{.TestedCount}}</div></div>
+  {{if .LLMAttributedTests}}<div class="card"><div class="label">LLM-attributed tests</div><div class="value">{{.LLMAttributedTests}}</div></div>{{end}}
+  <div class="card"><div class="label">Findings</div><div class="value">{{.FindingCount}}</div></div>
+  <div class="card"><div class="label">Libraries</div><div class="value">{{.LibraryCount}}</div></div>
+</div>
+<p class="tier-note">Two-tier confidence: <strong>deterministic</strong> rows come from
+schema/grammar adapters (reproducible, high trust); <strong>LLM-inferred</strong> rows
+are citation-verified but recall-unverified. They are counted separately and never conflated.</p>
+
+<h2>Elements</h2>
+<input type="search" class="tablesearch" data-target="#elements" placeholder="Filter by id, library, kind…">
+
+<table id="elements" class="sortable">
+  <thead>
+    <tr>
+      <th data-sort="str">Element</th>
+      <th data-sort="str">Kind</th>
+      <th data-sort="str">Confidence</th>
+      <th data-sort="str">Library</th>
+      <th data-sort="num">Tests</th>
+      <th data-sort="num">Docs</th>
+      <th data-sort="num">Examples</th>
+      <th>Missing</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Elements}}
+    <tr>
+      <td><a href="elements/{{.Slug}}.html"><code>{{.ID}}</code></a></td>
+      <td>{{.Kind}}</td>
+      <td>{{if eq .Tier "llm"}}<span class="pill pill-amber">LLM-inferred</span>{{else}}<span class="pill pill-slate">deterministic</span>{{end}}</td>
+      <td>{{.Library}}</td>
+      <td class="num" data-val="{{.TestsCount}}">{{coverPill .TestsCount}}</td>
+      <td class="num" data-val="{{.DocsCount}}">{{coverPill .DocsCount}}</td>
+      <td class="num" data-val="{{.ExamplesCount}}">{{coverPill .ExamplesCount}}</td>
+      <td>
+        {{range .MissingCategories}}<span class="pill pill-red">{{.}}</span> {{end}}
+        {{if not .MissingCategories}}<span class="empty">—</span>{{end}}
+      </td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{end}}

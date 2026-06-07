@@ -1,0 +1,14 @@
+library widgets;
+/// The Widget service exposes operations on a server-managed widget.
+protocol Widget {
+    /// Create a new widget with the given name. Returns ZX_ERR_INVALID_ARGS
+    /// if name is empty or longer than 255 bytes. Returns ZX_ERR_ALREADY_EXISTS
+    /// if a widget with this name is already registered.
+    Create(struct { name string; }) -> () error int32;
+
+    /// Delete the named widget. The delete is non-recursive — if the widget
+    /// has dependent children the call returns ZX_ERR_NOT_EMPTY and no
+    /// state change is made. Returns ZX_ERR_NOT_FOUND if no widget with
+    /// `name` exists.
+    Delete(struct { name string; }) -> () error int32;
+};

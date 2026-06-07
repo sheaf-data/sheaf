@@ -1,0 +1,15 @@
+version: 1
+
+category { dotted_path: "docs.reference" }
+category {
+  dotted_path: "tests.unit_tests"
+  paths: "src/storage/lib/vfs/cpp/tests/**"
+  paths: "src/storage/lib/vfs/cpp/**/*_test.cc"
+  paths: "src/storage/lib/vfs/cpp/**/*_tests.cc"
+}
+category {
+  dotted_path: "docs.concepts"
+  paths: "docs/concepts/**/*.md"
+}
+
+ownership { category: "tests.unit_tests" owner: "@vfs-team" subscribe: true }

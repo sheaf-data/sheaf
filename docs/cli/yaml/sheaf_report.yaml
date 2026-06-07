@@ -1,0 +1,26 @@
+command: sheaf report
+short: Bulk dump all coverage profiles as CSV, JSON, or HTML.
+long: |
+  Runs the full pipeline and emits every CoverageProfile in the corpus.
+  CSV and JSON go to stdout; HTML is written as a multi-page browser
+  into --output.
+usage: sheaf report [--config path] [--repo path] [--format csv|json|html] [--output dir]
+pname: sheaf
+plink: sheaf.yaml
+options:
+  - option: config
+    value_type: string
+    default_value: ""
+    description: Path to sheaf.textproto.
+  - option: repo
+    value_type: string
+    default_value: "."
+    description: Project repo root.
+  - option: format
+    value_type: string
+    default_value: "csv"
+    description: Output format — csv, json, or html.
+  - option: output
+    value_type: string
+    default_value: ""
+    description: Output directory (required for html; ignored for csv/json).

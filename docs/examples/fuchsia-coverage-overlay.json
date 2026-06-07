@@ -1,0 +1,231 @@
+{
+  "_README": "Hand-maintained test/impl enrichment overlay for scripts/gen-fuchsia-coverage.py. Keyed by domain slug (the per-domain config's filename stem). The generator re-applies these blocks on every run, AFTER the FIDL contract_anchor and BEFORE the analyzers, so regenerating from the SDK is non-destructive. These paths are human-curated: a domain's implementation/test source location does not follow from its FIDL library names (e.g. fuchsia.driver.* is implemented under src/devices/bin/driver_manager). Add an entry here when you wire up a new domain's implementation; keys that match no emitted domain are reported as stale.",
+  "accessibility-input": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/ui/a11y/**/*_unittest.cc", "src/ui/a11y/**/*_test.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/ui/lib/input_pipeline/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/ui/a11y/lib/**/*.cc", "src/ui/a11y/lib/**/*.h", "src/ui/a11y/bin/**/*.cc", "src/ui/a11y/bin/**/*.h", "src/ui/lib/input_pipeline/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "bluetooth": {
+    "test_parsers": [
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/connectivity/bluetooth/core/bt-gap/src/**/*.rs", "src/connectivity/bluetooth/profiles/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/connectivity/bluetooth/core/bt-gap/src/**/*.rs", "src/connectivity/bluetooth/profiles/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "component-runtime": {
+    "test_parsers": [
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/sys/component_manager/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/sys/component_manager/**/*.rs", "src/sys/component_manager/**/*.cc", "src/sys/component_manager/**/*.h"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "developer-testing": {
+    "test_parsers": [
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/sys/test_manager/**/*.rs", "src/developer/remote-control/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/sys/test_manager/**/*.rs", "src/developer/remote-control/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "diagnostics-tracing": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/performance/trace_manager/**/*_test.cc", "src/developer/forensics/**/*_unittest.cc", "src/developer/forensics/**/*_test.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/diagnostics/archivist/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/diagnostics/archivist/**/*.rs", "src/performance/trace_manager/**/*.cc", "src/performance/trace_manager/**/*.h", "src/developer/forensics/**/*.cc", "src/developer/forensics/**/*.h"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "drivers-framework": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/devices/bin/driver_manager/**/*_test.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/devices/bin/driver_manager_rust/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/devices/bin/driver_manager/**/*.cc", "src/devices/bin/driver_manager/**/*.h", "src/devices/bin/driver_manager_rust/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "hardware-block-storage": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/devices/block/drivers/nvme/**/*-test.cc", "src/devices/block/drivers/ufs/**/*-test.cc", "src/devices/block/drivers/ftl/**/*-test.cc", "src/devices/block/drivers/ftl/**/*_test.cc", "src/devices/block/drivers/virtio/**/*_test.cc", "src/devices/block/drivers/usb-mass-storage/**/*-test.cc", "src/devices/nand/**/*-test.cc", "src/devices/nand/**/*_test.cc"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/devices/block/drivers/core/**/*.cc", "src/devices/block/drivers/core/**/*.h", "src/devices/block/drivers/nvme/**/*.cc", "src/devices/block/drivers/nvme/**/*.h", "src/devices/block/drivers/ufs/**/*.cc", "src/devices/block/drivers/ufs/**/*.h", "src/devices/block/drivers/ftl/**/*.cc", "src/devices/block/drivers/ftl/**/*.h", "src/devices/block/drivers/virtio/**/*.cc", "src/devices/block/drivers/virtio/**/*.h", "src/devices/block/drivers/usb-mass-storage/**/*.cc", "src/devices/block/drivers/usb-mass-storage/**/*.h", "src/devices/nand/**/*.cc", "src/devices/nand/**/*.h"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "hardware-buses-i-o": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/devices/i2c/**/*-test.cc", "src/devices/spi/**/*-test.cc", "src/devices/gpio/**/*-test.cc", "src/devices/clock/**/*-test.cc", "src/devices/registers/**/*-test.cc", "src/devices/spmi/**/*-test.cc", "src/devices/serial/**/*-test.cc", "src/devices/usb/**/*-test.cc", "src/devices/pci/**/*-test.cc", "src/devices/bus/drivers/platform/**/*-test.cc", "src/devices/block/drivers/sdmmc/**/*-test.cc", "src/devices/block/drivers/aml-sdmmc/**/*-test.cc", "src/devices/block/drivers/sdhci/**/*-test.cc"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/devices/i2c/**/*.cc", "src/devices/i2c/**/*.h", "src/devices/spi/**/*.cc", "src/devices/spi/**/*.h", "src/devices/gpio/**/*.cc", "src/devices/gpio/**/*.h", "src/devices/clock/**/*.cc", "src/devices/clock/**/*.h", "src/devices/registers/**/*.cc", "src/devices/registers/**/*.h", "src/devices/spmi/**/*.cc", "src/devices/spmi/**/*.h", "src/devices/serial/**/*.cc", "src/devices/serial/**/*.h", "src/devices/usb/**/*.cc", "src/devices/usb/**/*.h", "src/devices/pci/**/*.cc", "src/devices/pci/**/*.h", "src/devices/bus/drivers/platform/**/*.cc", "src/devices/bus/drivers/platform/**/*.h", "src/devices/block/drivers/sdmmc/**/*.cc", "src/devices/block/drivers/sdmmc/**/*.h", "src/devices/block/drivers/aml-sdmmc/**/*.cc", "src/devices/block/drivers/aml-sdmmc/**/*.h", "src/devices/block/drivers/sdhci/**/*.cc", "src/devices/block/drivers/sdhci/**/*.h"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "hardware-display-gpu-audio": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/graphics/display/**/*-test.cc", "src/graphics/display/**/*-unittest.cc", "src/graphics/display/**/*_test.cc", "src/graphics/drivers/**/*-test.cc", "src/graphics/drivers/**/*_test.cc", "src/media/audio/drivers/**/*-test.cc", "src/media/audio/drivers/**/*_test.cc", "src/sysmem/server/**/*_test.cc"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/graphics/display/**/*.cc", "src/graphics/display/**/*.h", "src/graphics/drivers/**/*.cc", "src/graphics/drivers/**/*.h", "src/graphics/magma/**/*.cc", "src/graphics/magma/**/*.h", "src/media/audio/drivers/**/*.cc", "src/media/audio/drivers/**/*.h", "src/sysmem/server/**/*.cc", "src/sysmem/server/**/*.h"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "hardware-networking-radio": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/connectivity/network/drivers/network-device/**/*-test.cc", "src/connectivity/network/drivers/network-device/**/*_test.cc", "src/connectivity/ethernet/drivers/**/*-test.cc", "src/connectivity/ethernet/drivers/**/*_test.cc"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/connectivity/network/drivers/network-device/**/*.cc", "src/connectivity/network/drivers/network-device/**/*.h", "src/connectivity/ethernet/drivers/**/*.cc", "src/connectivity/ethernet/drivers/**/*.h"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "hardware-power-thermal-sensors": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/devices/power/**/*-test.cc", "src/devices/thermal/**/*-test.cc", "src/devices/temperature/**/*-test.cc", "src/devices/pwm/**/*-test.cc", "src/devices/adc/**/*-test.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/sensors/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/devices/power/**/*.cc", "src/devices/power/**/*.h", "src/devices/thermal/**/*.cc", "src/devices/thermal/**/*.h", "src/devices/temperature/**/*.cc", "src/devices/temperature/**/*.h", "src/devices/pwm/**/*.cc", "src/devices/pwm/**/*.h", "src/devices/adc/**/*.cc", "src/devices/adc/**/*.h", "src/sensors/src/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "hardware-security-rtc": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/devices/rtc/**/*-test.cc", "src/devices/securemem/**/*-test.cc", "src/devices/tee/**/*-test.cc", "src/devices/tpm/**/*-test.cc"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/devices/rtc/**/*.cc", "src/devices/rtc/**/*.h", "src/devices/hrtimer/**/*.cc", "src/devices/hrtimer/**/*.h", "src/devices/securemem/**/*.cc", "src/devices/securemem/**/*.h", "src/devices/tee/**/*.cc", "src/devices/tee/**/*.h", "src/devices/tpm/**/*.cc", "src/devices/tpm/**/*.h"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "identity-security": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/security/bin/tee_manager/**/*_test.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/security/bin/kms/**/*.rs", "src/security/bin/tee_manager/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/security/bin/kms/**/*.rs", "src/security/bin/tee_manager/**/*.rs", "src/security/bin/**/*.cc", "src/security/bin/**/*.h"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "media-audio-camera": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/media/audio/audio_core/**/*_unittest.cc", "src/media/audio/audio_core/**/*_test.cc", "src/camera/bin/**/*_test.cc", "src/camera/bin/**/*_unittest.cc", "src/media/codec/**/*_test.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/media/sessions/src/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/media/audio/audio_core/**/*.cc", "src/media/audio/audio_core/**/*.h", "src/camera/bin/**/*.cc", "src/camera/bin/**/*.h", "src/media/codec/**/*.cc", "src/media/codec/**/*.h", "src/media/sessions/src/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "networking": {
+    "test_parsers": [
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/connectivity/network/netstack3/src/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/connectivity/network/netstack3/src/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "power-memory": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/developer/memory/**/*_unittest.cc", "src/developer/memory/**/*_test.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/power/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/power/**/*.rs", "src/developer/memory/**/*.cc", "src/developer/memory/**/*.h"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "session-apps": {
+    "test_parsers": [
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/session/bin/session_manager/**/*.rs", "src/ui/bin/scene_manager/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/session/bin/session_manager/**/*.rs", "src/ui/bin/scene_manager/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "settings-intl-recovery": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/recovery/**/*_unittest.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/settings/service/**/*.rs", "src/fonts/**/*.rs", "src/recovery/**/*.rs", "src/hwinfo/**/*.rs", "src/factory/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/settings/service/**/*.rs", "src/intl/**/*.cc", "src/intl/**/*.rs", "src/fonts/**/*.rs", "src/recovery/**/*.rs", "src/recovery/**/*.cc", "src/recovery/**/*.h", "src/hwinfo/**/*.rs", "src/factory/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "storage-packages": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/storage/**/*_test.cc", "src/storage/**/*_unittest.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/sys/pkg/bin/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/storage/**/*.cc", "src/storage/**/*.h", "src/sys/pkg/bin/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "telephony-weave": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/connectivity/weave/weavestack/**/*_test.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/connectivity/overnet/lib/core/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/connectivity/weave/weavestack/**/*.cc", "src/connectivity/weave/weavestack/**/*.h", "src/connectivity/overnet/lib/core/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "time": {
+    "test_parsers": [
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/sys/time/timekeeper/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/sys/time/timekeeper/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "ui-scenic-composition": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/ui/scenic/lib/**/*_test.cc", "src/ui/scenic/lib/**/*_unittest.cc", "src/ui/scenic/lib/**/*_pixeltest.cc"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/ui/scenic/lib/**/*.cc", "src/ui/scenic/lib/**/*.h"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "virtualization-starnix": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/virtualization/bin/vmm/**/*_test.cc", "src/virtualization/bin/vmm/**/*_unittest.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/starnix/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/starnix/**/*.rs", "src/virtualization/bin/vmm/**/*.cc", "src/virtualization/bin/vmm/**/*.h"]}
+    ],
+    "surfaces_required": ["implementations"]
+  },
+  "wireless-wlan-lowpan": {
+    "test_parsers": [
+      {"name": "gtest", "kind": "gtest", "include": ["src/connectivity/wlan/drivers/wlanphy/**/*_test.cc"]},
+      {"name": "rust-test", "kind": "rust_test", "include": ["src/connectivity/wlan/wlancfg/src/**/*.rs", "src/connectivity/wlan/wlandevicemonitor/src/**/*.rs", "src/connectivity/wlan/wlanix/src/**/*.rs", "src/connectivity/lowpan/service/src/**/*.rs", "src/connectivity/lowpan/drivers/lowpan-ot-driver/src/**/*.rs", "src/connectivity/lowpan/lib/lowpan_driver_common/**/*.rs"]}
+    ],
+    "implements_maps": [
+      {"name": "cpp-fidl-wireserver", "include": ["src/connectivity/wlan/drivers/wlanphy/**/*.cc", "src/connectivity/wlan/drivers/wlanphy/**/*.h", "src/connectivity/wlan/wlancfg/src/**/*.rs", "src/connectivity/wlan/wlandevicemonitor/src/**/*.rs", "src/connectivity/wlan/wlanix/src/**/*.rs", "src/connectivity/lowpan/service/src/**/*.rs", "src/connectivity/lowpan/drivers/lowpan-ot-driver/src/**/*.rs", "src/connectivity/lowpan/lib/lowpan_driver_common/**/*.rs"]}
+    ],
+    "surfaces_required": ["implementations"]
+  }
+}

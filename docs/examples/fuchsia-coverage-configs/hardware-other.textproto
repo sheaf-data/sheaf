@@ -1,0 +1,57 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Hardware · Other" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.hardware.acpi/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.adb/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.amlogic.metadata/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.camera/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.cpu.ctrl/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.cqhci/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.fan/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.fastboot/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.ftdi/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.gnss/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.google.ec/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.google.nanohub/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.haptics/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.inlineencryption/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.input/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.input.focaltech/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.intel.hda/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.interrupt/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.light/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.lightsensor/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.mailbox/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.midi/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.nvram/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.overnet/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.pin/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.pinimpl/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.pty/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.qcom.hvdcpopti/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.qualcomm.fastrpc/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.qualcomm.router/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.radar/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.ram.metrics/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.reset/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.ti.metadata/**/*.fidl"
+    include: "sdk/fidl/fuchsia.hardware.vsi/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

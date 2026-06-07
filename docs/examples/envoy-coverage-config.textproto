@@ -1,0 +1,253 @@
+# Sheaf config for scanning envoyproxy/envoy's xDS / management-plane RPC
+# surface. Joins the protobuf-derived services & methods (under api/) against
+# C++ tests in test/ — envoy ships docs as reStructuredText, so the doc-side
+# join is intentionally empty.
+#
+# Prereqs:
+#   - protoc on PATH (brew install protobuf)
+#   - buf on PATH (brew install bufbuild/buf/buf), used by validate.sh to
+#     export envoy's api/ tree with transitive deps (xds, udpa, validate,
+#     googleapis, opentelemetry) into an `api-export/` sibling directory.
+#     The proto adapter then resolves all imports with a single -I.
+#   - the envoyproxy/envoy repo cloned somewhere; point `sheaf scan --repo`
+#     at that clone (the same clone validate.sh's --repo flag takes).
+#
+# Quick start:
+#   git clone --filter=blob:none --depth=1 \
+#     https://github.com/envoyproxy/envoy.git ~/envoy
+#   docs/examples/envoy-coverage/validate.sh --repo ~/envoy
+#
+# Manual run:
+#   (cd ~/envoy/api && buf export . -o ../api-export)
+#   sheaf scan --config docs/examples/envoy-coverage-config.textproto --repo ~/envoy
+#   sheaf serve --config docs/examples/envoy-coverage-config.textproto \
+#               --repo ~/envoy --port 7700 &
+#   scanner --server http://127.0.0.1:7700 --ecosystem proto \
+#           --library envoy.service.discovery.v3 \
+#           -o /tmp/envoy-ads-report.html
+
+version: 1
+
+project {
+  name: "envoy"
+  display_name: "Envoy (envoyproxy/envoy)"
+  homepage: "https://www.envoyproxy.io/"
+  # Project-level identifier prefix. Body-parsing matchers treat any dotted
+  # token that begins with `envoy.` as a candidate contract ID — so a test
+  # mentioning envoy.service.discovery.v3.AggregatedDiscoveryService.* will
+  # attribute to the AggregatedDiscoveryService PROTOCOL element.
+  idl_prefix: "envoy"
+
+  # Common envoy/xDS nouns that would otherwise be noisy single-word
+  # attribution candidates if a test happens to mention them in passing.
+  noisy_words: "service"
+  noisy_words: "request"
+  noisy_words: "response"
+  noisy_words: "stream"
+  noisy_words: "config"
+  noisy_words: "cluster"
+  noisy_words: "listener"
+  noisy_words: "endpoint"
+  noisy_words: "route"
+  noisy_words: "secret"
+  noisy_words: "discovery"
+  noisy_words: "status"
+  noisy_words: "filter"
+  noisy_words: "address"
+  noisy_words: "health"
+  noisy_words: "load"
+  noisy_words: "metric"
+  noisy_words: "ratelimit"
+  noisy_words: "auth"
+  noisy_words: "context"
+  noisy_words: "resource"
+  noisy_words: "node"
+  noisy_words: "transport"
+}
+
+# No scope.library filter — emit elements for every package the matched
+# .proto files declare. Users can narrow per-scan via --library on
+# `sheaf gaps` or the scanner picker.
+scope {}
+
+contract_anchor {
+  name: "proto"
+  proto {
+    # Two contract surfaces in one report:
+    #
+    # 1. The 8 v3 xDS management-plane services — what a control-plane
+    #    operator must implement to drive Envoy. We narrow to /v3/ to
+    #    skip the deprecated v2/v2alpha surfaces (which would
+    #    double-count via cross-version Identical methods) and the
+    #    non-v3 one-off service trees (ext_proc, auth, health,
+    #    ratelimit, runtime, metrics) that we'd report separately.
+    #
+    # 2. The three config TYPEs every Envoy operator actually writes
+    #    YAML for: Listener (envoy.config.listener.v3), Cluster
+    #    (envoy.config.cluster.v3), and RouteConfiguration
+    #    (envoy.config.route.v3). These are the surfaces envoy's
+    #    narrative docs at docs/root/ actually reference (via :ref:
+    #    Sphinx roles), so the rst adapter's role extraction lands
+    #    real doc evidence on them.
+    #
+    # Inputs are taken from the canonical envoy `api/` tree so element
+    # SourceLocation.path values match the github tree exactly (and
+    # `--source-url-template https://github.com/envoyproxy/envoy/blob/main/{path}#L{line}`
+    # produces working links). Imports are resolved against the
+    # buf-export'd `api-export/` tree which carries the transitive
+    # closure (xds, udpa, validate, googleapis, opentelemetry) — without
+    # that, protoc can't resolve `import "udpa/annotations/status.proto";`.
+
+    # xDS management-plane services.
+    include: "api/envoy/service/discovery/v3/*.proto"
+    include: "api/envoy/service/cluster/v3/*.proto"
+    include: "api/envoy/service/listener/v3/*.proto"
+    include: "api/envoy/service/endpoint/v3/*.proto"
+    include: "api/envoy/service/route/v3/*.proto"
+    include: "api/envoy/service/secret/v3/*.proto"
+    include: "api/envoy/service/runtime/v3/*.proto"
+    include: "api/envoy/service/extension/v3/*.proto"
+
+    # Operator-facing config TYPEs. listener.proto declares Listener +
+    # its sub-types; cluster.proto declares Cluster + its load-balancing
+    # sub-types; route.proto declares RouteConfiguration. Each file
+    # transitively imports envoy.config.core.v3.* via the buf-export'd
+    # tree, so we don't need to enumerate the core types here.
+    include: "api/envoy/config/listener/v3/listener.proto"
+    include: "api/envoy/config/cluster/v3/cluster.proto"
+    include: "api/envoy/config/route/v3/route.proto"
+
+    proto_path: "api"
+    proto_path: "api-export"
+  }
+}
+
+# Envoy's user-facing docs are reStructuredText under docs/root/. The
+# rst adapter parses .. code-block:: directives, underline-style
+# headings, and inline ``literal`` mentions. The markdown adapter
+# picks up the repo-root governance/dev docs plus the per-package
+# api/**/README.md conceptual files, so the docs.concepts surface has
+# a meaningful denominator even before the rst tree contributes.
+doc_parser {
+  name: "markdown"
+  markdown {
+    # Repo-root narrative & process docs (dev guide, contributing,
+    # governance, release notes).
+    include: "README.md"
+    include: "CONTRIBUTING.md"
+    include: "GOVERNANCE.md"
+    include: "DEVELOPER.md"
+    include: "STYLE.md"
+    include: "REPO_LAYOUT.md"
+    include: "DEPRECATED.md"
+    include: "BACKPORTS.md"
+    include: "RELEASES.md"
+    # Build-system pointer; keeps the docs/README.md row present.
+    include: "docs/README.md"
+    # Per-package conceptual READMEs sitting alongside each api/
+    # subtree.
+    include: "api/**/README.md"
+    # Security policy and API-governance docs aren't contract docs;
+    # routing them anywhere muddies the surface.
+    exclude: "SECURITY.md"
+    exclude: "api/API_VERSIONING.md"
+    exclude: "api/STYLE.md"
+    exclude: "api/CONTRIBUTING.md"
+    exclude: "api/review_checklist.md"
+  }
+}
+
+doc_parser {
+  name: "rst"
+  rst {
+    include: "docs/root/**/*.rst"
+    # Envoy's xDS examples live inside .. code-block:: yaml / proto /
+    # json blocks. Surface them as EXAMPLE claims so the examples
+    # surface picks up anything that mentions an envoy.* proto type
+    # or method.
+    code_block_languages: "yaml"
+    code_block_languages: "proto"
+    code_block_languages: "json"
+    code_block_languages: "cpp"
+  }
+}
+
+# Envoy's C++ tests live under test/ and use the googletest TEST /
+# TEST_F / TEST_P macros (plus the much rarer TYPED_TEST). The stock
+# gtest extractor catches one envoy idiom (message-fixture by name,
+# e.g. `StreamMetricsMessage req;`) but misses the others — string-
+# literal RPC refs, *.pb.h-include scope, *_test_harness.h follows.
+# The protocpp adapter (a generic proto-aware C++ test parser that
+# was originally developed against envoy) handles those.
+test_parser {
+  name: "protocpp"
+  protocpp {
+    include: "test/**/*_test.cc"
+    include: "test/**/*_tests.cc"
+    # Generated / fuzz-corpus subtrees aren't real tests.
+    exclude: "test/**/fuzz_corpus/**"
+    exclude: "test/**/*fuzz*/**"
+    exclude: "test/tools/wee8_compile/**"
+    # TYPED_TEST is the parametric variant used in a handful of envoy
+    # test files — wire it so attribution doesn't drop the ~42 tests
+    # that use it.
+    extra_test_macros: "TYPED_TEST"
+  }
+}
+
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: INFO }
+analyzer { name: "tested-undocumented" severity: INFO }
+# Rounds out the playbook's recommended 4-pack. Alerts on elements
+# that have ZERO claims attributed to the named category — for envoy
+# that's any xDS service / config TYPE with no unit-test evidence in
+# test/extensions / test/common / test/server / test/exe.
+analyzer { name: "missing-in-category" severity: WARNING
+  config { key: "alert_for_categories" string_value: "tests.unit_tests" }
+}
+
+# YAML-graph workflows. envoy's tutorials and config cookbook pages
+# compose 2+ TYPEs together inside `.. code-block:: yaml` directives
+# (Listener + filter chain + Cluster, etc.) — the per-message coverage
+# adapters above can't see that composition layer. The yaml-workflows
+# adapter walks every yaml block under docs/root/, finds each
+# `envoy.*` proto FQDN named in the block, and emits one WORKFLOW
+# DocClaim per block with refs in appearance order. The
+# scanner's workflow-coverage panel aggregates from there: total
+# workflows = distinct yaml-block source paths; workflow length =
+# distinct elements named in the block; per-element "in N workflows"
+# = the count of paths whose ContractRefs list this element.
+rendered_reference {
+  name: "yaml-workflows"
+  yaml_workflows {
+    docs_dir: "docs/root"
+    include: "**/*.rst"
+    # Filter to envoy's own namespace — yaml blocks reference
+    # google.protobuf.* / xds.* / udpa.* via `@type` URLs that aren't
+    # part of envoy's contract surface.
+    idl_prefix: "envoy"
+    min_elements: 2
+    url_base: "https://github.com/envoyproxy/envoy/blob/main"
+  }
+}
+
+# proto element coverage is computed against
+# {docs.reference, docs.concepts, examples, implementations} — NOT
+# tests. The implements-map heuristic produced 14% FP on this report
+# via common-English-word leaf collisions (DiscoveryRequest matching
+# Redis "zone discovery" tests, Resource matching ECDS regex tests).
+# Real test coverage of the xDS interface lives at the C++ impl
+# classes; this report renders the IMPLEMENTS edges via the
+# `implementations` surface and trusts the impl element's own
+# coverage page for the actual test evidence.
+#
+# docs.concepts and docs.reference are now backed by the rst adapter
+# walking docs/root/**/*.rst. The examples surface remains thin —
+# envoy has no in-tree examples directory; the EXAMPLE claims that
+# surface from rst code-block blocks are the only contribution.
+# Keeping all four surfaces in surfaces_required means any remaining
+# gap is rendered as visible 0%-tiles rather than silently omitted.
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "examples"
+surfaces_required: "implementations"

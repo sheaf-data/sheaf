@@ -1,0 +1,61 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Component & Runtime" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.boot/**/*.fidl"
+    include: "sdk/fidl/fuchsia.boot.metadata/**/*.fidl"
+    include: "sdk/fidl/fuchsia.component/**/*.fidl"
+    include: "sdk/fidl/fuchsia.component.decl/**/*.fidl"
+    include: "sdk/fidl/fuchsia.component.internal/**/*.fidl"
+    include: "sdk/fidl/fuchsia.component.resolution/**/*.fidl"
+    include: "sdk/fidl/fuchsia.component.runner/**/*.fidl"
+    include: "sdk/fidl/fuchsia.component.runtime/**/*.fidl"
+    include: "sdk/fidl/fuchsia.component.sandbox/**/*.fidl"
+    include: "sdk/fidl/fuchsia.component.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.dash/**/*.fidl"
+    include: "sdk/fidl/fuchsia.data/**/*.fidl"
+    include: "sdk/fidl/fuchsia.device/**/*.fidl"
+    include: "sdk/fidl/fuchsia.device.fs/**/*.fidl"
+    include: "sdk/fidl/fuchsia.device.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ebpf/**/*.fidl"
+    include: "sdk/fidl/fuchsia.kernel/**/*.fidl"
+    include: "sdk/fidl/fuchsia.ldsvc/**/*.fidl"
+    include: "sdk/fidl/fuchsia.process/**/*.fidl"
+    include: "sdk/fidl/fuchsia.process.explorer/**/*.fidl"
+    include: "sdk/fidl/fuchsia.process.init/**/*.fidl"
+    include: "sdk/fidl/fuchsia.process.lifecycle/**/*.fidl"
+    include: "sdk/fidl/fuchsia.scheduler/**/*.fidl"
+    include: "sdk/fidl/fuchsia.scheduler.deprecated/**/*.fidl"
+    include: "sdk/fidl/fuchsia.sys2/**/*.fidl"
+    include: "sdk/fidl/fuchsia.sysinfo/**/*.fidl"
+    include: "sdk/fidl/fuchsia.system.state/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/sys/component_manager/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/sys/component_manager/**/*.rs"
+  include: "src/sys/component_manager/**/*.cc"
+  include: "src/sys/component_manager/**/*.h"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

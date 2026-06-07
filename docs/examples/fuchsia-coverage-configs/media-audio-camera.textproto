@@ -1,0 +1,72 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Media, Audio & Camera" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.audio/**/*.fidl"
+    include: "sdk/fidl/fuchsia.audio.controller/**/*.fidl"
+    include: "sdk/fidl/fuchsia.audio.device/**/*.fidl"
+    include: "sdk/fidl/fuchsia.audio.effects/**/*.fidl"
+    include: "sdk/fidl/fuchsia.audio.mixer/**/*.fidl"
+    include: "sdk/fidl/fuchsia.camera/**/*.fidl"
+    include: "sdk/fidl/fuchsia.camera2/**/*.fidl"
+    include: "sdk/fidl/fuchsia.camera2.debug/**/*.fidl"
+    include: "sdk/fidl/fuchsia.camera2.hal/**/*.fidl"
+    include: "sdk/fidl/fuchsia.camera3/**/*.fidl"
+    include: "sdk/fidl/fuchsia.drm/**/*.fidl"
+    include: "sdk/fidl/fuchsia.images/**/*.fidl"
+    include: "sdk/fidl/fuchsia.images2/**/*.fidl"
+    include: "sdk/fidl/fuchsia.media/**/*.fidl"
+    include: "sdk/fidl/fuchsia.media.audio/**/*.fidl"
+    include: "sdk/fidl/fuchsia.media.drm/**/*.fidl"
+    include: "sdk/fidl/fuchsia.media.playback/**/*.fidl"
+    include: "sdk/fidl/fuchsia.media.sessions2/**/*.fidl"
+    include: "sdk/fidl/fuchsia.media.sounds/**/*.fidl"
+    include: "sdk/fidl/fuchsia.media.target/**/*.fidl"
+    include: "sdk/fidl/fuchsia.media.tuning/**/*.fidl"
+    include: "sdk/fidl/fuchsia.media2/**/*.fidl"
+    include: "sdk/fidl/fuchsia.mediacodec/**/*.fidl"
+    include: "sdk/fidl/fuchsia.mediastreams/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/media/audio/audio_core/**/*_unittest.cc"
+    include: "src/media/audio/audio_core/**/*_test.cc"
+    include: "src/camera/bin/**/*_test.cc"
+    include: "src/camera/bin/**/*_unittest.cc"
+    include: "src/media/codec/**/*_test.cc"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/media/sessions/src/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/media/audio/audio_core/**/*.cc"
+  include: "src/media/audio/audio_core/**/*.h"
+  include: "src/camera/bin/**/*.cc"
+  include: "src/camera/bin/**/*.h"
+  include: "src/media/codec/**/*.cc"
+  include: "src/media/codec/**/*.h"
+  include: "src/media/sessions/src/**/*.rs"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

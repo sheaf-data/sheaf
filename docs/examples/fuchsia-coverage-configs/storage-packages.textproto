@@ -1,0 +1,61 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Storage & Packages" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.fs/**/*.fidl"
+    include: "sdk/fidl/fuchsia.fshost/**/*.fidl"
+    include: "sdk/fidl/fuchsia.io/**/*.fidl"
+    include: "sdk/fidl/fuchsia.io.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.paver/**/*.fidl"
+    include: "sdk/fidl/fuchsia.pkg/**/*.fidl"
+    include: "sdk/fidl/fuchsia.pkg.garbagecollector/**/*.fidl"
+    include: "sdk/fidl/fuchsia.pkg.http/**/*.fidl"
+    include: "sdk/fidl/fuchsia.pkg.internal/**/*.fidl"
+    include: "sdk/fidl/fuchsia.pkg.resolution/**/*.fidl"
+    include: "sdk/fidl/fuchsia.pkg.rewrite/**/*.fidl"
+    include: "sdk/fidl/fuchsia.storage.blobfs/**/*.fidl"
+    include: "sdk/fidl/fuchsia.storage.block/**/*.fidl"
+    include: "sdk/fidl/fuchsia.storage.ftl/**/*.fidl"
+    include: "sdk/fidl/fuchsia.storage.partitions/**/*.fidl"
+    include: "sdk/fidl/fuchsia.update/**/*.fidl"
+    include: "sdk/fidl/fuchsia.update.channel/**/*.fidl"
+    include: "sdk/fidl/fuchsia.update.channelcontrol/**/*.fidl"
+    include: "sdk/fidl/fuchsia.update.config/**/*.fidl"
+    include: "sdk/fidl/fuchsia.update.usb/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/storage/**/*_test.cc"
+    include: "src/storage/**/*_unittest.cc"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/sys/pkg/bin/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/storage/**/*.cc"
+  include: "src/storage/**/*.h"
+  include: "src/sys/pkg/bin/**/*.rs"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

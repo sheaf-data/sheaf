@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sheaf — Concept docs · {{.Library}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Junge&family=Fraunces:ital,opt,wght@0,500;0,600;0,700;1,400;1,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* ── Tokens: verbatim from utils/scanner/templates/report.html.tmpl ── */
+:root{
+  --paper:#faf6ee; --card:#fffdf8; --ink:#16201c; --ink-2:#4a554f; --ink-3:#7d877f;
+  --line:#ece5d6; --line-2:#f3eee2;
+  --green-700:#0a6b3f; --green-600:#0f9d58; --green-500:#16c172; --green-50:#e6f8ee;
+  --cyan-700:#0a6e7a; --cyan-500:#11b3c6; --cyan-50:#e3f7fa;
+  --amber:#ff8a1e; --amber-700:#b85a08; --amber-50:#fff0dd;
+  --surf-docs:#11b3c6; --surf-tests:#2a4a78; --surf-examples:#c79a3a; --surf-impls:#1a3050;
+  --f-display:'Junge', Georgia, 'Times New Roman', serif;
+  --f-frame:'Fraunces', Georgia, 'Times New Roman', serif;
+  --f-score:'Fraunces', Georgia, 'Times New Roman', serif;
+  --f-body:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --f-ui:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --f-mono:'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;background:var(--paper);color-scheme:light;}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);line-height:1.5;}
+
+/* ── Sticky strip (verbatim grammar from report.html.tmpl) ── */
+.report-strip{position:sticky;top:0;z-index:100;background:rgba(250,246,238,.96);border-bottom:1px solid var(--line);backdrop-filter:saturate(1.2) blur(8px);}
+.report-strip .strip-in{max-width:1080px;margin:0 auto;padding:9px 32px;display:flex;align-items:center;gap:12px;font-family:var(--f-mono);font-size:12.5px;color:var(--ink-2);line-height:1.2;flex-wrap:wrap;}
+.report-strip .strip-logo{width:24px;height:24px;border-radius:6px;display:block;flex:0 0 24px;}
+.report-strip .strip-brand{font-family:var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green-700);}
+.report-strip .strip-kind{font-family:var(--f-mono);font-size:12.5px;color:var(--ink-2);}
+.report-strip .strip-lib{font-family:var(--f-mono);font-size:12.5px;color:var(--ink);background:#edeae1;padding:1px 8px;border-radius:5px;}
+.report-strip .strip-sha,.report-strip .strip-time{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3);}
+.report-strip .strip-sep{color:#c8c1ad;font-weight:400;}
+
+.wrap{max-width:1080px;margin:0 auto;padding:0 32px 100px;}
+
+/* ── Masthead ── */
+.masthead{padding:42px 0 4px;}
+.masthead .eyebrow{font-family:var(--f-ui);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan-700);margin-bottom:10px;}
+.masthead h1{font-family:var(--f-display);font-weight:400;font-size:38px;letter-spacing:-.01em;line-height:1.1;margin-bottom:4px;}
+
+/* ── Library filter banner: shown only when a multi-library report is
+   deep-linked with ?library=a,b (e.g. from a coverage domain that covers a
+   subset of the report's libraries). Filters the doc cards, chip regions, and
+   silent groups to those libraries, client-side. ── */
+.cd-filter{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:24px 0 -6px;padding:10px 15px;background:var(--green-50);border:1px solid #cdeadd;border-radius:9px;font-family:var(--f-ui);font-size:12.5px;color:var(--ink-2);}
+.cd-filter[hidden]{display:none;}
+.cd-filter b{font-family:var(--f-mono);font-size:12px;color:var(--green-700);font-weight:600;}
+.cd-filter .cd-filter-clear{margin-left:auto;font-weight:600;color:var(--green-700);text-decoration:underline dotted;text-underline-offset:2px;white-space:nowrap;}
+.cd-filter .cd-filter-clear:hover{color:var(--green-600);text-decoration:underline dotted;text-underline-offset:2px;}
+
+/* ── State chips: coverage report .surf/.s tiles. Count, never %; no bar; silent neutral. ── */
+.surf{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:26px 0 8px;align-items:start;}
+.surf-cell{display:flex;flex-direction:column;}
+@media(max-width:720px){.surf{grid-template-columns:1fr;}}
+.s{position:relative;border:1px solid var(--line);border-radius:10px;padding:16px 17px;background:var(--card);display:flex;flex-direction:column;}
+.s .l{font-family:var(--f-ui);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.s .l .dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px;}
+.s.c-clear  .dot{background:var(--surf-docs);}
+.s.c-amb    .dot{background:var(--amber);}
+.s.c-silent .dot{background:var(--ink-3);}
+.s .v{font-family:var(--f-score);font-weight:600;font-size:34px;line-height:1;letter-spacing:-.01em;color:var(--ink);font-feature-settings:"onum" 1;}
+.s .v small{font-family:var(--f-ui);font-size:13px;color:var(--ink-3);font-weight:600;font-feature-settings:normal;}
+.s .sub{font-family:var(--f-ui);font-size:11.5px;color:var(--ink-3);margin-top:8px;font-weight:500;}
+/* In-chip per-region breakdown: a divider, then a ranked list of region · count
+   (sorted high→low within each bucket). No bars — the count + sort carry the
+   ranking, and a within-bucket bar is a false axis (each chip's max differs). */
+.chip-div{border:none;border-top:1px solid var(--line);margin:14px 0 12px;}
+.chip-regions{display:flex;flex-direction:column;gap:8px;}
+.cr-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:baseline;}
+.cr-name{font-family:var(--f-ui);font-size:11px;color:var(--ink-2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cr-num{font-family:var(--f-score);font-size:13px;color:var(--ink);font-weight:600;text-align:right;font-feature-settings:"onum" 1;font-variant-numeric:tabular-nums;}
+/* Chip-region overflow: rows past the 6th hide until "show all" expands the
+   card. The expander sits OUTSIDE the chip card — below it, right-aligned —
+   each chip and its link sharing a .surf-cell column. Green links carry a
+   persistent dotted underline. */
+.cr-overflow{display:none;}
+.s.regions-all .cr-overflow{display:contents;}
+.cr-more{align-self:flex-end;margin-top:7px;background:none;border:none;cursor:pointer;font-family:var(--f-ui);font-size:11.5px;font-weight:600;color:var(--green-700);text-decoration:underline dotted;text-underline-offset:2px;}
+.cr-more:hover{color:var(--green-600);text-decoration:underline dotted;text-underline-offset:2px;}
+
+/* ── View switcher: borderless underline tabs (the report's view-toggle grammar) ── */
+.viewtabs{display:flex;align-items:flex-end;gap:26px;border-bottom:1px solid var(--line);margin:30px 0 24px;}
+.viewtab{appearance:none;background:transparent;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;padding:6px 2px 11px;cursor:pointer;font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);transition:color .12s,border-color .12s;}
+.viewtab:hover{color:var(--ink);}
+.viewtab.on{color:var(--ink);border-bottom-color:var(--ink);}
+.view{display:none;}
+.view.on{display:block;}
+.view-meta{font-family:var(--f-frame);font-style:italic;font-size:14px;color:var(--ink-2);margin:0 0 22px;line-height:1.5;max-width:80ch;}
+.view-meta code{font-family:var(--f-mono);font-style:normal;font-size:11.5px;background:var(--line-2);padding:1px 5px;border-radius:4px;}
+
+/* ── Per-doc cards (Named view) ── */
+.doc{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:18px 20px 20px;margin-bottom:20px;box-shadow:0 1px 0 rgba(22,32,28,.04);}
+.doc-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.doc-title{font-family:var(--f-display);font-weight:400;font-size:20px;color:var(--ink);line-height:1.2;}
+.doc-path{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3);margin-top:3px;}
+.doc-path a{color:inherit;text-decoration:none;border-bottom:1px dotted var(--ink-3);}
+.doc-path a:hover{color:var(--ink-2);}
+.doc-refs{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:22px;}
+/* Colored line brackets the caption (line:N) + excerpt only; the "resolves →"
+   line stays OUTSIDE, below the bracket. */
+.cite{margin-bottom:14px;}
+.cite:last-child{margin-bottom:0;}
+.cite-quote{border-left:2px solid var(--ink-3);padding-left:14px;}
+.cite.clear .cite-quote{border-left-color:var(--surf-docs);}
+.cite.amb .cite-quote{border-left-color:var(--amber);}
+.cite .cap{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);line-height:1.4;margin-bottom:5px;}
+.cite .frag{font-family:var(--f-body);font-size:13px;line-height:1.6;color:var(--ink);padding:3px 0;}
+.tok-code{font-family:var(--f-mono);font-size:12px;background:var(--cyan-50);color:var(--cyan-700);padding:1px 5px;border-radius:4px;}
+.tok-link{color:var(--cyan-700);border-bottom:1px solid var(--cyan-500);text-decoration:none;}
+.tok-name{color:var(--cyan-700);border-bottom:1px dotted var(--cyan-500);}
+.tok-amb{text-decoration:underline wavy var(--amber);text-underline-offset:3px;text-decoration-thickness:1.5px;}
+.resolve{margin-top:7px;font-family:var(--f-ui);font-size:11.5px;color:var(--ink-3);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.resolve .arr{color:var(--ink-3);}
+.ent{font-family:var(--f-mono);font-size:11.5px;padding:1px 7px;border-radius:5px;background:var(--line-2);color:var(--ink-2);white-space:nowrap;}
+.ent.resolved{background:var(--cyan-50);color:var(--cyan-700);}
+.ent.cand{background:var(--amber-50);color:var(--amber-700);}
+.ent.eng{background:transparent;border:1px dashed var(--line);color:var(--ink-3);}
+/* Per-doc cite cap: overflow hidden until the card's "show all" expands it. */
+.cite-overflow{display:none;flex-direction:column;gap:22px;margin-top:22px;}
+.doc.cites-all .cite-overflow{display:flex;}
+.show-all-cites{appearance:none;background:transparent;border:none;cursor:pointer;margin-top:16px;align-self:flex-start;padding:0;font-family:var(--f-ui);font-size:11.5px;font-weight:600;color:var(--green-700);text-decoration:underline dotted;text-underline-offset:2px;}
+.show-all-cites:hover{color:var(--green-600);text-decoration:underline dotted;text-underline-offset:2px;}
+.doc.cites-all .show-all-cites{color:var(--ink-3);}
+
+/* ── Silent set (Silent view) ── */
+.sgroup{margin-bottom:16px;}
+.sgroup .sg-h{font-family:var(--f-ui);font-size:12.5px;color:var(--ink-2);font-weight:600;margin-bottom:9px;display:flex;align-items:baseline;gap:9px;}
+.sgroup .sg-h .cnt{font-family:var(--f-ui);font-size:11px;color:var(--ink-3);font-weight:400;}
+.sgroup .chips{display:flex;flex-wrap:wrap;gap:7px;}
+.schip{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:3px 9px;display:inline-flex;align-items:center;gap:7px;}
+.schip .k{font-family:var(--f-ui);font-size:8.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);}
+.schip-overflow{display:none;}
+.schip-overflow.on{display:contents;}
+.silent-more{cursor:pointer;align-self:center;font-family:var(--f-ui);font-size:11.5px;font-weight:600;color:var(--green-700);text-decoration:underline dotted;text-underline-offset:2px;}
+.silent-more:hover{color:var(--green-600);text-decoration:underline dotted;text-underline-offset:2px;}
+
+/* ── Provenance footer (terse) ── */
+.method{margin-top:48px;padding-top:16px;border-top:1px solid rgba(22,32,28,.14);display:flex;align-items:center;gap:10px;}
+.method .i{flex:none;width:15px;height:15px;border-radius:50%;background:var(--ink-3);color:var(--paper);font-weight:700;font-size:10px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--f-body);}
+.method .body{font-family:var(--f-ui);font-size:11.5px;color:var(--ink-3);line-height:1.5;}
+.method .body .badge{font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--green-700);}
+.method .body b{color:var(--ink-2);font-weight:600;}
+</style>
+</head>
+<body data-cd-mode="{{.RegionNoun}}">
+
+<div class="report-strip"><div class="strip-in">
+  {{if .IconDataURI}}<img class="strip-logo" src="{{.IconDataURI}}" alt="">{{end}}
+  <span class="strip-brand">sheaf</span>
+  <span class="strip-sep">·</span>
+  <span class="strip-kind">concept docs</span>
+  <span class="strip-sep">·</span>
+  <span class="strip-lib">{{.Library}}</span>
+  {{- if .Commit}}
+  <span class="strip-sep">·</span>
+  <span class="strip-sha">sha:{{shortsha .Commit}}</span>
+  {{- end}}
+  {{- if .GeneratedAt}}
+  <span class="strip-sep">·</span>
+  <span class="strip-time">{{.GeneratedAt}}</span>
+  {{- end}}
+</div></div>
+
+<div class="wrap">
+
+  <!-- ── Library filter banner (revealed by ?library= on a multi-library report) ── -->
+  <div class="cd-filter" id="cd-filter" hidden>
+    <span class="cd-filter-txt">Showing <b id="cd-filter-libs"></b></span>
+    <a class="cd-filter-clear" id="cd-filter-clear" href="#">Show all libraries &rarr;</a>
+  </div>
+
+  <!-- ── Masthead + state chips ── -->
+  <div class="masthead">
+    <div class="eyebrow">Concept docs</div>
+    <h1>{{.Headline}}</h1>
+
+    <div class="surf">
+      {{- range .Chips}}
+      <div class="surf-cell">
+        <div class="s {{.Class}}">
+          <div class="l"><span class="dot"></span>{{.Label}}</div>
+          <div class="v">{{.Count}}<small> / {{$.Total}}</small></div>
+          <div class="sub">{{.Sub}}</div>
+          <hr class="chip-div">
+          <div class="chip-regions">
+            {{- range $i, $r := .Regions}}{{if lt $i 6}}
+            <div class="cr-row" data-cd-region="{{$r.Kind}}" data-cd-n="{{$r.N}}"><span class="cr-name">{{$r.Label}}</span><span class="cr-num">{{$r.N}}</span></div>
+            {{- end}}{{end}}
+            {{- if gt (len .Regions) 6}}
+            <span class="cr-overflow">
+              {{- range $i, $r := .Regions}}{{if ge $i 6}}
+              <div class="cr-row" data-cd-region="{{$r.Kind}}" data-cd-n="{{$r.N}}"><span class="cr-name">{{$r.Label}}</span><span class="cr-num">{{$r.N}}</span></div>
+              {{- end}}{{end}}
+            </span>
+            {{- end}}
+          </div>
+        </div>
+        {{- if gt (len .Regions) 6}}
+        <button type="button" class="cr-more" onclick="toggleChipRegions(this, {{len .Regions}})">show all {{len .Regions}} rows &rarr;</button>
+        {{- end}}
+      </div>
+      {{- end}}
+    </div>
+  </div>
+
+  <!-- ── View switcher: Named | Silent ── -->
+  <div class="viewtabs" role="tablist">
+    <button class="viewtab on" data-view="named" role="tab" onclick="showView('named')">Named</button>
+    <button class="viewtab" data-view="silent" role="tab" onclick="showView('silent')">Silent</button>
+  </div>
+
+  <!-- ── Named view (per-doc cards) ── -->
+  <section class="view on" id="view-named">
+  <div class="view-meta">What each guide names — clear vs. ambiguous, every reference cited.</div>
+  {{- range .Docs}}
+  <div class="doc" id="doc-{{.ID}}" data-cd-libraries="{{range $i, $l := .Libraries}}{{if $i}} {{end}}{{$l}}{{end}}">
+    <div class="doc-head">
+      <div>
+        <div class="doc-title">{{.Title}}</div>
+        {{- if .Href}}
+        <div class="doc-path"><a href="{{.Href}}" target="_blank" rel="noopener">{{.Path}}</a></div>
+        {{- else}}
+        <div class="doc-path">{{.Path}}</div>
+        {{- end}}
+      </div>
+    </div>
+    <div class="doc-refs">
+      {{- range .Cites}}
+      {{template "cite" .}}
+      {{- end}}
+      {{- if .More}}
+      <div class="cite-overflow">
+        {{- range .More}}
+        {{template "cite" .}}
+        {{- end}}
+      </div>
+      <button type="button" class="show-all-cites" onclick="toggleDoc('{{.ID}}', this, {{len .More}})">show all {{len .More}} more in this doc &darr;</button>
+      {{- end}}
+    </div>
+  </div>
+  {{- else}}
+  <div class="view-meta">No concept doc names any element in this library yet.</div>
+  {{- end}}
+  </section>
+
+  <!-- ── Silent view (the silent set) ── -->
+  <section class="view" id="view-silent">
+  <div class="view-meta">Entities no concept doc names — the territory, grouped by {{.RegionNoun}} <span id="cd-silent-meta">({{.SilentCount}} of {{.Total}})</span>. Not a ranked backlog.</div>
+  {{- range .SilentSet}}
+  <div class="sgroup" data-cd-region="{{.Kind}}" data-cd-n="{{.Count}}">
+    <div class="sg-h">{{.Label}} <span class="cnt">{{.Count}} silent</span></div>
+    <div class="chips">
+      {{- range $i, $item := .Items}}{{if lt $i 12}}
+      <span class="schip"><span class="k">{{$item.Tag}}</span> {{$item.Display}}</span>
+      {{- end}}{{end}}
+      {{- if gt .Count 12}}
+      <span class="schip-overflow">
+        {{- range $i, $item := .Items}}{{if ge $i 12}}
+        <span class="schip"><span class="k">{{$item.Tag}}</span> {{$item.Display}}</span>
+        {{- end}}{{end}}
+      </span>
+      <span class="silent-more" role="button" tabindex="0" onclick="toggleSilent(this)">show {{sub .Count 12}} more&hellip; &rarr;</span>
+      {{- end}}
+    </div>
+  </div>
+  {{- end}}
+  </section>
+
+  <!-- ── Provenance footer ── -->
+  <div class="method">
+    <span class="i">i</span>
+    <div class="body"><span class="badge">Mechanical · deterministic · no model.</span> &nbsp;Counts, not percentages. Attribution is strongest for backticked FQNs and explicit links; plain-word matches carry their excerpt so you can judge.</div>
+  </div>
+
+</div>
+<script>
+function showView(name){
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('on', v.id === 'view-' + name); });
+  document.querySelectorAll('.viewtab').forEach(function(b){ b.classList.toggle('on', b.dataset.view === name); });
+}
+function toggleDoc(id, btn, n){
+  var doc = document.getElementById('doc-' + id);
+  if(!doc) return;
+  var on = doc.classList.toggle('cites-all');
+  btn.innerHTML = on ? 'show fewer ↑' : ('show all ' + n + ' more in this doc ↓');
+}
+function toggleSilent(el){
+  var ov = el.previousElementSibling;
+  if(!ov || !ov.classList.contains('schip-overflow')) return;
+  var on = ov.classList.toggle('on');
+  el.innerHTML = on ? 'show fewer &uarr;' : ('show ' + ov.childElementCount + ' more&hellip; &rarr;');
+}
+function toggleChipRegions(btn, n){
+  var cell = btn.closest('.surf-cell');
+  var chip = cell && cell.querySelector('.s');
+  if(!chip) return;
+  var on = chip.classList.toggle('regions-all');
+  btn.innerHTML = on ? 'hide rows &larr;' : ('show all ' + n + ' rows &rarr;');
+}
+// Library filter: a multi-library (region=library) report deep-linked with
+// ?library=a,b shows only those libraries' doc cards, chip regions, and silent
+// groups, and recomputes the masthead counts to the filtered subset. No-op for
+// single-library reports or when no library param is present.
+(function(){
+  if(document.body.dataset.cdMode !== 'library') return;
+  var raw = new URLSearchParams(location.search).get('library') || '';
+  var want = raw.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  if(!want.length) return;
+  var wantSet = {};
+  want.forEach(function(l){ wantSet[l] = true; });
+
+  // Doc cards: keep a card iff it cites at least one wanted library.
+  document.querySelectorAll('.doc[data-cd-libraries]').forEach(function(d){
+    var libs = (d.getAttribute('data-cd-libraries') || '').split(/\s+/);
+    d.style.display = libs.some(function(l){ return wantSet[l]; }) ? '' : 'none';
+  });
+
+  // Chip region rows: hide non-wanted; recompute each chip count + shared total.
+  var total = 0;
+  document.querySelectorAll('.surf .s').forEach(function(chip){
+    var sum = 0;
+    chip.querySelectorAll('.cr-row[data-cd-region]').forEach(function(row){
+      var keep = !!wantSet[row.getAttribute('data-cd-region')];
+      row.style.display = keep ? '' : 'none';
+      if(keep) sum += parseInt(row.getAttribute('data-cd-n'), 10) || 0;
+    });
+    var v = chip.querySelector('.v');
+    if(v && v.firstChild) v.firstChild.nodeValue = String(sum);
+    total += sum;
+  });
+  document.querySelectorAll('.surf .s .v small').forEach(function(s){ s.textContent = ' / ' + total; });
+
+  // Silent groups: hide non-wanted; recompute the silent meta counts.
+  var silent = 0;
+  document.querySelectorAll('.sgroup[data-cd-region]').forEach(function(g){
+    var keep = !!wantSet[g.getAttribute('data-cd-region')];
+    g.style.display = keep ? '' : 'none';
+    if(keep) silent += parseInt(g.getAttribute('data-cd-n'), 10) || 0;
+  });
+  var sm = document.getElementById('cd-silent-meta'); if(sm) sm.textContent = '(' + silent + ' of ' + total + ')';
+
+  // Reveal the banner; its clear link returns to the unfiltered report.
+  var bar = document.getElementById('cd-filter');
+  if(bar){
+    var libsEl = document.getElementById('cd-filter-libs');
+    if(libsEl) libsEl.textContent = want.join(', ');
+    var clr = document.getElementById('cd-filter-clear');
+    if(clr) clr.setAttribute('href', location.pathname);
+    bar.hidden = false;
+  }
+})();
+</script>
+</body>
+</html>
+{{define "cite"}}<div class="cite {{.CiteClass}}">
+        <div class="cite-quote">
+        <div class="cap">line:{{.Line}}</div>
+        <div class="frag">{{.Pre}}{{if .Token}}<span class="{{.TokenClass}}">{{.Token}}</span>{{end}}{{.Post}}</div>
+        </div>
+        <div class="resolve"><span class="arr">{{.Verb}} &rarr;</span>{{range .Resolves}} <span class="ent {{.Class}}">{{.Label}}</span>{{end}}{{if .AnchorNote}} <span style="color:var(--ink-3)">· {{.AnchorNote}}</span>{{end}}</div>
+      </div>{{end}}

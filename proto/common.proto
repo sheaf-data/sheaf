@@ -1,0 +1,138 @@
+// Common types used across Sheaf protos.
+//
+// Source-location, provenance, references. Everything in here is
+// schema-stable across v1; future changes are additive.
+
+syntax = "proto3";
+
+package sheaf.common.v1;
+
+option go_package = "github.com/sheaf-data/sheaf/proto/common";
+
+import "google/protobuf/timestamp.proto";
+
+// SourceLocation pins a piece of data to a file/line/column in the repo.
+message SourceLocation {
+  string path = 1;        // repo-relative; forward-slash separated
+  uint32 line = 2;        // 1-based; 0 means "unknown line"
+  uint32 column = 3;      // 1-based; 0 means "unknown column"
+  // Canonical clickable URL for the source. Adapters that have a
+  // stable per-element URL pattern (e.g. workflows with `url_base`,
+  // markdowncli with `url_base`) populate this; otherwise renderers
+  // fall back to expanding their --source-url-template against path.
+  string url = 4;
+}
+
+// Provenance captures who/what/when produced a piece of data.
+message Provenance {
+  string commit_hash = 1;
+  google.protobuf.Timestamp generated_at = 2;
+  string llm_call_id = 3;                       // empty if no LLM was involved
+  map<string, string> adapter_versions = 4;     // adapter name -> version string
+  string scan_id = 5;                           // ties together a single scan run
+}
+
+// RowProvenance records HOW a single element / attribution edge entered
+// the corpus: which TIER produced it (a deterministic schema/grammar
+// adapter vs an LLM judgment under propose/verify), the concrete SOURCE,
+// and — for LLM rows only — a TRANSFORM tag from a small fixed taxonomy.
+//
+// This is per-ROW provenance, distinct from the scan-level Provenance
+// above (which captures commit/scan-id/timestamp for a whole run). It is
+// the enabling plumbing for two things: the two-tier confidence report
+// (deterministic rows vs LLM-inferred rows must never be conflated) and
+// the auto-generated sheaf-hardening.md (a GROUP-BY over LLM rows ranked
+// by the deterministic replacement that would pin them).
+message RowProvenance {
+  enum Tier {
+    TIER_UNSPECIFIED = 0;
+    DETERMINISTIC = 1;  // schema/grammar adapter; reproducible, high trust
+    LLM = 2;            // LLM judgment; citation-verified, recall-unverified
+  }
+  Tier tier = 1;
+  // source is the adapter name for deterministic rows (e.g. "cppheader",
+  // "proto") or "llm" for LLM-tier rows.
+  string source = 2;
+  // transform is set ONLY on LLM rows and names the deterministic
+  // replacement that could pin this row. Small fixed taxonomy (drives
+  // the hardening doc's GROUP-BY):
+  //   "schema-available"          a generator exists for this surface
+  //   "macro-alias"               reached via a #define alias/expansion
+  //   "syntax-form-regex-misses"  e.g. `using X = MACRO;`, inline constexpr
+  //   "indirect-dispatch"         runtime/reflective; likely irreducible
+  //   "grouping"                  a logical roll-up the agent decided
+  // WORKFLOW-composition rows (DocClaim{kind=WORKFLOW}, tier=LLM, from
+  // internal/workflowextract) classify the SOURCE grammar of the
+  // extracted sequence so sheaf-hardening.md can GROUP-BY and rank the
+  // deterministic replacement that would pin them:
+  //   "workflow-cli-grammar"      sequence expressed as `<binary> <subcmd>`
+  //                               command fences → wire the `workflows`
+  //                               rendered-reference adapter (rung 2)
+  //   "workflow-yaml-grammar"     sequence in fenced/`.. code-block:: yaml`
+  //                               naming >=2 dotted FQDNs → wire the
+  //                               `yaml-workflows` adapter (rung 1)
+  //   "workflow-prose"            free prose, no parseable grammar →
+  //                               likely the irreducible tail (rung 4)
+  // Empty on deterministic rows.
+  string transform = 3;
+}
+
+// Substance is the grading scale for documentation depth.
+enum Substance {
+  SUBSTANCE_UNSPECIFIED = 0;
+  ABSENT = 1;
+  SIGNATURE_ONLY = 2;
+  PARTIAL = 3;
+  SUBSTANTIVE = 4;
+}
+
+// Severity used in analyzer findings.
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  INFO = 1;
+  WARNING = 2;
+  ERROR = 3;
+}
+
+// DocRef is a reference from a doc artifact to a contract element.
+// Used as nested entries inside CoverageProfile.DocCoverage.
+message DocRef {
+  string path = 1;
+  uint32 line = 2;
+  string url = 3;              // canonical published URL, if known
+  Substance substance = 4;
+  uint32 words = 5;            // word count of the behavioral prose
+  string adapter = 6;          // adapter that produced this ref
+  // provenance tags the edge's tier. Deterministic for refs the
+  // cross-reference join produced; LLM for refs an LLM attribution pass
+  // proposed and a citation gate confirmed. The trusted coverage number
+  // counts deterministic refs only; LLM refs render in the flagged tier.
+  // `line` is the cited evidence line for LLM refs.
+  RowProvenance provenance = 7;
+}
+
+// TestRef is a reference from a test to a contract element.
+message TestRef {
+  string path = 1;
+  uint32 line = 2;             // for LLM refs, the cited line that references the element
+  string test_name = 3;        // canonical test ID like "FooTest.Bar"
+  string exercises = 4;        // contract element ID
+  string framework = 5;        // "gtest" | "rust-test" | "bats" | ...
+  // provenance tags the edge's tier (deterministic join vs citation-
+  // gated LLM attribution). See DocRef.provenance.
+  RowProvenance provenance = 6;
+}
+
+// CodeRef is a reference from example code to a contract element.
+message CodeRef {
+  string path = 1;
+  uint32 start_line = 2;
+  uint32 end_line = 3;
+  string intent = 4;           // free-form: "tutorial step", "test helper", etc.
+}
+
+// UsageAggregate summarizes a count of usage sites with sample paths.
+message UsageAggregate {
+  uint32 count = 1;
+  repeated string sample_paths = 2;  // capped; typically 5-10 entries
+}

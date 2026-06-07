@@ -1,0 +1,70 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Power & Memory" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.cpu.profiler/**/*.fidl"
+    include: "sdk/fidl/fuchsia.memory.attribution/**/*.fidl"
+    include: "sdk/fidl/fuchsia.memory.attribution.plugin/**/*.fidl"
+    include: "sdk/fidl/fuchsia.memory.debug/**/*.fidl"
+    include: "sdk/fidl/fuchsia.memory.heapdump.client/**/*.fidl"
+    include: "sdk/fidl/fuchsia.memory.heapdump.process/**/*.fidl"
+    include: "sdk/fidl/fuchsia.memory.inspection/**/*.fidl"
+    include: "sdk/fidl/fuchsia.memory.sampler/**/*.fidl"
+    include: "sdk/fidl/fuchsia.memory.stacktrack.client/**/*.fidl"
+    include: "sdk/fidl/fuchsia.memory.stacktrack.process/**/*.fidl"
+    include: "sdk/fidl/fuchsia.memorypressure/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.battery/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.battery.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.broker/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.button/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.clientlevel/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.cpu/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.cpu.manager/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.internal/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.manager.debug/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.metrics/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.observability/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.profile/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.suspend/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.system/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.systemmode/**/*.fidl"
+    include: "sdk/fidl/fuchsia.power.topology.test/**/*.fidl"
+    include: "sdk/fidl/fuchsia.thermal/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/developer/memory/**/*_unittest.cc"
+    include: "src/developer/memory/**/*_test.cc"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/power/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/power/**/*.rs"
+  include: "src/developer/memory/**/*.cc"
+  include: "src/developer/memory/**/*.h"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

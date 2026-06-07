@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen version="1.17.0">
+  <compounddef id="util_8h" kind="file" language="C++">
+    <compoundname>util.h</compoundname>
+    <sectiondef kind="func">
+      <memberdef kind="function" id="util_8h_1aENCODE">
+        <name>Encode</name>
+        <qualifiedname>pw::util::Encode</qualifiedname>
+        <briefdescription><para>Encodes the input into the buffer.</para></briefdescription>
+        <detaileddescription><para>Writes the varint encoding of value and returns the
+        number of bytes written, or zero on overflow.</para></detaileddescription>
+        <location file="pw_util/public/pw_util/util.h" line="20"/>
+      </memberdef>
+    </sectiondef>
+    <briefdescription></briefdescription>
+    <detaileddescription></detaileddescription>
+    <location file="pw_util/public/pw_util/util.h"/>
+  </compounddef>
+</doxygen>

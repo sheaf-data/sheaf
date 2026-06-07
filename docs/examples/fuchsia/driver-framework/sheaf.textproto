@@ -1,0 +1,65 @@
+# Config used to produce example-reports/fuchsia-driver-framework.html
+# Scope: fuchsia.driver.framework FIDL + driver_manager + driver-runtime
+# C++ test corpus + implements-map bridge from the wireserver impls
+# back to FIDL methods.
+
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — fuchsia.driver.framework" }
+
+scope {
+  library: "fuchsia.driver.framework"
+}
+
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/devices/bin/driver_manager/**/*_test.cc"
+    include: "src/devices/bin/driver_manager/**/*_unittest.cc"
+    include: "src/devices/bin/driver_host/**/*_test.cc"
+    include: "src/devices/bin/driver_host/**/*_unittest.cc"
+    include: "src/devices/bin/driver_index/**/*_test.cc"
+    include: "src/devices/bin/driver_index/**/*_unittest.cc"
+  }
+}
+
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/devices/bin/driver_manager/**/*.h"
+  include: "src/devices/bin/driver_manager/**/*.cc"
+  include: "src/devices/bin/driver_host/**/*.h"
+  include: "src/devices/bin/driver_host/**/*.cc"
+  include: "src/devices/bin/driver_index/**/*.h"
+  include: "src/devices/bin/driver_index/**/*.cc"
+}
+
+analyzer { name: "missing-in-category" severity: WARNING
+  config { key: "alert_for_categories" string_value: "tests.unit_tests" }
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+
+# FIDL/proto element coverage is computed against
+# {docs.reference, docs.concepts, examples, implementations} — NOT
+# tests. A FIDL declaration is an interface; there is no executable
+# body to test. What gets tested is the impl class (CPP_CLASS /
+# RUST_TYPE) responding to the protocol, and the impl element has
+# its own CoverageProfile with real tests.
+#
+# The implements-map heuristic that previously bridged impl tests
+# to the FIDL element produced 63% FP on this report. It was demoted
+# from a coverage strategy to a relationship-only data source: the
+# IMPLEMENTS edges in the corpus populate the `implementations`
+# surface on each interface element, rendered as cross-links to the
+# impl classes' own coverage.
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "implementations"

@@ -1,0 +1,11 @@
+# A file whose first document is a raw, un-rendered Helm template (NOT
+# valid YAML — the `{{ ... }}` makes the scalar value ambiguous to the
+# YAML parser). The adapter must skip it gracefully and never emit a
+# `{{ .Values.x }}` pseudo-field. This guards the single most important
+# rule: rendered YAML only, no template parsing.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+spec:
+  replicas: {{ .Values.replicaCount }}

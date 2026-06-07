@@ -1,0 +1,10 @@
+Posted via file → file:///…/out/github-example-widgets-42.md
+---
+## Sheaf review · github:example/widgets#42 — touches 1 contract element(s)
+
+### `widgets/Widget.Delete`
+
+- **COVERAGE_DELTA** — new element added in this revision
+- **DOCUMENTED_UNTESTED** — element is documented but has no test references
+- **MISSING_IN_CATEGORY** — no references in category "tests.unit_tests"
+

@@ -1,0 +1,54 @@
+# Config used to produce example-reports/fuchsia-ui-composition.html
+# Scope: fuchsia.ui.composition FIDL + flatland C++ test corpus +
+# implements-map bridge from C++ wireserver impls back to FIDL methods.
+
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — fuchsia.ui.composition" }
+
+scope {
+  library: "fuchsia.ui.composition"
+}
+
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+
+test_parser {
+  name: "gtest"
+  gtest {
+    include: "src/ui/scenic/lib/flatland/**/*_unittest.cc"
+    include: "src/ui/scenic/lib/flatland/**/*_test.cc"
+    include: "src/ui/scenic/tests/**/*_unittest.cc"
+    include: "src/ui/scenic/tests/**/*_test.cc"
+  }
+}
+
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/ui/scenic/lib/flatland/**/*.h"
+  include: "src/ui/scenic/lib/flatland/**/*.cc"
+  include: "src/ui/scenic/lib/scenic/**/*.h"
+  include: "src/ui/scenic/lib/scenic/**/*.cc"
+}
+
+analyzer { name: "missing-in-category" severity: WARNING
+  config { key: "alert_for_categories" string_value: "tests.unit_tests" }
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+
+# FIDL element coverage is computed against
+# {docs.reference, docs.concepts, examples, implementations} — NOT
+# tests. The implements-map heuristic produced 57% FP on this report
+# (cross-protocol bleed within flatland test directories). Tests of
+# impl classes attribute to the impl element directly; the FIDL
+# protocol element renders its IMPLEMENTS edges via the
+# `implementations` surface.
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"
+surfaces_required: "implementations"

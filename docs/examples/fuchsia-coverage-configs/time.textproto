@@ -1,0 +1,36 @@
+version: 1
+project { name: "fuchsia" display_name: "Fuchsia OS — Time" idl_prefix: "fuchsia" }
+scope {}
+contract_anchor {
+  name: "fidl"
+  fidl {
+    include: "sdk/fidl/fuchsia.time/**/*.fidl"
+    include: "sdk/fidl/fuchsia.time.alarms/**/*.fidl"
+    include: "sdk/fidl/fuchsia.time.external/**/*.fidl"
+    include: "sdk/fidl/fuchsia.time.test/**/*.fidl"
+    exclude: "sdk/fidl/**/test/**"
+  }
+}
+doc_parser {
+  name: "markdown"
+  markdown {
+    include: "docs/development/**/*.md"
+    include: "docs/concepts/**/*.md"
+    include: "docs/reference/fidl/**/*.md"
+  }
+}
+test_parser {
+  name: "rust-test"
+  rust_test {
+    include: "src/sys/time/timekeeper/**/*.rs"
+  }
+}
+implements_map {
+  name: "cpp-fidl-wireserver"
+  include: "src/sys/time/timekeeper/**/*.rs"
+}
+analyzer { name: "thin-reference"      severity: WARNING }
+analyzer { name: "documented-untested" severity: WARNING }
+analyzer { name: "tested-undocumented" severity: INFO }
+surfaces_required: "docs.reference"
+surfaces_required: "docs.concepts"

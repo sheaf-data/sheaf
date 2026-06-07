@@ -1,0 +1,18 @@
+# Synthetic pw_chrono BUILD.gn — declares two facades.
+
+pw_facade("system_clock") {
+  backend = pw_chrono_SYSTEM_CLOCK_BACKEND
+  public_configs = [ ":public_include_path" ]
+  public = [
+    "public/pw_chrono/internal/system_clock_macros.h",
+    "public/pw_chrono/system_clock.h",
+  ]
+  public_deps = [ "$dir_pw_polyfill" ]
+}
+
+pw_facade("system_timer") {
+  backend = pw_chrono_SYSTEM_TIMER_BACKEND
+  public = [
+    "public/pw_chrono/system_timer.h",
+  ]
+}

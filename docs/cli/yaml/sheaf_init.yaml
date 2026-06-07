@@ -1,0 +1,19 @@
+command: sheaf init
+short: Scaffold a starter sheaf.textproto + categorization rules.
+long: |
+  Writes a starter pair of config files (sheaf.textproto and
+  categorization-rules.textproto) into --repo. Refuses to overwrite
+  an existing sheaf.textproto. Three templates ship: minimal,
+  argh-cli, and fuchsia-internal.
+usage: sheaf init [--repo path] [--template name]
+pname: sheaf
+plink: sheaf.yaml
+options:
+  - option: repo
+    value_type: string
+    default_value: "."
+    description: Where to write the config files.
+  - option: template
+    value_type: string
+    default_value: "minimal"
+    description: Template name — minimal, argh-cli, fuchsia-internal.

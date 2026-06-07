@@ -1,0 +1,56 @@
+// DocClaim — a reference from a doc source to a contract element.
+//
+// Both human-written prose (markdown) and rendered references
+// (fidldoc, clidoc) produce DocClaims; substance grading distinguishes
+// them downstream.
+
+syntax = "proto3";
+
+package sheaf.docclaim.v1;
+
+option go_package = "github.com/sheaf-data/sheaf/proto/docclaim";
+
+import "common.proto";
+
+// DocClaim kinds let the indexer route claims into the right buckets.
+enum DocClaimKind {
+  DOC_CLAIM_KIND_UNSPECIFIED = 0;
+  REFERENCE = 1;        // from a rendered-reference bundle (fidldoc/clidoc)
+  PROSE_MENTION = 2;    // from human-authored prose (markdown)
+  EXAMPLE = 3;          // from a code block inside prose
+  // WORKFLOW — a multi-element sequence claim. Emitted by the
+  // workflows adapter when a single doc page (recipe, tutorial,
+  // task) names two-or-more contract elements in sequence. The
+  // ContractRefs list is ordered: refs[0] is the first command in
+  // the sequence, refs[N-1] is the last. Single-element claims do
+  // not use this kind — they are EXAMPLE or REFERENCE.
+  WORKFLOW = 4;
+}
+
+message DocClaim {
+  string source_path = 1;
+  sheaf.common.v1.SourceLocation location = 2;
+  string raw_text = 3;                                // short excerpt, typically <=300 chars
+  repeated string contract_refs = 4;                  // ContractElement IDs (populated by indexer)
+  string url = 5;                                     // canonical published URL if known
+  sheaf.common.v1.Substance substance = 6;
+  uint32 word_count = 7;
+  DocClaimKind kind = 8;
+  string adapter = 9;                                 // adapter that produced this claim
+  // section_path is the heading stack at the point of emission,
+  // outermost first. For a flag mentioned under `## Command-line
+  // options` → `### Filtering`, section_path = ["Command-line
+  // options", "Filtering"]. Empty when the mention sits outside
+  // any heading (preamble), or when the source format has no
+  // heading structure.
+  //
+  // v1 tracks H1/H2/H3 only; deeper nesting rolls up to the
+  // nearest tracked level. Adapters whose source has no
+  // heading-equivalent structure leave this empty.
+  repeated string section_path = 10;
+
+  // provenance records which tier produced this claim. Deterministic
+  // for all slice-1 doc parsers; the field exists so LLM-adjudicated
+  // attribution edges (slice 2) can carry tier without a schema change.
+  sheaf.common.v1.RowProvenance provenance = 11;
+}
