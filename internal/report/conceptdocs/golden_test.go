@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-const goldenRel = "docs/grounding/samples/drivers.concept-docs.html"
+const goldenRel = "internal/report/conceptdocs/testdata/drivers.concept-docs.html"
 
 // TestRender_FuchsiaGolden asserts the rendered Concept Docs report for the
 // committed fuchsia.driver.framework sample is byte-identical to the committed

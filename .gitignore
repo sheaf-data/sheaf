@@ -57,6 +57,18 @@ __pycache__/
 # Internal design notes — never committed (see CLAUDE.md). Lives locally only.
 /internal-notes/
 
+# Experimental example projects — kept out of the public repo. The canonical
+# gallery is gh / sheaf / envoy (featured) + pigweed / fuchsia (in docs/examples,
+# off the README). Source copies live in the workspace, not here; do not commit.
+/docs/examples/fd-coverage-*.textproto
+/docs/examples/grpc-coverage-*.textproto
+/docs/examples/kubectl-coverage-*.textproto
+/docs/examples/cert-manager-*.textproto
+/docs/examples/prometheus-operator-*.textproto
+/docs/examples/ingress-nginx-*.textproto
+/docs/examples/docker-cli-*.textproto
+/docs/examples/grafana/
+
 # Generated example reports — hosted from sheaf-data/examples, not the code
 # repo. Regenerate via scripts/regen-example-reports.sh; do not commit.
 /example-reports/

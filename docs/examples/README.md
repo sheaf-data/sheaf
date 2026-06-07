@@ -12,7 +12,6 @@ Each of these has its own README:
 | Directory | What it shows |
 |---|---|
 | [`envoy-coverage/`](envoy-coverage/) | End-to-end recipe scanning [envoyproxy/envoy] with the `protocpp` adapter, scoped to the eight v3 xDS management-plane services. `validate.sh` runs the full pipeline and diffs element counts against a proto-descriptor ground truth. |
-| [`grafana/`](grafana/) | Scanning an HTTP REST API described by an OpenAPI 3 spec (Grafana's `api-merged.json`) — the cobra / FIDL / proto adapters don't apply, so `build_grafana_snapshot.py` builds a Sheaf `Snapshot` directly and `sheaf render --from-snapshot` turns it into [`example-reports/grafana.html`](../../example-reports/grafana.html). |
 | [`self-scan/`](self-scan/) | Sheaf dogfooding itself: the `sheaf.textproto` + source map Sheaf uses to scan its *own* cobra CLI surface against its own tests (`gotest`), docs, and worked examples. The canonical "complete config for a cobra-style CLI". |
 | [`sheaf-bot-demo/`](sheaf-bot-demo/) | The PR-review bot (`sheaf review` CLI + `review_pr` MCP op) over a synthetic base/head "widgets" project, showing both surfaces produce the same review comment. |
 | [`sheaf-validate-scan/`](sheaf-validate-scan/) | A Claude Code skill that deep-validates any scan — classifying each attribution as TP / FP / ambiguous and searching for false negatives. (Superseded for onboarding by `sheaf verify` + the `sheaf-onboard` skill; kept for standalone audits.) |
@@ -71,83 +70,6 @@ sheaf report --repo /path/to/fuchsia --format html --output docs/examples/fuchsi
 
 End-to-end time: ~5 seconds (ingest 5s, index 40ms, analyze ~0, render <1s).
 
-## `docker-cli-coverage-config.textproto` + `docker-cli-coverage-rules.textproto`
-
-Companion config for scanning the docker CLI. Joins the cobra-derived contract surface (one ContractElement per subcommand and per flag, extracted from docker/cli's `make yamldocs` output) against docker.com's per-subcommand reference markdown.
-
-### Prereqs
-
-In a checkout of [`docker/cli`](https://github.com/docker/cli):
-
-```sh
-make -f docker.Makefile yamldocs
-```
-
-That writes per-subcommand YAML files to `_output/yaml/`. The reference markdown lives in the same repo at `docs/reference/commandline/*.md`.
-
-### Run
-
-```sh
-cp docs/examples/docker-cli-coverage-config.textproto /path/to/docker/cli/sheaf.textproto
-cp docs/examples/docker-cli-coverage-rules.textproto /path/to/docker/cli/categorization-rules.textproto
-sheaf report --repo /path/to/docker/cli --format html --output docs/examples/docker-cli-coverage
-```
-
-### Caveats
-
-- **Go tests via the `gotest` adapter.** docker's tests are Go, and Sheaf's `gotest` adapter (the same one the self-scan uses) parses them. Attribution still depends on the test names/paths sharing tokens with the subcommand/flag elements, so some subcommands may surface as `documented-untested` where the join doesn't fire.
-- **Plugins out of scope.** `docker buildx`, `docker compose`, and `docker scan` live in separate repos. The config above scans only the cli repo; plugin subcommands appearing in the rendered docs (via `docker_compose_*.md`) will surface as `documented-untested` until those repos are scanned in their own runs.
-
-## `fd-coverage-config.textproto` + `fd-coverage-rules.textproto`
-
-Companion config for scanning [`sharkdp/fd`](https://github.com/sharkdp/fd) — the canonical example of the `clap` contract anchor. fd is a single-binary Rust CLI built on clap's derive API (`#[derive(Parser)]`, `#[command(...)]`, `#[arg(...)]`). The adapter walks `src/cli.rs`, finds the `Opts` struct, and emits one ContractElement per binary, per `#[arg(...)]` field, and per Subcommand variant.
-
-**Open the report:** [`example-reports/fd.html`](../../example-reports/fd.html)
-
-### Why fd over ripgrep
-
-The original ask was ripgrep. Ripgrep famously *doesn't* use clap — it has a hand-rolled `Flag` trait in `crates/core/flags/defs.rs` (zero `clap` dep in `Cargo.toml`). fd is the closest substitute: same domain (filesystem search), same single-binary shape, and a textbook clap-derive surface in one file.
-
-### What the scan surfaces
-
-| Bucket | Count | Notes |
-|---|---|---|
-| SUBCOMMAND | 1 | the root `fd` binary |
-| FLAG | ~30 | value-bearing options without a `default_value` |
-| SWITCH | ~13 | bool fields and `ArgAction::SetTrue` flags |
-| CONFIG_KNOB | 3 | `--color`, `--hyperlink`, `--batch-size` (each has `default_value_t = ...` → promoted from FLAG by the same rule the argh adapter uses) |
-| POSITIONAL | 2 | `<pattern>` and `<path>` |
-| **Total** | **48** | |
-
-### Prereqs
-
-```sh
-git clone --depth=1 https://github.com/sharkdp/fd.git \
-  /Volumes/T7/sheaf-workspace/checkouts/fd
-```
-
-### Run
-
-```sh
-ln -sf $(pwd)/docs/examples/fd-coverage-config.textproto \
-  /Volumes/T7/sheaf-workspace/checkouts/fd/sheaf.textproto
-ln -sf $(pwd)/docs/examples/fd-coverage-rules.textproto \
-  /Volumes/T7/sheaf-workspace/checkouts/fd/categorization-rules.textproto
-sheaf doctor --repo /Volumes/T7/sheaf-workspace/checkouts/fd
-sheaf scan   --repo /Volumes/T7/sheaf-workspace/checkouts/fd
-
-sheaf serve --repo /Volumes/T7/sheaf-workspace/checkouts/fd --port 7811 &
-scanner --server http://127.0.0.1:7811 --library fd --ecosystem cli \
-  -o example-reports/fd.html
-kill %1
-```
-
-### Caveats
-
-- **Exec / exec-batch are builder-API.** fd uses `clap::Args::augment_args` for `--exec`/`--exec-batch` because clap's derive macro doesn't yet support grouped values. The clap adapter walks `#[derive(...)]` only; builder-style `Arg::new(...)` calls are out of scope, so `fd --exec` and `fd --exec-batch` don't appear in the report.
-- **Per-flag prose attribution is thin.** fd's README mentions flags inside ```` ```bash ```` code fences (`fd --no-ignore`). The generic markdown adapter currently extracts contract refs only from `rust`/`cpp` blocks, so most of these mentions land as raw text without joining to the corresponding ContractElement. This is a markdown-adapter limitation, not a clap-adapter one; the 48 elements are emitted correctly and carry their `///` doc-comment excerpts.
-- **Tests live in one file.** fd's integration tests are all in `tests/tests.rs`. The indexer's CLI-shape matcher requires single-token flag names (e.g. `--hidden`, `--prune`) to appear in the test's *path* tokens, but every test in fd shares the same path. Multi-token flags (`--no-ignore-vcs` → {no, ignore, vcs}) still attribute via the function-name matcher; single-token ones don't.
-
 ## `ffx-coverage-config.textproto` + `ffx-coverage-rules.textproto`
 
 Companion config for scanning Fuchsia's `ffx` CLI. The contract surface is the
@@ -165,12 +87,10 @@ sheaf report --repo /path/to/fuchsia --format html --output <out-dir>
 ## Other recipe configs
 
 The same `*-coverage-config.textproto` + `*-coverage-rules.textproto` shape covers
-many more surfaces shipped alongside this directory — among them the broader Fuchsia
-families (`fuchsia-driver-framework-*`, `fuchsia-ui-composition-*`, `fuchsia-ui-gfx-*`),
-the Pigweed modules (`pigweed-pw_log`, `pigweed-pw_rpc`, `pigweed-pw_transfer`), and
-several Kubernetes-ecosystem CRD/manifest recipes (`cert-manager-*`, `kubectl-*`,
-`ingress-nginx-manifest-*`, `prometheus-operator-crd-*`, `gh-*`, `grpc-*`). Most render
-into [`example-reports/`](../../example-reports/). Copy the pair into a checkout and run
-`sheaf report` (or `sheaf scan` + `scanner`) as in the recipes above.
+the other surfaces shipped alongside this directory — the broader Fuchsia families
+(`fuchsia-driver-framework-*`, `fuchsia-ui-composition-*`, `fuchsia-ui-gfx-*`), the
+Pigweed modules (`pigweed-pw_log`, `pigweed-pw_rpc`, `pigweed-pw_transfer`), and the
+GitHub CLI (`gh-*`). Copy the pair into a checkout and run `sheaf report` (or
+`sheaf scan` + `scanner`) as in the recipes above.
 
 [envoyproxy/envoy]: https://github.com/envoyproxy/envoy

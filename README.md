@@ -18,7 +18,7 @@ open sheaf-auto/sheaf-report.html               # the report + the sheaf.textpro
 
 `--auto` autodetects the common deterministic surfaces — Rust (clap) CLIs, protobuf / gRPC, FIDL, and C++ headers — runs the scan, and writes a self-contained report next to the `sheaf.textproto` it generated, so a second run is just `sheaf scan`. `--llm-backend none` keeps the first run fast and dependency-free: the contract↔test↔doc join is deterministic, so no model is contacted. (Drop the flag to add a citation-gated LLM attribution pass — `ANTHROPIC_API_KEY` for a fast frontier pass, or a local ollama model.)
 
-**That first report is a starting point, not the finished product.** Other contract surfaces — cobra CLIs (kubectl, gh, docker), Kubernetes CRDs, Helm values, OpenAPI — aren't autodetected; they're wired by config. And either way, a scan you'd forward to your team is real configuration work: the right include/exclude globs, a source map that groups by feature area, and a spot-check that every claimed bridge is real — a wrong glob *silently* under-counts. That's a job worth handing to a coding agent.
+**That first report is a starting point, not the finished product.** Other contract surfaces — cobra CLIs (like gh), Kubernetes CRDs, Helm values, OpenAPI — aren't autodetected; they're wired by config. And either way, a scan you'd forward to your team is real configuration work: the right include/exclude globs, a source map that groups by feature area, and a spot-check that every claimed bridge is real — a wrong glob *silently* under-counts. That's a job worth handing to a coding agent.
 
 > **Onboard your repo with the `sheaf-onboard` skill (recommended).** Your agent does the reconnaissance and config, runs the scan, then runs `sheaf verify` to check every headline number against disk *before* it shows you the report — so your spot-check is a confirmation, not a discovery. If config alone can't reach a surface, it offers a `sheaf-build-adapter` handoff instead of quietly under-counting.
 >
@@ -32,28 +32,13 @@ From a clone, build instead of install: `go build -o sheaf ./cmd/sheaf` — same
 
 ## Sample reports
 
-Each row links to a single self-contained HTML report produced by Sheaf against a real project. Click the sample name to open the report; the worklist, coverage matrix, and findings reflect that project's actual state at scan time. The config and rules used to produce each report are linked alongside — clone, point Sheaf at the same config, and you should reproduce the same numbers.
+Each row links to a Sheaf report produced against a real project (the self-scan links its recipe). Click the sample name to open it; the worklist, coverage matrix, and findings reflect that project's actual state at scan time. The config and rules used to produce each report are linked alongside — clone, point Sheaf at the same config, and you should reproduce the same numbers.
 
 | Sample | Ecosystem | Contract surface | Config |
 |---|---|---|---|
-| **[envoy ↗](example-reports/envoy.html)** | proto | Envoy xDS v3 protobuf API | [textproto](docs/examples/envoy-coverage-config.textproto) |
-| **[envoy config ↗](example-reports/envoy-config.html)** | proto | Envoy operator-facing config TYPEs — `Listener`, `Cluster`, `RouteConfiguration` (one combined report; sheaf-side rST adapter decodes Sphinx `:ref:` slugs to land docs on these surfaces) | [textproto](docs/examples/envoy-coverage-config.textproto) |
-| **[gRPC ↗](example-reports/grpc.html)** | proto | Core gRPC service definitions (health, reflection, channelz) | [textproto](docs/examples/grpc-coverage-config.textproto) |
-| **[kubectl (Kubernetes CLI) ↗](example-reports/kubectl.html)** | cli | kubectl subcommands + flags | [textproto](docs/examples/kubectl-coverage-config.textproto) |
-| **[cert-manager ↗](example-reports/cert-manager-crd.html)** | crd | cert-manager `CustomResourceDefinition` fields — `Certificate`/`Issuer`/`ClusterIssuer`/`CertificateRequest`/… The `crd` anchor walks each CRD's `spec.versions[].schema.openAPIV3Schema`; the OpenAPI `description` kubebuilder writes inline is the doc source, so the doc-coverage join is mechanical (no LLM). 686 elements, 99% documented — the handful of gaps are the bare `apiVersion`/`kind`/`metadata` stubs. | [textproto](docs/examples/cert-manager-crd-coverage-config.textproto) |
-| **[Prometheus Operator ↗](example-reports/prometheus-operator-crd.html)** | crd | Prometheus Operator `CustomResourceDefinition` fields — `Prometheus`/`Alertmanager`/`ServiceMonitor`/`ThanosRuler`/… A large surface (5,020 elements) parsed straight from the release CRD bundle; 4,973 carry an inline OpenAPI `description`, leaving 47 undocumented fields as the actionable queue. | [textproto](docs/examples/prometheus-operator-crd-coverage-config.textproto) |
-| **[ingress-nginx (rendered) ↗](example-reports/ingress-nginx-manifest.html)** | manifest | A `helm template`-rendered ingress-nginx stream, scoped to the `apps` group's `Deployment` (101 elements: 1 group, 1 kind, 99 fields incl. nested `spec.template.spec.containers[].image`, probes, security context). The `k8smanifest` anchor is the universal fallback for charts with no schema — it reports the fields *actually present* in valid, already-rendered YAML and never parses raw Helm templates (rendering is the user's `helm template` step). No inline docs ship in a manifest, so this is a contract-surface inventory: every field links to file:line in the rendered YAML. | [textproto](docs/examples/ingress-nginx-manifest-coverage-config.textproto) |
-| **[cert-manager (Helm values) ↗](example-reports/cert-manager-helm.html)** | helm | The cert-manager chart's **values** surface, read from its published `values.schema.json` (Helm 3's formal JSON-Schema values contract). The `helmvalues` anchor walks the schema's `properties` recursively — resolving JSON-Schema `$ref`/`$defs` — and emits 274 elements: 1 chart `LIBRARY` + 273 `CONFIG_KNOB` value keys (`replicaCount`, `image.tag`, `webhook.*`, `cainjector.*`, …). Each key's schema `description` is the doc source (no LLM); a key with none is a real undocumented finding. The adapter reads only `values.schema.json`/`values.yaml`, never `templates/*.yaml`. Caveat: a chart's published values surface is not a *proof* of completeness — the true surface is whatever the templates actually reference (see [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md#known-limitations)). Every key links to file:line in `values.schema.json`. | [textproto](docs/examples/cert-manager-helm-coverage-config.textproto) |
-| **[gh ↗](example-reports/gh.html)** | cli | GitHub CLI subcommands + flags | [textproto](docs/examples/gh-coverage-config.textproto) |
-| **[fd ↗](example-reports/fd.html)** | cli | fd's clap-derive flag surface (1 binary + 48 flags / switches / config knobs / positionals) | [textproto](docs/examples/fd-coverage-config.textproto) |
-| **[ffx (Fuchsia CLI) ↗](example-reports/ffx.html)** | cli | Fuchsia's `ffx` developer tool — the complete **680-command + ~1,100-flag** surface. ffx hides most leaf subcommands as `argh` enum variants packed into shared `args.rs` files, so a source walker sees only ~27%; the contract is instead synthesized from ffx's checked-in CLI goldens (the CI-diffed `ffx --machine json-pretty --help` dumps) into cobra-schema YAML — the same generate-a-bundle pattern kubectl uses. `clidoc` gives every command a deep-anchored fuchsia.dev reference (99%), and the 29 `ffx` workflow recipes + the goldens' per-command `examples[]` feed the workflow/examples surfaces. A deliberately honest case: per-flag prose and command-level tests run sparse — most ffx testing is integration/e2e rather than co-located unit tests the name-token matcher can attribute — so the report surfaces that gap instead of hiding it. | [textproto](docs/examples/ffx-coverage-config.textproto) |
-| **[fuchsia.ui.composition ↗](example-reports/fuchsia-ui-composition.html)** | FIDL | Fuchsia UI composition library | [textproto](docs/examples/fuchsia-ui-composition-coverage-config.textproto) |
-| **[fuchsia driver-framework ↗](example-reports/fuchsia-driver-framework.html)** | FIDL | A composed Fuchsia component | [textproto](docs/examples/fuchsia-driver-framework-coverage-config.textproto) |
-| **[fuchsia driver-framework family ↗](example-reports/fuchsia-driver-framework-family.html)** | FIDL | The 10 `fuchsia.driver.*` libraries (DFv2 framework + adjacent: host, indexer, loader, compat, registrar, test harness, token, logger) joined into one combined report | [textproto](docs/examples/fuchsia-driver-framework-family-coverage-config.textproto) |
-| **[fuchsia.ui.gfx ↗](example-reports/fuchsia-ui-gfx.html)** | FIDL | The predecessor of `fuchsia.ui.composition`, mid-migration — 132 elements deprecated, 1 removed. Showcases how the Worklist rolls deprecated/removed buckets into a single caption so they don't dominate the actionable queue. | [textproto](docs/examples/fuchsia-ui-gfx-coverage-config.textproto) |
-| **[Pigweed pw_rpc ↗](example-reports/pigweed-pw_rpc.html)** | cpp | Pigweed `pw_rpc` C++ public API (148 elements: `pw::rpc::Server`, `Client`, `Channel`, `ChannelOutput`, the call objects, …). The richest of the three Pigweed examples — the `cppheader` anchor enumerates the real C++ contract, Sphinx `:cpp:func:`/`:cpp:class:` doc roles land on it, and namespace-scoped `TEST(Class, …)` fixtures attribute back to the class under test. | [textproto](docs/examples/pigweed-pw_rpc-coverage-config.textproto) |
-| **[Pigweed pw_log ↗](example-reports/pigweed-pw_log.html)** | cpp | Pigweed `pw_log` C++ API — a facade rolled together with its backends (`pw_log_basic`, `pw_log_tokenized`, `pw_log_string`, `pw_log_null`). The `build_graph{pw_facade{}}` recognizer links them: each backend's `PW_HANDLE_LOG` handler macro gets an IMPLEMENTS edge to the facade's `PW_LOG` (Pigweed's `PW_HANDLE_<X> → PW_<X>` convention). Still a deliberately honest low-coverage case — the user-facing API is mostly macros (`PW_LOG_DEBUG`, …) whose *usage* in tests/docs isn't attributed yet, so the report surfaces that gap rather than hiding it. | [textproto](docs/examples/pigweed-pw_log-coverage-config.textproto) |
-| **[Pigweed pw_transfer ↗](example-reports/pigweed-pw_transfer.html)** | cpp | Pigweed `pw_transfer` C++ API (101 elements: `Client`, transfer handlers, `TransferThread`, …). Moderate coverage — the module's test fixtures are scenario-named (`ReadTransfer`, `…HandlerTest`) rather than class-named, which is exactly the signal that drives the attribution rate down. | [textproto](docs/examples/pigweed-pw_transfer-coverage-config.textproto) |
+| **[envoy ↗](example-reports/envoy.html)** | proto | Envoy xDS v3 protobuf API — the v3 management-plane services. | [textproto](docs/examples/envoy-coverage-config.textproto) |
+| **[gh (GitHub CLI) ↗](example-reports/gh.html)** | cli | The GitHub CLI's subcommand + flag surface, scanned from its checked-in cobra YAML reference. | [textproto](docs/examples/gh-coverage-config.textproto) |
+| **[sheaf (self-scan) ↗](docs/examples/self-scan/)** | cli | Sheaf dogfooding itself — its own CLI surface joined against its own tests, docs, and worked examples. The canonical "what a complete config looks like for a cobra-style CLI." | [textproto](docs/examples/self-scan/sheaf.textproto) |
 
 *Run Sheaf on your own repo — [docs/scan-your-repo.md](docs/scan-your-repo.md).*
 
@@ -82,19 +67,9 @@ A worked end-to-end example lives under [docs/examples/sheaf-bot-demo/](docs/exa
 
 `sheaf scan --manifest <file>` reads a `MonorepoManifest` textproto and runs a scan + render for every entry, producing one report per module plus an `index.html` linking them — all in-process, no `sheaf serve` per module. It is the automated counterpart to the interactive `scripts/regen-example-reports.sh` (which stays the exploratory path).
 
-The manifest format is generic: Cargo workspaces, Bazel monorepos, and Lerna packages plug into the same runner by supplying their own list-generator. Pigweed's ships as a worked example — [`scripts/generate-pigweed-manifest.sh`](scripts/generate-pigweed-manifest.sh) emits a manifest with repo-relative `config_path` values from a checkout's `PIGWEED_MODULES`:
+The manifest format is generic: Cargo workspaces, Bazel monorepos, and Lerna packages plug into the same runner by supplying their own list-generator that emits a `MonorepoManifest`.
 
-```sh
-scripts/generate-pigweed-manifest.sh > /tmp/pigweed-manifest.textproto
-sheaf scan --manifest /tmp/pigweed-manifest.textproto \
-           --config-root "$(pwd)" \
-           --output-dir /tmp/pigweed-fanout \
-           --repo /Volumes/T7/pigweed
-```
-
-The manifest lives in `/tmp` but its `config_path` entries point into the sheaf repo, so `--config-root "$(pwd)"` (run from the sheaf repo root) anchors them. Without it, relative `config_path` values resolve against the manifest's own directory.
-
-See [docs/cli/reference/sheaf_scan.md](docs/cli/reference/sheaf_scan.md) for the manifest schema and the continue-on-failure semantics.
+See [docs/cli/reference/sheaf_scan.md](docs/cli/reference/sheaf_scan.md) for the manifest schema, a worked end-to-end example, and the continue-on-failure semantics.
 
 ## CLI reference
 
@@ -118,13 +93,13 @@ Every subcommand and helper binary has its own reference page:
 ├── cmd/sheaf/          Main binary
 ├── cmd/dump-elements/  Debug helper (FIDL adapter)
 ├── cmd/dump-profile/   Debug helper (coverage dump)
-├── cmd/kubectl-yamlgen/  Generates per-subcommand YAML for kubectl scans
+├── cmd/kubectl-yamlgen/  Generates per-subcommand YAML for cobra-CLI scans
 ├── internal/adapters/  Contract / test / doc / rendered-reference adapters
 │   ├── argh/           Rust argh-derived CLI surface
 │   ├── bats/           Bash test framework
 │   ├── clap/           Rust clap-derived CLI surface
 │   ├── clidoc/         Fuchsia clidoc tarball
-│   ├── cobra/          spf13/cobra YAML reference (docker, kubectl, gh, …)
+│   ├── cobra/          spf13/cobra YAML reference (gh, …)
 │   ├── conceptdoc/     Concept/overview prose attribution
 │   ├── crd/            Kubernetes CRD openAPIV3Schema fields
 │   ├── fidl/           FIDL contract source
@@ -135,7 +110,7 @@ Every subcommand and helper binary has its own reference page:
 │   ├── implementsmap/  C++ class → FIDL element bridging
 │   ├── k8smanifest/    Rendered Kubernetes YAML field inventory
 │   ├── markdown/       Generic markdown prose
-│   ├── markdowncli/    Per-subcommand markdown reference (docker/cli style)
+│   ├── markdowncli/    Per-subcommand markdown reference (CLI-manual style)
 │   ├── pwfacade/       Pigweed pw_facade() GN parser (build-graph hint)
 │   ├── pytest/         Python pytest discovery + ref extraction
 │   ├── rusttest/       Rust #[test] attributes
@@ -153,7 +128,7 @@ Every subcommand and helper binary has its own reference page:
 
 docs/
 ├── playbooks/onboard-a-new-repo.md  How a team extends Sheaf to their repo
-├── examples/                      Working configs (Fuchsia FIDL, docker CLI)
+├── examples/                      Working configs + recipes (gh, envoy, self-scan, …)
 ├── cli/                           Per-binary + per-subcommand reference
 ├── mcp/                           MCP wire protocol + schema
 └── config.md                      Top-level config reference
@@ -170,7 +145,7 @@ The pattern (for cobra-based CLIs):
 3. Add the project's source map (`categorization-rules.textproto`) bucketing subcommands by family
 4. `sheaf scan` and iterate
 
-A reference config for docker CLI is at [docs/examples/docker-cli-coverage-config.textproto](docs/examples/docker-cli-coverage-config.textproto).
+A reference config for a cobra CLI is at [docs/examples/gh-coverage-config.textproto](docs/examples/gh-coverage-config.textproto).
 
 ## License
 

@@ -48,7 +48,7 @@ contract_anchor {
 }
 ```
 
-A full example config is at [docs/examples/kubectl-coverage-config.textproto](../../examples/kubectl-coverage-config.textproto).
+A shipped config that drives this tool is [docs/examples/gh-coverage-config.textproto](../../examples/gh-coverage-config.textproto) (generated with `--binary gh`); the `cobra` block wiring is identical.
 
 ## See also
 

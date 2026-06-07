@@ -1,9 +1,0 @@
-# Source map for the rendered ingress-nginx manifest scan.
-#
-# The rendered stream is a single multi-document YAML file, so there is
-# nothing to bucket by path — every element lands in one default
-# "manifest" category.
-
-version: 1
-
-category { dotted_path: "manifest" }

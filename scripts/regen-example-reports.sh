@@ -15,17 +15,13 @@
 #
 # Usage:
 #   scripts/regen-example-reports.sh [system ...]
-#     systems: envoy envoy-config fd grpc kubectl ffx sheaf-self \
+#     systems: envoy envoy-config ffx sheaf-self \
 #              fuchsia-coverage  (omnibus: whole FIDL SDK, 27 domains)
 #     ffx synthesizes its inputs from the Fuchsia CLI goldens first (see
-#     the ffx) arm); grafana is intentionally absent (snapshot-driven;
-#     rebuilt via docs/examples/grafana/build_grafana_snapshot.py).
+#     the ffx) arm).
 #
 # Env knobs:
 #   ENVOY_CHECKOUT     default /Volumes/T7/envoy
-#   FD_CHECKOUT        default /Volumes/T7/sheaf-workspace/checkouts/fd
-#   GRPC_CHECKOUT      default /Volumes/T7/sheaf-workspace/checkouts/grpc
-#   KUBECTL_CHECKOUT   default /Volumes/T7/sheaf-workspace/checkouts/kubernetes
 #   FUCHSIA_CHECKOUT   default /Volumes/T7/fuchsia
 #   FFX_CHECKOUT       default $FUCHSIA_CHECKOUT (ffx lives in the Fuchsia tree)
 
@@ -35,15 +31,12 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 ENVOY_CHECKOUT="${ENVOY_CHECKOUT:-/Volumes/T7/envoy}"
-FD_CHECKOUT="${FD_CHECKOUT:-/Volumes/T7/sheaf-workspace/checkouts/fd}"
-GRPC_CHECKOUT="${GRPC_CHECKOUT:-/Volumes/T7/sheaf-workspace/checkouts/grpc}"
-KUBECTL_CHECKOUT="${KUBECTL_CHECKOUT:-/Volumes/T7/sheaf-workspace/checkouts/kubernetes}"
 FUCHSIA_CHECKOUT="${FUCHSIA_CHECKOUT:-/Volumes/T7/fuchsia}"
 # ffx ships inside the Fuchsia tree, so it defaults to the same checkout.
 FFX_CHECKOUT="${FFX_CHECKOUT:-$FUCHSIA_CHECKOUT}"
 PIGWEED_CHECKOUT="${PIGWEED_CHECKOUT:-/Volumes/T7/pigweed}"
 
-ALL_SYSTEMS=(envoy envoy-config fd grpc kubectl ffx sheaf-self \
+ALL_SYSTEMS=(envoy envoy-config ffx sheaf-self \
              fuchsia-coverage \
              pigweed-pw_rpc pigweed-pw_log pigweed-pw_transfer)
 
@@ -210,30 +203,6 @@ for sys in "${SYSTEMS[@]}"; do
         "envoy.config.v3 (Listener+Cluster+Route)" proto-config \
         "https://github.com/envoyproxy/envoy/blob/main/{path}#L{line}" \
         "$REPO_ROOT/example-reports/envoy-config.html"
-      ;;
-    fd)
-      render_one fd "$FD_CHECKOUT" \
-        "$REPO_ROOT/docs/examples/fd-coverage-rules.textproto" \
-        "$REPO_ROOT/docs/examples/fd-coverage-config.textproto" \
-        fd "" cli \
-        "https://github.com/sharkdp/fd/blob/master/{path}#L{line}" \
-        "$REPO_ROOT/example-reports/fd.html"
-      ;;
-    grpc)
-      render_one grpc "$GRPC_CHECKOUT" \
-        "$REPO_ROOT/docs/examples/grpc-coverage-rules.textproto" \
-        "$REPO_ROOT/docs/examples/grpc-coverage-config.textproto" \
-        grpc.channelz.v1 "" proto \
-        "https://github.com/grpc/grpc/blob/master/{path}#L{line}" \
-        "$REPO_ROOT/example-reports/grpc.html"
-      ;;
-    kubectl)
-      render_one kubectl "$KUBECTL_CHECKOUT" \
-        "$REPO_ROOT/docs/examples/kubectl-coverage-rules.textproto" \
-        "$REPO_ROOT/docs/examples/kubectl-coverage-config.textproto" \
-        kubectl "" cli \
-        "https://github.com/kubernetes/kubernetes/blob/master/{path}#L{line}" \
-        "$REPO_ROOT/example-reports/kubectl.html"
       ;;
     ffx)
       # ffx's complete command surface (680 commands) lives in its CLI

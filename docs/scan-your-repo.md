@@ -10,11 +10,11 @@ This is the umbrella guide. Pick your route from the matrix below; each route is
 
 | Your contract surface | Contract anchor | Test adapter | Doc / reference adapter | Working example to copy | First report in |
 |---|---|---|---|---|---|
-| **Cobra CLI** (Go) | `cobra` | `gotest` | `markdowncli` | [kubectl](examples/kubectl-coverage-config.textproto), [gh](examples/gh-coverage-config.textproto), [docker-cli](examples/docker-cli-coverage-config.textproto) | ≈1 hour |
-| **Clap CLI** (Rust, `#[derive(Parser)]`) | `clap` | `rusttest` | `markdown` | [fd](examples/fd-coverage-config.textproto) | ≈2 hours |
+| **Cobra CLI** (Go) | `cobra` | `gotest` | `markdowncli` | [gh](examples/gh-coverage-config.textproto) | ≈1 hour |
+| **Clap CLI** (Rust, `#[derive(Parser)]`) | `clap` | `rusttest` | `markdown` | *write one* (`clap` adapter) | ≈2 hours |
 | **Argh CLI** (Rust, `#[derive(FromArgs)]`) | `argh` | `rusttest` | `markdown` | `sheaf init --template argh-cli` | ≈2 hours |
-| **Protobuf API** (gRPC, xDS, anything `.proto`) | `proto` | `gtest` / `gotest` | `markdown` *(optional)* | [envoy](examples/envoy-coverage-config.textproto), [grpc](examples/grpc-coverage-config.textproto) | ≈half a day (proto export step) |
-| **OpenAPI / Swagger HTTP API** | snapshot script (no adapter) | matched per-tag against your test tree | matched per-tag against your doc tree | [grafana](examples/grafana/) | ≈half a day (write the snapshot script) |
+| **Protobuf API** (gRPC, xDS, anything `.proto`) | `proto` | `gtest` / `gotest` | `markdown` *(optional)* | [envoy](examples/envoy-coverage-config.textproto) | ≈half a day (proto export step) |
+| **OpenAPI / Swagger HTTP API** | snapshot script (no adapter) | matched per-tag against your test tree | matched per-tag against your doc tree | *write a snapshot script* (see §OpenAPI below) | ≈half a day (write the snapshot script) |
 | **FIDL** (Fuchsia) | `fidl` + `implementsmap` | `gtest` | `fidldoc` *(optional)* | [fuchsia.ui.composition](examples/fuchsia-ui-composition-coverage-config.textproto), [driver-framework](examples/fuchsia-driver-framework-coverage-config.textproto) | ≈half a day |
 | **Something else** (Sphinx-only, GraphQL, capnproto, hand-rolled) | *write one* | one of the above | *maybe write one* | — | ≈1 week |
 
@@ -107,8 +107,8 @@ kill %1
 
 *The most worn path. If your CLI is cobra-based and your reference docs are one-markdown-file-per-subcommand, you're an hour from a rendered report.*
 
-1. Generate per-subcommand YAML with cobra's own `doc.GenYamlTree`. If your project already does this (docker, kubectl, gh all do), you're done with step 1.
-2. Copy [kubectl-coverage-config.textproto](examples/kubectl-coverage-config.textproto) as `sheaf.textproto`; set `binary_name`, `yaml_dir`, and `docs_dir` to your paths.
+1. Generate per-subcommand YAML with cobra's own `doc.GenYamlTree` (or, for binaries without a yamldocs target, `cmd/kubectl-yamlgen`). If your project already ships this, you're done with step 1.
+2. Copy [gh-coverage-config.textproto](examples/gh-coverage-config.textproto) as `sheaf.textproto`; set `binary_name`, `yaml_dir`, and `docs_dir` to your paths.
 3. Run the five-minute shape above.
 
 For the long form — generating YAML, handling per-flag joins, customizing the options-table parser, when single-word commands over-match — see the long-form onboarding playbook: **[docs/playbooks/onboard-a-new-repo.md](playbooks/onboard-a-new-repo.md)**.
@@ -119,7 +119,7 @@ For the long form — generating YAML, handling per-flag joins, customizing the 
 
 *The dominant Rust CLI framework. `#[derive(Parser)]`, `#[derive(Args)]`, `#[derive(Subcommand)]` are read directly from source — you don't generate anything.*
 
-1. Copy [fd-coverage-config.textproto](examples/fd-coverage-config.textproto) as `sheaf.textproto`. fd is a single-crate `clap` project and the canonical reference.
+1. Write a `sheaf.textproto` with a `clap` contract anchor. A single-crate Rust CLI (`#[derive(Parser)]` in one `src/cli.rs`) is the simplest shape to start from.
 2. Set `clap.crate_roots` to the directory containing the `Cargo.toml` whose parser struct you want scanned. For a single-crate repo, `"."` works.
 3. Point the `markdown` adapter at your prose (`README.md`, `doc/*.md`).
 4. Point `rusttest` at your test files.
@@ -146,7 +146,7 @@ The argh adapter walks Rust source for `#[derive(FromArgs)]` struct declarations
 *Sheaf reads `.proto` files directly as the contract; tests and docs attribute to RPC methods and message types by name.*
 
 1. Make sure `protoc` is on PATH. If your `.proto` files import outside the repo (most do), you'll also need [`buf`](https://buf.build/) to export the tree with transitive deps — the [envoy example](examples/envoy-coverage-config.textproto) comment block has the exact incantation.
-2. Copy the closest example: [envoy](examples/envoy-coverage-config.textproto) for a large xDS-style management plane, [grpc](examples/grpc-coverage-config.textproto) for a smaller service surface.
+2. Copy the [envoy example](examples/envoy-coverage-config.textproto) — a large xDS-style management plane — and pare it down to your package's service surface.
 3. Set `project.idl_prefix` to your project's package prefix (e.g. `envoy`, `grpc`, `google.cloud`). The body-parsing matcher uses this to recognize candidate contract IDs in test bodies.
 4. List `noisy_words` for any single-token nouns common in your domain (`request`, `response`, `cluster`, …) so test mentions of them don't over-attribute.
 5. Run the five-minute shape; for the report step, pass `--ecosystem proto`.
@@ -161,8 +161,8 @@ Doc attribution is optional for proto surfaces — most proto APIs ship comments
 
 Why the shape difference: there's no canonical "doc file per endpoint" or "test file per endpoint" convention across OpenAPI projects — Grafana groups by tag, Stripe groups by resource, OpenAI ships docs out-of-band. So you tell Sheaf the mapping once in the snapshot script (which doc files attribute to which tag, which test files attribute to which endpoint) rather than encoding it as adapter globs.
 
-1. Read the worked example: [docs/examples/grafana/README.md](examples/grafana/README.md) + [build_grafana_snapshot.py](examples/grafana/build_grafana_snapshot.py). The script pulls Grafana's published `api-merged.json`, attributes coverage receipts against the live file tree, and writes the snapshot.
-2. Copy the script and edit the override tables (`DOC_OVERRIDES`, `TEST_OVERRIDES`, `EXAMPLE_OVERRIDES`) for your project. The hard work is the mapping; the script wiring is mechanical.
+1. Write a snapshot script that pulls your OpenAPI spec (e.g. a published `api-merged.json`), enumerates one element per endpoint (`path × method`), and writes a Sheaf `Snapshot` JSON. Attribution is driven by override tables (`DOC_OVERRIDES`, `TEST_OVERRIDES`, `EXAMPLE_OVERRIDES`) that map each tag / endpoint to the doc and test files covering it.
+2. The override tables are the real work — the snapshot wiring around them is mechanical. Point each tag at its doc file(s) and each endpoint at its test file(s); anything left unmapped renders as ABSENT rather than guessing.
 3. Render:
    ```sh
    scanner --from-snapshot $REPO_ROOT/sheaf-snapshot.json \

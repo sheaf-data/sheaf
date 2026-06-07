@@ -99,10 +99,10 @@ scanner --from-snapshot docker-snap.json -o docker.html
 Some cobra-based CLIs do not ship a `make yamldocs` target. Use `kubectl-yamlgen` to introspect the binary instead:
 
 ```sh
-kubectl-yamlgen --binary kubectl --out sheaf-cobra-yaml
+kubectl-yamlgen --binary gh --out sheaf-cobra-yaml
 ```
 
-Then point the cobra contract anchor at `yaml_dir: "sheaf-cobra-yaml"`. See [docs/examples/kubectl-coverage-config.textproto](../examples/kubectl-coverage-config.textproto) for the full pattern.
+Then point the cobra contract anchor at `yaml_dir: "sheaf-cobra-yaml"`. See [docs/examples/gh-coverage-config.textproto](../examples/gh-coverage-config.textproto) for the full pattern.
 
 ## Sheaf monitoring itself
 

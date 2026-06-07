@@ -264,7 +264,7 @@ These usually live in a separate build-system output tree. The Fuchsia integrati
 
 ### OpenAPI snapshot
 
-Read the [grafana example](../examples/grafana/build_grafana_snapshot.py) end-to-end. The snapshot script is project-specific by design; don't try to share one across projects. The mechanical parts are the schema walk and the file emission — the *override tables* (which doc file attributes to which tag, which test file attributes to which endpoint) are the actual work, and they vary per repo.
+Write a snapshot script that walks your OpenAPI spec and emits a Sheaf `Snapshot` JSON (see the OpenAPI route in [scan-your-repo.md](../scan-your-repo.md#route-openapi--swagger-http-api)). The script is project-specific by design; don't try to share one across projects. The mechanical parts are the schema walk and the file emission — the *override tables* (which doc file attributes to which tag, which test file attributes to which endpoint) are the actual work, and they vary per repo.
 
 ### Stage the source map
 

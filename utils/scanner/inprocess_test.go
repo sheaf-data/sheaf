@@ -30,7 +30,7 @@ var timestampRE = regexp.MustCompile(`\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC`)
 // TestRender_SelfScanByteIdentical drives the in-process Render path
 // against the self-scan config and asserts the rendered HTML is
 // byte-identical (modulo the embedded timestamp) to the committed
-// example-reports/sheaf-self.html — the proof that the in-process
+// utils/scanner/testdata/sheaf-self.html — the proof that the in-process
 // pipeline is equivalent to the server-backed scanner CLI that
 // produced the committed report.
 func TestRender_SelfScanByteIdentical(t *testing.T) {
@@ -44,7 +44,7 @@ func TestRender_SelfScanByteIdentical(t *testing.T) {
 		t.Skip("self-scan golden requires full git history; this checkout is shallow (git fetch --unshallow)")
 	}
 	configPath := filepath.Join(repoRoot, "docs/examples/self-scan/sheaf.textproto")
-	committed := filepath.Join(repoRoot, "example-reports/sheaf-self.html")
+	committed := filepath.Join(repoRoot, "utils/scanner/testdata/sheaf-self.html")
 	rulesSrc := filepath.Join(repoRoot, "docs/examples/self-scan/categorization-rules.textproto")
 
 	// The committed report was generated with the self-scan rules
@@ -87,7 +87,7 @@ func TestRender_SelfScanByteIdentical(t *testing.T) {
 	gotNorm := timestampRE.ReplaceAll(got, []byte("TS"))
 	wantNorm := timestampRE.ReplaceAll(want, []byte("TS"))
 	if string(gotNorm) != string(wantNorm) {
-		t.Errorf("rendered report differs from committed example-reports/sheaf-self.html "+
+		t.Errorf("rendered report differs from committed utils/scanner/testdata/sheaf-self.html "+
 			"(got %d bytes, want %d bytes, modulo timestamp). The in-process Render path "+
 			"has diverged from the server-backed scanner CLI.", len(gotNorm), len(wantNorm))
 	}

@@ -7,17 +7,17 @@ import (
 	"testing"
 )
 
-// TestUpdateSelfScanGolden regenerates example-reports/sheaf-self.html
+// TestUpdateSelfScanGolden regenerates utils/scanner/testdata/sheaf-self.html
 // from the in-process Render path. Gated: set SHEAF_UPDATE_GOLDEN=1 to
 // run it. Mirrors TestRender_SelfScanByteIdentical's Render args + rules
 // staging exactly, so the regenerated golden satisfies that test.
 func TestUpdateSelfScanGolden(t *testing.T) {
 	if os.Getenv("SHEAF_UPDATE_GOLDEN") == "" {
-		t.Skip("set SHEAF_UPDATE_GOLDEN=1 to regenerate example-reports/sheaf-self.html")
+		t.Skip("set SHEAF_UPDATE_GOLDEN=1 to regenerate utils/scanner/testdata/sheaf-self.html")
 	}
 	repoRoot := repoRootForTest(t)
 	configPath := filepath.Join(repoRoot, "docs/examples/self-scan/sheaf.textproto")
-	committed := filepath.Join(repoRoot, "example-reports/sheaf-self.html")
+	committed := filepath.Join(repoRoot, "utils/scanner/testdata/sheaf-self.html")
 	rulesSrc := filepath.Join(repoRoot, "docs/examples/self-scan/categorization-rules.textproto")
 
 	staged := filepath.Join(repoRoot, "categorization-rules.textproto")
