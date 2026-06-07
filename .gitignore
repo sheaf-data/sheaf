@@ -1,6 +1,8 @@
 # Build artifacts (rebuild from source)
 /bin/
 /build/
+/dist/          # GoReleaser output (goreleaser release --snapshot)
+gosec.sarif     # local gosec scan output
 
 # Go test caches and coverage
 *.test

@@ -31,8 +31,13 @@ func probeLLMEmbedder(ctx context.Context, cfg *configpb.LLMConfig) error {
 	return llm.ProbeEmbedder(ctx, cfg)
 }
 
-// BuildVersion is overridden at link time via -ldflags.
-var BuildVersion = "0.1.0-dev"
+// Build metadata, overridden at link time via -ldflags (see the Makefile
+// and .goreleaser.yaml). Defaults apply to plain `go build` / `go run`.
+var (
+	BuildVersion = "0.1.0-dev"
+	BuildCommit  = "unknown"
+	BuildDate    = "unknown"
+)
 
 // stringsFlag collects a repeatable / comma-separated flag value.
 type stringsFlag []string
@@ -147,9 +152,11 @@ func Doctor(args []string) int {
 	return runDoctor(os.Stdout, os.Stderr, configPath, repoPath)
 }
 
-// Version runs `sheaf version`.
+// Version runs `sheaf version`, printing the embedded build metadata.
 func Version(_ []string) int {
-	fmt.Println("sheaf", BuildVersion)
+	fmt.Printf("sheaf %s\n", BuildVersion)
+	fmt.Printf("  commit: %s\n", BuildCommit)
+	fmt.Printf("  built:  %s\n", BuildDate)
 	return 0
 }
 

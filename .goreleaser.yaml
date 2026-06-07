@@ -1,0 +1,54 @@
+# GoReleaser v2 — cross-platform binaries for the v0.1.0 release.
+# CI runs `goreleaser release --clean` on tag push (.github/workflows/release.yml).
+# Validate locally with:  goreleaser check  &&  goreleaser release --snapshot --clean
+version: 2
+
+project_name: sheaf
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: sheaf
+    main: ./cmd/sheaf
+    binary: sheaf
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w
+      - -X github.com/sheaf-data/sheaf/internal/cli.BuildVersion={{ .Version }}
+      - -X github.com/sheaf-data/sheaf/internal/cli.BuildCommit={{ .Commit }}
+      - -X github.com/sheaf-data/sheaf/internal/cli.BuildDate={{ .Date }}
+
+archives:
+  - id: sheaf
+    formats: [tar.gz]
+    # Windows users get a .zip instead of .tar.gz.
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  draft: false
+  prerelease: auto
