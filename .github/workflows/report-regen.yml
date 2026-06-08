@@ -7,11 +7,10 @@ name: report-regen
 # comments on) a tracking issue. Scheduled, not per-PR — the upstream checkouts
 # are too large to clone on every PR.
 #
-# v1 covers the upstreams that clone cleanly on a hosted runner: the self-scan,
-# envoy (GitHub), and pigweed (googlesource). ffx + fuchsia.io live in the
-# multi-GB Fuchsia tree and are phase 2 — their goldens are already committed
-# (ffx) / pending a determinism fix (fuchsia.io); add jobs here once a Fuchsia
-# checkout strategy is in place. Pinned SHAs mirror docs/examples/REPRODUCIBILITY.md.
+# Covers envoy (GitHub) + pigweed (googlesource) via shallow single-commit
+# fetches, and fuchsia.io + ffx via a blob-filtered SPARSE checkout of the
+# multi-GB Fuchsia monorepo (only sdk/fidl, src/storage, src/developer/ffx).
+# Pinned SHAs mirror docs/examples/REPRODUCIBILITY.md.
 
 on:
   schedule:
@@ -24,6 +23,7 @@ permissions:
 env:
   ENVOY_SHA: 8492f41012d334a88d321972226af5d33747107c
   PIGWEED_SHA: 77591bc8702a1bd37608ffaee9027265cf2f32e7
+  FUCHSIA_SHA: 3a0c9c4d54b6c93ba2c4867ee11fb1b9e42358eb
 
 jobs:
   cross-check:
@@ -62,12 +62,33 @@ jobs:
           git checkout -q FETCH_HEAD
           echo "PIGWEED_CHECKOUT=$RUNNER_TEMP/pigweed" >> "$GITHUB_ENV"
 
+      # Fuchsia is a multi-GB monorepo; fetch only the subtrees the fuchsia.io
+      # and ffx configs read (sdk/fidl, src/storage, src/developer/ffx) via a
+      # blob-filtered sparse checkout to keep it bounded. ffx synthesizes its
+      # inputs from src/developer/ffx/tests/cli-goldens.
+      - name: Fetch fuchsia @ pinned SHA (sparse)
+        # First-run-unverified: a multi-GB monorepo partial clone. Don't let a
+        # clone failure red the proven envoy/pigweed checks — on failure
+        # FUCHSIA_CHECKOUT stays unset and the cross-check skips fuchsia.io + ffx
+        # (a real drift in them still fails the cross-check step itself).
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/fuchsia"
+          cd "$RUNNER_TEMP/fuchsia"
+          git init -q
+          git remote add origin https://fuchsia.googlesource.com/fuchsia
+          git config extensions.partialClone origin
+          git sparse-checkout init --cone
+          git sparse-checkout set sdk/fidl src/storage src/developer/ffx
+          git fetch --depth 1 --filter=blob:none origin "$FUCHSIA_SHA"
+          git checkout -q FETCH_HEAD
+          echo "FUCHSIA_CHECKOUT=$RUNNER_TEMP/fuchsia" >> "$GITHUB_ENV"
+
       - name: Cross-check reports vs golden fingerprints
         run: |
           set -o pipefail
-          # Default set = the pinned external reports. envoy + pigweed are cloned
-          # above; ffx auto-skips here (its Fuchsia checkout isn't provisioned yet)
-          # and will activate once a Fuchsia checkout step is added.
+          # Default set = the pinned external reports (envoy, pigweed, fuchsia.io,
+          # ffx). All upstreams are cloned above.
           ./scripts/check-example-reports.sh 2>&1 | tee "$RUNNER_TEMP/report-check.log"
 
       - name: Open / update drift issue
