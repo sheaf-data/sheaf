@@ -149,42 +149,21 @@ working scan. At construction it resolves the configured adapter names
 into concrete adapter instances (failing fast on an unknown name), and
 `Run` drives the stages:
 
-```
-  config + categorization rules
-            │
-            ▼
-   ┌──────────────────┐
-   │  Orchestrator    │   resolves adapters by name
-   └──────────────────┘
-            │  (build-graph hints first, then parallel fan-out)
-   ┌────────┴────────────────────────────────┐
-   ▼            ▼            ▼                 ▼
- contract     test         doc            rendered-ref
- anchors      parsers      parsers        parsers
- Discover     Discover     Parse          Parse
-   │            │            │                 │
-   └────────────┴─────┬──────┴─────────────────┘
-                      ▼
-              ┌──────────────┐
-              │   Corpus     │  ContractElements + TestCases + DocClaims
-              └──────────────┘
-                      │
-                      ▼   affordance matching (cross-source SAME_AFFORDANCE edges)
-                      ▼   categorize (path-rules → taxonomy buckets)
-              ┌──────────────┐
-              │   Indexer    │  join refs ↔ elements; materialize inverse
-              │              │  edges; emit one CoverageProfile per element
-              └──────────────┘
-                      │
-                      ▼   analyze (mechanical gap analyzers → Findings)
-              ┌──────────────┐
-              │   Result     │  Corpus + CoverageProfiles + Findings
-              └──────────────┘
-                      │
-          ┌───────────┴───────────┐
-          ▼                       ▼
-     MCP server              HTML report
-   (agent grounding)        (humans / CI)
+```mermaid
+flowchart TD
+    cfg["config + categorization rules"] --> orch["Orchestrator<br/><i>resolves adapters by name</i>"]
+    orch -->|"build-graph hints first,<br/>then parallel fan-out"| ca["contract anchors<br/><i>Discover</i>"]
+    orch --> tp["test parsers<br/><i>Discover</i>"]
+    orch --> dp["doc parsers<br/><i>Parse</i>"]
+    orch --> rr["rendered-ref parsers<br/><i>Parse</i>"]
+    ca --> corpus["<b>Corpus</b><br/>ContractElements + TestCases + DocClaims"]
+    tp --> corpus
+    dp --> corpus
+    rr --> corpus
+    corpus -->|"affordance matching (cross-source SAME_AFFORDANCE edges),<br/>then categorize (path-rules → taxonomy buckets)"| idx["<b>Indexer</b><br/>join refs ↔ elements; materialize inverse edges;<br/>one CoverageProfile per element"]
+    idx -->|"analyze (mechanical gap analyzers → Findings)"| res["<b>Result</b><br/>Corpus + CoverageProfiles + Findings"]
+    res --> mcp["MCP server<br/><i>(agent grounding)</i>"]
+    res --> html["HTML report<br/><i>(humans / CI)</i>"]
 ```
 
 Stage by stage:

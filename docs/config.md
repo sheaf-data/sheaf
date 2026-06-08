@@ -102,6 +102,60 @@ For clarity, these are deliberately out of scope for v1 and tracked in §12:
 - Hot-reload on config change during a running `sheaf serve`.
 - Templating / variable substitution inside config blocks beyond `${ENV_VAR}` in path fields.
 
+### 3.5 Configuration precedence
+
+The general order, most specific first, is:
+
+**command-line flag → config file → built-in default**
+
+Environment variables do **not** sit at a single fixed rung — they play two specific
+roles (credentials and a few optional overrides), so where an env var can set the same
+thing as another source the resolution is called out per setting.
+
+- **Flags override the config file.** Where a flag and a config field set the same
+  value, the flag wins. Example: `sheaf serve --bind` / `--port` override
+  `mcp_server.bind` / `mcp_server.port` (`internal/cli/extra.go:491`).
+- **Credentials are environment-only.** API keys and tokens are never read from the
+  config file. `ANTHROPIC_API_KEY` has no config field at all; the `*_token_env`
+  fields hold the *name* of an env var, not the secret. See §3.6.
+- **One config-beats-env exception — the LLM model.** The model tag resolves config
+  before env: an explicit `--model` / `llm.model` wins, and `ANTHROPIC_MODEL` is
+  consulted only when neither is set, ahead of the per-backend default
+  (`internal/llm/anthropic/anthropic.go:71`). This is the one place the order is
+  *not* env-over-file.
+
+### 3.6 Environment variables sheaf reads
+
+These are the environment variables sheaf itself consults (distinct from the
+`${VAR}` *expansion* inside path fields described in §3.2):
+
+| Variable | Purpose | Default | Read at |
+| --- | --- | --- | --- |
+| `ANTHROPIC_API_KEY` | API key for the Anthropic LLM backend. Required for the `anthropic` backend; its absence makes `--llm-backend auto` fall back to local ollama. No config-file equivalent. | _(unset)_ | `internal/llm/select.go:98`, `internal/llm/anthropic/anthropic.go:65` |
+| `ANTHROPIC_MODEL` | Model tag for the Anthropic backend when neither `--model` nor `llm.model` is set. | backend `DefaultModel` | `internal/llm/anthropic/anthropic.go:72` |
+| `SHEAF_LOG_FORMAT` | Log encoding for `sheaf serve`: `json` → JSON logs; any other value → text. | text | `internal/cli/extra.go:524` |
+| `SHEAF_SOURCE_URL_TEMPLATE` | Fallback source-URL template for report links in `--manifest` mode when `--source-url-template` is not passed. | _(unset)_ | `internal/cli/fanout.go:351`, `:508` |
+| `SHEAF_REVIEW_FILE_OUT` | Output path for the `review` file sink. | _(unset)_ | `internal/review/file.go:39` |
+| `SHEAF_GERRIT_USER` | Gerrit username for `review` against a Gerrit host (only when `review.gerrit.user_env` is unset). | `sheaf-bot` | `internal/review/gerrit.go:62` |
+
+**Config-named secret variables.** Several config fields hold the *name* of an
+environment variable rather than a secret value, so credentials stay out of the
+committed file. sheaf reads whatever variable you name:
+
+- `mcp_server.auth.bearer_token_env` → bearer token for the MCP server (`internal/mcp/mcp.go:269`)
+- `review.github.token_env` → GitHub API token for posting reviews (`internal/review/github.go:50`)
+- `review.gerrit.auth_token_env` → Gerrit HTTP password (`internal/review/gerrit.go:54`)
+- scanner `--token-env` → token for the standalone scanner client (`utils/scanner/client.go:21`)
+
+### 3.7 Command-line flags
+
+Flags are documented per subcommand under [`docs/cli/reference/`](cli/reference/),
+one page each: `scan`, `gaps`, `coverage`, `report`, `snapshot`, `render`, `verify`,
+`serve`, `review`, `review-html`, `init`, `doctor`, `version`. Each page lists every
+flag with its type, default, and description, generated from the CLI definitions so it
+stays in sync with the binary. Flags override config-file values for the same setting
+(§3.5).
+
 ---
 
 ## 4. `sheaf.textproto` — full reference
