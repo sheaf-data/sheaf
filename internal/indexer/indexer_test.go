@@ -145,6 +145,72 @@ func TestBuild_ComposeInheritsMethods(t *testing.T) {
 	}
 }
 
+// TestBuild_InheritedDocAttributionDeterministic guards the inherited-method
+// synthesis (and corpus.DocClaims ordering) against non-determinism. Several
+// protocols inherit a documented base method of the same local name
+// (fuchsia.io/{Node,Directory,File,Symlink}.Close all resolve to a documented
+// Closeable.Close); a map-order-dependent synthesis pass made their doc
+// coverage flip run-to-run. Go randomizes map iteration on every range, so
+// repeated Build()s exercise many orders — pre-fix this failed intermittently.
+func TestBuild_InheritedDocAttributionDeterministic(t *testing.T) {
+	tracked := []string{
+		"fuchsia.io/Node.Close",
+		"fuchsia.io/Directory.Close",
+		"fuchsia.io/File.Close",
+		"fuchsia.io/Symlink.Close",
+	}
+	fingerprint := func() []int {
+		c := corpus.New()
+		// Base protocol Closeable with one documented method, Close.
+		c.AddElement(&contractpb.ContractElement{Id: "fuchsia.io/Closeable", Kind: contractpb.ContractElementKind_PROTOCOL, Library: "fuchsia.io"})
+		c.AddElement(&contractpb.ContractElement{Id: "fuchsia.io/Closeable.Close", Kind: contractpb.ContractElementKind_METHOD, Library: "fuchsia.io"})
+		c.AddDocClaim(&docclaimpb.DocClaim{
+			SourcePath:   "io.fidl",
+			Location:     &commonpb.SourceLocation{Path: "io.fidl", Line: 1},
+			ContractRefs: []string{"fuchsia.io/Closeable.Close"},
+			Substance:    commonpb.Substance_SUBSTANTIVE,
+			Kind:         docclaimpb.DocClaimKind_REFERENCE,
+			Adapter:      "fidl",
+		})
+		// Node composes Closeable; Directory/File compose Node (transitive
+		// closure + the synthesized-method cascade that triggered the flip);
+		// Symlink composes Closeable directly.
+		compose := func(id, parent string) {
+			c.AddElement(&contractpb.ContractElement{
+				Id: id, Kind: contractpb.ContractElementKind_PROTOCOL, Library: "fuchsia.io",
+				Relationships: []*contractpb.Relationship{{
+					Kind: contractpb.RelationshipKind_COMPOSED_FROM, TargetElementId: parent,
+				}},
+			})
+		}
+		compose("fuchsia.io/Node", "fuchsia.io/Closeable")
+		compose("fuchsia.io/Directory", "fuchsia.io/Node")
+		compose("fuchsia.io/File", "fuchsia.io/Node")
+		compose("fuchsia.io/Symlink", "fuchsia.io/Closeable")
+
+		New(c, nil).Build()
+
+		out := make([]int, len(tracked))
+		for k, id := range tracked {
+			if p := c.Profile(id); p != nil && p.GetDocs().GetReference() != nil {
+				out[k] = len(p.GetDocs().GetReference().GetFidldoc())
+			}
+		}
+		return out
+	}
+
+	want := fingerprint()
+	// Sanity: the inherited doc must actually attribute, or the test proves nothing.
+	if want[1] != 1 { // Directory.Close
+		t.Fatalf("fixture sanity: Directory.Close should inherit documented Closeable.Close (want 1 ref); got %v for %v", want, tracked)
+	}
+	for r := 1; r < 50; r++ {
+		if got := fingerprint(); !reflect.DeepEqual(got, want) {
+			t.Fatalf("non-deterministic inherited doc attribution:\n  run 0:   %v\n  run %d: %v\n  methods: %v", want, r, got, tracked)
+		}
+	}
+}
+
 // --- impl-class IMPLEMENTS → interface element renders as implementations surface ---
 
 // Under the interface-surfaces redesign, tests of impl
