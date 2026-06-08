@@ -4,6 +4,9 @@
 
 # Sheaf
 
+[![ci](https://github.com/sheaf-data/sheaf/actions/workflows/ci.yml/badge.svg)](https://github.com/sheaf-data/sheaf/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 **Your coding agent hallucinates APIs because your project is fragmented — not because the model isn't smart enough.** The docs, tests, and examples exist; they just don't point at the same things. Sheaf maps your real contract surface — every CLI command, API method, config knob — and shows, element by element, which ones a doc explains, a test verifies, and a working example demonstrates. The empty cells are where agents guess and humans open three tabs and a grep window.
 
 It runs as a CLI and ships an [MCP server](#mcp-server), so the same map your team reads is the ground truth your agent reads *before* it answers.
