@@ -1,0 +1,42 @@
+name: Feature request
+description: A capability Sheaf doesn't have yet (a new adapter, a render option, an analyzer, an MCP op).
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sheaf stays sharp by saying no to its neighbors (vector store, code search, CI runner, docs writer, SAST; see [KNOWN_LIMITATIONS.md → "What Sheaf is not"](https://github.com/sheaf-data/sheaf/blob/main/KNOWN_LIMITATIONS.md#what-sheaf-is-not)). Requests that pull toward one of those are likely out of scope, but tell us the underlying need anyway; the scope line might be in the wrong place.
+
+        **Asking for support for a format Sheaf can't read yet (GraphQL, Thrift, OpenAPI, a bespoke test macro)?** That's a new adapter, and it's the single best way to contribute: a focused, self-contained package, not a rewrite. See [CONTRIBUTING.md → Adding a new format adapter](https://github.com/sheaf-data/sheaf/blob/main/CONTRIBUTING.md#adding-a-new-format-adapter). File this anyway so we can track it and point others at it.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What can't you see or do today? Describe the situation, not the solution. "I can't tell which of my GraphQL resolvers are tested" beats "add a GraphQL adapter".
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would Sheaf do? If it's a new adapter, paste ~5 lines of the contract surface and ~5 lines of one test that should bridge to it; that's enough to judge feasibility.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of request
+      options:
+        - "New contract adapter (a format Sheaf can't read)"
+        - "New test/doc parser"
+        - "New analyzer / finding kind"
+        - "Render / report option"
+        - "MCP op or CLI flag"
+        - "Other"
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Workarounds you've tried
+      description: Did a config tweak, a snapshot script, or an existing adapter get you partway? (The existing adapters cover more than they look like; `markdown` handles most doc shapes, `gtest` covers any googletest project.)

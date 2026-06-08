@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question / usage help
+    url: https://github.com/sheaf-data/sheaf/discussions/categories/q-a
+    about: >-
+      "How do I scan X?", "why does this element read 0 tests?", "which adapter for Y?":
+      ask in Discussions Q&A, not an issue. Most of these are config-shaped (a glob, a
+      source-map category, the wrong --ecosystem) and the onboarding playbook covers them.
+  - name: Onboarding a new repo
+    url: https://github.com/sheaf-data/sheaf/blob/main/docs/playbooks/onboard-a-new-repo.md
+    about: The end-to-end agent cookbook for wiring Sheaf up against a repo it's never seen. Start here before filing a "doesn't work on my repo" issue.
+  - name: Security / vulnerability report
+    url: https://github.com/sheaf-data/sheaf/security/policy
+    about: Do not open a public issue for security reports. Use the private disclosure path in SECURITY.md.
