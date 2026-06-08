@@ -294,12 +294,24 @@ func (i *Indexer) buildLookups() {
 	// materialize new METHOD elements representing the surface-exposed
 	// view of inherited methods.
 	//
-	// Iterate protocols in sorted ID order, NOT raw map order: this pass
-	// mutates methodsByProtocol/elemByID/elementsByTokens as it synthesizes,
-	// so a non-deterministic range order made the synthesized inherited
-	// surface vary run-to-run — which flipped inherited-doc attribution for
-	// same-named methods (e.g. fuchsia.io/{Directory,File,Symlink}.Close all
-	// inherit Close from a composed base). Sorted iteration is reproducible.
+	// Two things make this deterministic AND correct:
+	//
+	//  1. Synthesize only from a snapshot of each parent's ORIGINAL methods,
+	//     taken before this pass. Otherwise a method inherited two hops away
+	//     (Symlink → Node → Closeable.Close) would, depending on iteration
+	//     order, link to a *synthesized* intermediate (Node.Close) instead of
+	//     the documented original (Closeable.Close) — so its doc attribution
+	//     both flipped run-to-run and resolved wrong. transitiveComposes
+	//     already flattens the closure, so every protocol still sees every
+	//     ancestor's originals directly.
+	//  2. Iterate protocols in sorted ID order, so the order elements/tokens
+	//     are appended (and thus all downstream attribution) is reproducible.
+	originalMethods := make(map[string][]*contractpb.ContractElement, len(i.methodsByProtocol))
+	for k, v := range i.methodsByProtocol {
+		cp := make([]*contractpb.ContractElement, len(v))
+		copy(cp, v)
+		originalMethods[k] = cp
+	}
 	protoIDs := make([]string, 0, len(i.composesByProtocol))
 	for protoID := range i.composesByProtocol {
 		protoIDs = append(protoIDs, protoID)
@@ -308,7 +320,7 @@ func (i *Indexer) buildLookups() {
 	for _, protoID := range protoIDs {
 		parents := i.composesByProtocol[protoID]
 		for _, parent := range parents {
-			for _, m := range i.methodsByProtocol[parent] {
+			for _, m := range originalMethods[parent] {
 				surfaceID := protoID + "." + methodNameOnly(m.GetId())
 				if _, exists := i.elemByID[surfaceID]; exists {
 					continue // already declared directly on the child
