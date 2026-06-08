@@ -33,7 +33,7 @@ go build -o sheaf ./cmd/sheaf
         -o example-reports/sheaf-self.html        # → 76 commands · 53 bridged · 23 gaps
 ```
 
-The source map (`categorization-rules.textproto`) sits next to the config and is auto-resolved. The rendered report lands at [example-reports/sheaf-self.html](../../../example-reports/sheaf-self.html).
+The source map (`categorization-rules.textproto`) sits next to the config and is auto-resolved. The rendered report lands at `example-reports/sheaf-self.html` (gitignored locally; published in the [gallery](https://sheaf-data.github.io/examples/sheaf/)).
 
 ## Why these aren't at the repo root
 
