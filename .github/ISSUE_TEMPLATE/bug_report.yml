@@ -1,0 +1,76 @@
+name: Bug report
+description: A scan, render, MCP, or PR-bot behavior that's wrong (a wrong number, a crash, a mis-attribution).
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing. Sheaf's failure mode is usually a *silent under-count* or a *wrong bridge*, not a crash, so the most useful bug reports show the cited file:line that doesn't hold up. Before filing, please skim [KNOWN_LIMITATIONS.md](https://github.com/sheaf-data/sheaf/blob/main/KNOWN_LIMITATIONS.md): heuristic over/under-attribution (#1), inline-only docs (#4), and finite format coverage (#6) are documented design boundaries, not bugs.
+  - type: input
+    id: version
+    attributes:
+      label: Sheaf version
+      description: Output of `sheaf version` (or the commit SHA / `go install` ref you built from).
+      placeholder: "e.g. v0.1.0 (commit abc1234, built 2026-06-08)"
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface
+      description: Where did the wrong behavior show up?
+      options:
+        - "scan / doctor (ingest + index)"
+        - "render / report (HTML output)"
+        - "gaps / coverage (findings CLI)"
+        - "serve (MCP server)"
+        - "review / review-html (PR-bot)"
+        - "snapshot / verify (reproducibility)"
+        - "other / not sure"
+    validations:
+      required: true
+  - type: dropdown
+    id: ecosystem
+    attributes:
+      label: Contract ecosystem
+      description: Which adapter set was in play? (skip if not applicable)
+      options:
+        - "cobra (Go CLI)"
+        - "clap / argh (Rust CLI)"
+        - "proto / gRPC / xDS"
+        - "FIDL"
+        - "C++ headers"
+        - "CRD / Helm / config schema"
+        - "not applicable / mixed"
+  - type: textarea
+    id: repro
+    attributes:
+      label: What you ran
+      description: The exact command(s). Include the relevant slice of your `sheaf.textproto` and `categorization-rules.textproto` if the bug is attribution-related. A wrong glob is the most common cause.
+      render: shell
+      placeholder: |
+        sheaf scan --repo . --config sheaf.textproto
+        # sheaf.textproto (relevant block):
+        # contract_anchor { name: "cobra" ... }
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected vs. what happened
+      description: For a wrong attribution, name the element and the cited file:line, and say why the bridge doesn't hold (e.g. "the test at foo_test.go:42 is attributed to `mytool run` but never invokes it").
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`sheaf doctor` output (if a scan/attribution bug)"
+      description: Per-adapter file + element counts catch most config-shaped bugs. Paste the output of `sheaf doctor --repo <your-repo>`.
+      render: text
+  - type: input
+    id: os
+    attributes:
+      label: OS / arch
+      placeholder: "e.g. macOS 15 arm64, Ubuntu 24.04 amd64"
+    validations:
+      required: true
