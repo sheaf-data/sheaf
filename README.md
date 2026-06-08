@@ -8,6 +8,12 @@
 
 It runs as a CLI and ships an [MCP server](#mcp-server), so the same map your team reads is the ground truth your agent reads *before* it answers.
 
+<p align="center">
+  <img src="docs/self-scan-demo.gif" alt="Sheaf scanning its own CLI surface in ~130 ms, then rendering the coverage report" width="100%">
+</p>
+
+<p align="center"><sub>Demoed on Sheaf's own repo — 76 commands, scanned in ~130 ms. Larger repos take longer; every sample is reproducible (<a href="docs/examples/REPRODUCIBILITY.md">recipe</a>).</sub></p>
+
 ## Getting started
 
 ```sh
@@ -33,6 +39,10 @@ From a clone, build instead of install: `go build -o sheaf ./cmd/sheaf` — same
 ## Sample reports
 
 Each row links to a Sheaf report produced against a real project (the self-scan links its recipe). Click the sample name to open it; the worklist, coverage matrix, and findings reflect that project's actual state at scan time. The config and rules used to produce each report are linked alongside — clone, point Sheaf at the same config, and you should reproduce the same numbers.
+
+<p align="center">
+  <img src="docs/self-scan-report.png" alt="The Sheaf self-scan report masthead — per-command coverage across docs, tests, and usage" width="90%">
+</p>
 
 | Sample | Ecosystem | Contract surface | Config |
 |---|---|---|---|
