@@ -17,11 +17,11 @@ jobs:
     name: checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -49,13 +49,16 @@ jobs:
         run: go vet ./...
 
       - name: golangci-lint
+        # Held at v6: golangci-lint-action v7+ requires golangci-lint v2 (a
+        # different .golangci.yml schema). Migrating to v2 is a separate task;
+        # until then this one bump is reverted from the grouped Dependabot PR.
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.64.8
           # Build golangci-lint from source with this job's Go toolchain.
           # The prebuilt v1.64.8 binary is built with Go 1.24, and
           # golangci-lint refuses to run when its build-Go is older than
-          # the module's targeted Go (go.mod is go 1.26.2). goinstall
+          # the module's targeted Go (go.mod is go 1.26.4). goinstall
           # compiles it against go.mod's toolchain, so build-Go == target.
           install-mode: goinstall
           args: --timeout=5m
@@ -80,11 +83,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
