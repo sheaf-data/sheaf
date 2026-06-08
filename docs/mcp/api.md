@@ -375,6 +375,7 @@ curl -s -X POST http://127.0.0.1:7700/mcp \
 
 ## See also
 
+- [tools.md](tools.md) — per-operation input JSON Schemas + the example prompts that route an agent to each tool. Machine-readable export: [tool-schemas.json](tool-schemas.json).
 - [schema.md](schema.md) — the proto messages every result payload uses.
 - [`sheaf serve`](../cli/reference/sheaf_serve.md) — how to start the server.
 - [`scanner`](../cli/reference/scanner.md) — primary consumer of `library_snapshot`.
