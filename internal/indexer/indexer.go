@@ -293,7 +293,20 @@ func (i *Indexer) buildLookups() {
 	// composition. We don't mutate the on-disk element list; we
 	// materialize new METHOD elements representing the surface-exposed
 	// view of inherited methods.
-	for protoID, parents := range i.composesByProtocol {
+	//
+	// Iterate protocols in sorted ID order, NOT raw map order: this pass
+	// mutates methodsByProtocol/elemByID/elementsByTokens as it synthesizes,
+	// so a non-deterministic range order made the synthesized inherited
+	// surface vary run-to-run — which flipped inherited-doc attribution for
+	// same-named methods (e.g. fuchsia.io/{Directory,File,Symlink}.Close all
+	// inherit Close from a composed base). Sorted iteration is reproducible.
+	protoIDs := make([]string, 0, len(i.composesByProtocol))
+	for protoID := range i.composesByProtocol {
+		protoIDs = append(protoIDs, protoID)
+	}
+	sort.Strings(protoIDs)
+	for _, protoID := range protoIDs {
+		parents := i.composesByProtocol[protoID]
 		for _, parent := range parents {
 			for _, m := range i.methodsByProtocol[parent] {
 				surfaceID := protoID + "." + methodNameOnly(m.GetId())
