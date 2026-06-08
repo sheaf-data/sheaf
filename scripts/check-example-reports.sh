@@ -20,16 +20,13 @@
 #
 # The default set is the PINNED-UPSTREAM external reports: their source is frozen
 # at a recorded commit, so any fingerprint change means SHEAF's analysis changed —
-# exactly the drift this guards. Three reports are deliberately excluded (each is
+# exactly the drift this guards. Two reports are deliberately excluded (each is
 # still selectable by name for debugging):
 #   sheaf       — the self-scan tracks sheaf's OWN evolving source, so its
 #                 fingerprint churns with every change. It's already guarded
 #                 per-PR by TestRender_SelfScanByteIdentical (utils/scanner).
 #   gh (cli/cli)— contract surface isn't rendered yet (docs/examples/
 #                 REPRODUCIBILITY.md), so a scan yields zero elements.
-#   fuchsia-io  — its scan is currently non-deterministic (the doc claim for the
-#                 two `.Close` methods is attributed unstably across runs), so it
-#                 can't have a byte-stable golden until that's fixed.
 #
 # Checkout locations (override via env; defaults match regen-example-reports.sh):
 #   ENVOY_CHECKOUT    default /Volumes/T7/envoy        (github.com/envoyproxy/envoy)
@@ -64,9 +61,9 @@ for arg in "$@"; do
   esac
 done
 
-# Default = pinned-upstream external reports only. sheaf / gh / fuchsia-io are
-# excluded (see header) but remain selectable by name, e.g. for `--update`.
-ALL_SYSTEMS=(envoy pigweed-pw_rpc pigweed-pw_log pigweed-pw_transfer ffx)
+# Default = pinned-upstream external reports only. sheaf / gh are excluded
+# (see header) but remain selectable by name, e.g. for `--update`.
+ALL_SYSTEMS=(envoy pigweed-pw_rpc pigweed-pw_log pigweed-pw_transfer fuchsia-io ffx)
 if [[ ${#SYSTEMS[@]} -eq 0 ]]; then
   SYSTEMS=("${ALL_SYSTEMS[@]}")
 fi
