@@ -1,0 +1,109 @@
+name: report-regen
+
+# Weekly cross-check: regenerate each example-gallery report's coverage
+# fingerprint from its PINNED upstream checkout and diff against the committed
+# golden (testdata/example-reports/*.csv). Catches changes to sheaf's analysis
+# that would silently alter a published report. On drift it fails and opens (or
+# comments on) a tracking issue. Scheduled, not per-PR — the upstream checkouts
+# are too large to clone on every PR.
+#
+# v1 covers the upstreams that clone cleanly on a hosted runner: the self-scan,
+# envoy (GitHub), and pigweed (googlesource). ffx + fuchsia.io live in the
+# multi-GB Fuchsia tree and are phase 2 — their goldens are already committed
+# (ffx) / pending a determinism fix (fuchsia.io); add jobs here once a Fuchsia
+# checkout strategy is in place. Pinned SHAs mirror docs/examples/REPRODUCIBILITY.md.
+
+on:
+  schedule:
+    - cron: "17 5 * * 1" # Mondays 05:17 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  ENVOY_SHA: 8492f41012d334a88d321972226af5d33747107c
+  PIGWEED_SHA: 77591bc8702a1bd37608ffaee9027265cf2f32e7
+
+jobs:
+  cross-check:
+    name: example-report cross-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # open / comment the drift-tracking issue
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Shallow single-commit fetch of each pinned upstream (same shape the
+      # local checkouts use). One commit only — no history.
+      - name: Fetch envoy @ pinned SHA
+        run: |
+          mkdir -p "$RUNNER_TEMP/envoy"
+          cd "$RUNNER_TEMP/envoy"
+          git init -q
+          git remote add origin https://github.com/envoyproxy/envoy
+          git fetch --depth 1 origin "$ENVOY_SHA"
+          git checkout -q FETCH_HEAD
+          echo "ENVOY_CHECKOUT=$RUNNER_TEMP/envoy" >> "$GITHUB_ENV"
+
+      - name: Fetch pigweed @ pinned SHA
+        run: |
+          mkdir -p "$RUNNER_TEMP/pigweed"
+          cd "$RUNNER_TEMP/pigweed"
+          git init -q
+          git remote add origin https://pigweed.googlesource.com/pigweed
+          git fetch --depth 1 origin "$PIGWEED_SHA"
+          git checkout -q FETCH_HEAD
+          echo "PIGWEED_CHECKOUT=$RUNNER_TEMP/pigweed" >> "$GITHUB_ENV"
+
+      - name: Cross-check reports vs golden fingerprints
+        run: |
+          set -o pipefail
+          # Default set = the pinned external reports. envoy + pigweed are cloned
+          # above; ffx auto-skips here (its Fuchsia checkout isn't provisioned yet)
+          # and will activate once a Fuchsia checkout step is added.
+          ./scripts/check-example-reports.sh 2>&1 | tee "$RUNNER_TEMP/report-check.log"
+
+      - name: Open / update drift issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const title = '⚠️ Example-report drift detected';
+            let log = '';
+            try { log = fs.readFileSync(process.env.RUNNER_TEMP + '/report-check.log', 'utf8'); } catch (e) {}
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              'The weekly report cross-check found drift between a regenerated report',
+              'and its committed golden fingerprint (`testdata/example-reports/*.csv`).',
+              '',
+              'Either a change altered the analysis (update the golden with',
+              '`scripts/check-example-reports.sh --update <system>` and review the diff),',
+              'or it is an unintended regression.',
+              '',
+              `Run: ${runUrl}`,
+              '',
+              '```',
+              log.slice(-8000),
+              '```',
+            ].join('\n');
+            const open = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
+            });
+            const found = open.data.find(i => i.title === title);
+            if (found) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: found.number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo, title, body,
+              });
+            }

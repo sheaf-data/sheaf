@@ -1,6 +1,7 @@
 # Build artifacts (rebuild from source)
 /bin/
 /build/
+/.sheaf-check-bin   # transient sheaf binary built by scripts/check-example-reports.sh
 
 # Go test caches and coverage
 *.test
