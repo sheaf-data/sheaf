@@ -15,6 +15,11 @@ jobs:
   analyze:
     name: analyze (go)
     runs-on: ubuntu-latest
+    # CodeQL uploads to GitHub code scanning, which needs Advanced Security on
+    # private repos. Skip while private; this activates automatically when the
+    # repo is made public at launch. (govulncheck in security.yml needs no
+    # upload and runs regardless.)
+    if: ${{ github.event.repository.visibility == 'public' }}
     permissions:
       security-events: write
       actions: read
