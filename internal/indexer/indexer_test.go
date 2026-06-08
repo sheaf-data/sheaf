@@ -145,6 +145,82 @@ func TestBuild_ComposeInheritsMethods(t *testing.T) {
 	}
 }
 
+// TestBuild_InheritedDocAttributionDeterministic guards the inherited-method
+// synthesis (and corpus.DocClaims ordering) against BOTH non-determinism and
+// the wrong-attribution it can mask. Several protocols inherit a documented
+// base method of the same local name (fuchsia.io/{Node,Directory,File,Symlink}
+// .Close all resolve, transitively, to a documented Closeable.Close). A
+// map-order-dependent synthesis pass made their doc coverage flip run-to-run;
+// a naive order-only fix then resolved the two-hop ones to a synthesized
+// intermediate (0 docs) instead of the documented original. Go randomizes map
+// iteration each range, so repeated Build()s exercise many orders.
+func TestBuild_InheritedDocAttributionDeterministic(t *testing.T) {
+	tracked := []string{
+		"fuchsia.io/Node.Close",
+		"fuchsia.io/Directory.Close",
+		"fuchsia.io/File.Close",
+		"fuchsia.io/Symlink.Close",
+	}
+	fingerprint := func() []int {
+		c := corpus.New()
+		// Base protocol Closeable with one documented method, Close.
+		c.AddElement(&contractpb.ContractElement{Id: "fuchsia.io/Closeable", Kind: contractpb.ContractElementKind_PROTOCOL, Library: "fuchsia.io"})
+		c.AddElement(&contractpb.ContractElement{Id: "fuchsia.io/Closeable.Close", Kind: contractpb.ContractElementKind_METHOD, Library: "fuchsia.io"})
+		c.AddDocClaim(&docclaimpb.DocClaim{
+			SourcePath:   "io.fidl",
+			Location:     &commonpb.SourceLocation{Path: "io.fidl", Line: 1},
+			ContractRefs: []string{"fuchsia.io/Closeable.Close"},
+			Substance:    commonpb.Substance_SUBSTANTIVE,
+			Kind:         docclaimpb.DocClaimKind_REFERENCE,
+			Adapter:      "fidl",
+		})
+		// Node composes Closeable; Directory/File/Symlink all compose Node — so
+		// every .Close is inherited TWO hops from the documented Closeable.Close
+		// (the real fuchsia.io shape, symlink.fidl/file.fidl/directory.fidl).
+		// The synthesized-method cascade flipped attribution run-to-run AND, once
+		// made order-deterministic naively, resolved the two-hop ones to the
+		// synthesized intermediate (Node.Close) instead of the documented
+		// original. All four must end up documented.
+		compose := func(id, parent string) {
+			c.AddElement(&contractpb.ContractElement{
+				Id: id, Kind: contractpb.ContractElementKind_PROTOCOL, Library: "fuchsia.io",
+				Relationships: []*contractpb.Relationship{{
+					Kind: contractpb.RelationshipKind_COMPOSED_FROM, TargetElementId: parent,
+				}},
+			})
+		}
+		compose("fuchsia.io/Node", "fuchsia.io/Closeable")
+		compose("fuchsia.io/Directory", "fuchsia.io/Node")
+		compose("fuchsia.io/File", "fuchsia.io/Node")
+		compose("fuchsia.io/Symlink", "fuchsia.io/Node")
+
+		New(c, nil).Build()
+
+		out := make([]int, len(tracked))
+		for k, id := range tracked {
+			if p := c.Profile(id); p != nil && p.GetDocs().GetReference() != nil {
+				out[k] = len(p.GetDocs().GetReference().GetFidldoc())
+			}
+		}
+		return out
+	}
+
+	want := fingerprint()
+	// Correctness: every protocol transitively composing Closeable must inherit
+	// its documented Close (1 ref each), NOT a synthesized intermediate (0).
+	for k, id := range tracked {
+		if want[k] != 1 {
+			t.Fatalf("wrong inherited doc attribution: %s should inherit documented Closeable.Close (want 1 ref); got fingerprint %v for %v", id, want, tracked)
+		}
+	}
+	// Determinism: identical across many runs (Go randomizes map order each range).
+	for r := 1; r < 50; r++ {
+		if got := fingerprint(); !reflect.DeepEqual(got, want) {
+			t.Fatalf("non-deterministic inherited doc attribution:\n  run 0:   %v\n  run %d: %v\n  methods: %v", want, r, got, tracked)
+		}
+	}
+}
+
 // --- impl-class IMPLEMENTS → interface element renders as implementations surface ---
 
 // Under the interface-surfaces redesign, tests of impl
