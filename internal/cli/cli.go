@@ -170,7 +170,17 @@ func resolveConfigPaths(configPath, repoPath string) (string, string, error) {
 	if configPath == "" {
 		configPath = filepath.Join(absRepo, "sheaf.textproto")
 	}
+	// Resolve the source map next to the config first (the convention the
+	// example configs follow, e.g. docs/examples/<system>/sheaf.textproto with
+	// its categorization-rules.textproto alongside), then fall back to the repo
+	// root. Mirrors verify's siblingRules so scan/doctor locate the map the same
+	// way verify/snapshot already does.
 	rulesPath := filepath.Join(absRepo, "categorization-rules.textproto")
+	if sib := filepath.Join(filepath.Dir(configPath), "categorization-rules.textproto"); sib != rulesPath {
+		if _, statErr := os.Stat(sib); statErr == nil {
+			rulesPath = sib
+		}
+	}
 	return configPath, rulesPath, nil
 }
 
