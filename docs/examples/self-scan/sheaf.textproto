@@ -13,20 +13,19 @@
 #     subcommands in fenced code blocks (workflows rendered-reference
 #     adapter)
 #
-# To rebuild the dogfooding report (run from the repo root):
+# To rebuild the dogfooding report (run from the repo root, in-process — no server):
 #
 #   go build -o sheaf ./cmd/sheaf
-#   go build -o scanner ./cmd/scanner
-#   ./sheaf doctor --config docs/examples/self-scan/sheaf.textproto --repo .
-#   ./sheaf scan   --config docs/examples/self-scan/sheaf.textproto --repo .
-#   ./sheaf serve  --config docs/examples/self-scan/sheaf.textproto --repo . --port 7700 &
-#   ./scanner --server http://127.0.0.1:7700 --library sheaf \
-#             --ecosystem cli -o example-reports/sheaf-self.html
-#   kill %1
+#   ./sheaf snapshot --config docs/examples/self-scan/sheaf.textproto --repo . \
+#           --library sheaf --out /tmp/sheaf-self.json
+#   ./sheaf render --from-snapshot /tmp/sheaf-self.json --ecosystem cli \
+#           -o example-reports/sheaf-self.html        # 76 commands, 53 bridged, 23 gaps
 #
-# Ecosystem is "docker" rather than "fidl" because the noun mapping
-# (subcommand / flag) fits the sheaf CLI surface, not FIDL's
-# protocol / method / type vocabulary.
+# The source map (categorization-rules.textproto) sits next to this config and is
+# auto-resolved — no staging at the repo root needed.
+#
+# Ecosystem is "cli" because the noun mapping (subcommand / flag) fits the sheaf
+# CLI surface, not FIDL's protocol / method / type vocabulary.
 
 version: 1
 

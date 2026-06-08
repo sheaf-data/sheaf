@@ -18,22 +18,22 @@ The config treats the `sheaf` binary as the contract:
 
 ## Reproducing the report
 
-From the repo root:
+From the repo root (in-process — no server):
 
 ```sh
 go build -o sheaf ./cmd/sheaf
-go build -o scanner ./cmd/scanner
 
-./sheaf doctor --config docs/examples/self-scan/sheaf.textproto --repo .
-./sheaf scan   --config docs/examples/self-scan/sheaf.textproto --repo .
+# scan its own surface — 76 commands, ~800 tests, ~1k doc claims, in ~130ms
+./sheaf scan --config docs/examples/self-scan/sheaf.textproto --repo .
 
-./sheaf serve  --config docs/examples/self-scan/sheaf.textproto --repo . --port 7700 &
-./scanner --server http://127.0.0.1:7700 --library sheaf \
-          --ecosystem cli -o example-reports/sheaf-self.html
-kill %1
+# snapshot, then render the report
+./sheaf snapshot --config docs/examples/self-scan/sheaf.textproto --repo . \
+        --library sheaf --out /tmp/sheaf-self.json
+./sheaf render --from-snapshot /tmp/sheaf-self.json --ecosystem cli \
+        -o example-reports/sheaf-self.html        # → 76 commands · 53 bridged · 23 gaps
 ```
 
-The rendered report lands at [example-reports/sheaf-self.html](../../../example-reports/sheaf-self.html).
+The source map (`categorization-rules.textproto`) sits next to the config and is auto-resolved. The rendered report lands at [example-reports/sheaf-self.html](../../../example-reports/sheaf-self.html).
 
 ## Why these aren't at the repo root
 
