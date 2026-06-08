@@ -29,6 +29,13 @@ jobs:
       - name: go build
         run: go build ./...
 
+      # The test suite is Unix-only (serve_e2e_test.go uses syscall.Setpgid/Kill;
+      # some goldens assume Unix paths), so Windows isn't in the test matrix
+      # below. Cross-compile here to still catch Windows build breaks in non-test
+      # code — the release pipeline ships Windows binaries.
+      - name: go build (windows cross-compile)
+        run: GOOS=windows GOARCH=amd64 go build ./...
+
       - name: gofmt
         run: |
           unformatted=$(gofmt -l .)
@@ -53,24 +60,25 @@ jobs:
           install-mode: goinstall
           args: --timeout=5m
 
-  # Stage 2 (sheaf-ci-requirements.md §4): the test gate, matrixed across
-  # linux/macos/windows. `go test ./... -race -count=1` (including
-  # utils/scanner/inprocess_test.go, which guards the sheaf-self.html
-  # golden) is blocking from its first run, not continue-on-error.
+  # Stage 2 (sheaf-ci-requirements.md §4): the test gate, run with the race
+  # detector on linux + macOS. `go test ./... -race -count=1` (including
+  # utils/scanner/inprocess_test.go, which guards the sheaf-self.html golden)
+  # is blocking from its first run.
   #
-  # Go is pinned to go.mod (currently 1.26.2) rather than the 1.22/1.23
-  # pair from the original plan: go.mod's `go 1.26.2` directive makes older
-  # toolchains refuse to build, so the matrix varies OS only. The race
-  # detector needs a C toolchain, reliably present on the linux/macos
-  # runners; Windows runs the suite without -race. setup-go's cache is
-  # keyed per-OS, so modules + build cache are reused within each cell.
+  # Go is pinned to go.mod (currently 1.26.4) rather than the 1.22/1.23 pair
+  # from the original plan: the go.mod directive makes older toolchains refuse
+  # to build, so the matrix varies OS only. Windows is intentionally absent —
+  # the test suite is Unix-only (serve_e2e_test.go uses syscall.Setpgid/Kill;
+  # some goldens assume Unix paths). Windows binaries are cross-compiled in the
+  # checks job and shipped by the release pipeline; making the suite
+  # Windows-clean is tracked separately. setup-go's cache is keyed per-OS.
   test:
     name: test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -85,9 +93,4 @@ jobs:
         run: go build ./...
 
       - name: go test (race)
-        if: runner.os != 'Windows'
         run: go test ./... -race -count=1
-
-      - name: go test
-        if: runner.os == 'Windows'
-        run: go test ./... -count=1
