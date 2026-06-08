@@ -158,13 +158,52 @@ func (c *Corpus) Tests() []*testcasepb.TestCase {
 	return out
 }
 
-// DocClaims returns the recorded DocClaims in insertion order.
+// DocClaims returns the recorded DocClaims in a deterministic order.
+//
+// Insertion order is NOT stable across runs: doc adapters run concurrently, so
+// the order claims land in c.docclaims varies. Downstream attribution
+// (indexer.docClaimRefsElement → placeDocRef) is order-sensitive in its
+// dedup/bucketing, so an unsorted slice made a report's per-element doc counts
+// flip run-to-run (e.g. fuchsia.io/File.Close). Sorting here — mirroring
+// Elements() and Tests(), which already sort — makes consumption deterministic.
 func (c *Corpus) DocClaims() []*docclaimpb.DocClaim {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	out := make([]*docclaimpb.DocClaim, len(c.docclaims))
 	copy(out, c.docclaims)
+	sort.SliceStable(out, func(a, b int) bool { return docClaimLess(out[a], out[b]) })
 	return out
+}
+
+// docClaimLess is a total ordering over DocClaims by stable, content-derived
+// fields (no insertion-time identity), so the sort result is reproducible.
+func docClaimLess(a, b *docclaimpb.DocClaim) bool {
+	if x, y := a.GetSourcePath(), b.GetSourcePath(); x != y {
+		return x < y
+	}
+	la, lb := a.GetLocation(), b.GetLocation()
+	if x, y := la.GetLine(), lb.GetLine(); x != y {
+		return x < y
+	}
+	if x, y := la.GetColumn(), lb.GetColumn(); x != y {
+		return x < y
+	}
+	if x, y := a.GetKind(), b.GetKind(); x != y {
+		return x < y
+	}
+	if x, y := a.GetAdapter(), b.GetAdapter(); x != y {
+		return x < y
+	}
+	ra, rb := a.GetContractRefs(), b.GetContractRefs()
+	for k := 0; k < len(ra) && k < len(rb); k++ {
+		if ra[k] != rb[k] {
+			return ra[k] < rb[k]
+		}
+	}
+	if len(ra) != len(rb) {
+		return len(ra) < len(rb)
+	}
+	return a.GetRawText() < b.GetRawText()
 }
 
 // Profile returns the CoverageProfile for elementID, or nil.

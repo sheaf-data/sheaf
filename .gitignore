@@ -1,8 +1,9 @@
 # Build artifacts (rebuild from source)
 /bin/
 /build/
-/dist/          # GoReleaser output (goreleaser release --snapshot)
-gosec.sarif     # local gosec scan output
+/dist/              # GoReleaser output (goreleaser release --snapshot)
+gosec.sarif         # local gosec scan output
+/.sheaf-check-bin   # transient sheaf binary built by scripts/check-example-reports.sh
 
 # Go test caches and coverage
 *.test
