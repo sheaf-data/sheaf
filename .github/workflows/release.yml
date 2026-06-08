@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write # create the GitHub Release + upload artifacts
+  id-token: write # OIDC token for cosign keyless signing (Fulcio/Rekor)
 
 jobs:
   goreleaser:
@@ -20,6 +21,11 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+
+      # cosign signs the checksums + SBOMs; syft generates the SBOMs.
+      # Both are invoked by goreleaser (see .goreleaser.yaml signs/sboms blocks).
+      - uses: sigstore/cosign-installer@v3
+      - uses: anchore/sbom-action/download-syft@v0
 
       - uses: goreleaser/goreleaser-action@v7
         with:
