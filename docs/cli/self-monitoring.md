@@ -38,7 +38,7 @@ The canonical path regenerates both the coverage report and its concept-doc sibl
 scripts/regen-example-reports.sh sheaf-self
 ```
 
-That builds `sheaf`, renders [example-reports/sheaf-self.html](../../example-reports/sheaf-self.html) via the server-free in-process path (`sheaf snapshot` → `sheaf render --from-snapshot --repo-root .`, the step the byte-identical golden test exercises), then builds `emit-grounding` and renders the concept-doc report (below). The `--repo-root` is what enables the report's Lag section — it differences each contract element's git history against its docs.
+That builds `sheaf`, renders `example-reports/sheaf-self.html` via the server-free in-process path (`sheaf snapshot` → `sheaf render --from-snapshot --repo-root .`, the step the byte-identical golden test exercises), then builds `emit-grounding` and renders the concept-doc report (below). The `--repo-root` is what enables the report's Lag section — it differences each contract element's git history against its docs.
 
 The equivalent manual coverage-only path (closer to a stranger's first run) is:
 
@@ -63,7 +63,7 @@ At time of writing the scan produces **76 contract elements** (1 root + 12 subco
 
 ## Concept-doc report
 
-The same regen step also renders [example-reports/sheaf-self-concept-docs.html](../../example-reports/sheaf-self-concept-docs.html) — the doc-centric **concept-doc lens** (the `clear` / `ambiguous` / `silent` map of how sheaf's narrative docs reference its own CLI surface, distinct from the coverage matrix). It grounds against the narrative concept-doc set (`README.md`, `docs/cli/sheaf.md`, `docs/cli/workflows.md`, `docs/config.md`, `docs/mcp/*.md`, `docs/playbooks/**/*.md`) — not the per-subcommand reference pages, which are the *reference* surface. All 76 elements are `clear` (every subcommand and flag is named, in qualified `sheaf <sub> --flag` form, by at least one narrative doc); the per-command tour in [docs/cli/sheaf.md](sheaf.md#commands-in-context) is what carries the flags.
+The same regen step also renders `example-reports/sheaf-self-concept-docs.html` — the doc-centric **concept-doc lens** (the `clear` / `ambiguous` / `silent` map of how sheaf's narrative docs reference its own CLI surface, distinct from the coverage matrix). It grounds against the narrative concept-doc set (`README.md`, `docs/cli/sheaf.md`, `docs/cli/workflows.md`, `docs/config.md`, `docs/mcp/*.md`, `docs/playbooks/**/*.md`) — not the per-subcommand reference pages, which are the *reference* surface. All 76 elements are `clear` (every subcommand and flag is named, in qualified `sheaf <sub> --flag` form, by at least one narrative doc); the per-command tour in [docs/cli/sheaf.md](sheaf.md#commands-in-context) is what carries the flags.
 
 ## CI gates (enforced)
 

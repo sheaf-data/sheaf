@@ -58,11 +58,11 @@ Each row links to a Sheaf report produced against a real project (the self-scan 
 
 | Sample | Ecosystem | Contract surface | Config |
 |---|---|---|---|
-| **[envoy ↗](example-reports/envoy.html)** | proto | Envoy xDS v3 protobuf API: the v3 management-plane services. | [textproto](docs/examples/envoy-coverage-config.textproto) |
-| **[gh (GitHub CLI) ↗](example-reports/gh.html)** | cli | The GitHub CLI's subcommand + flag surface, scanned from its checked-in cobra YAML reference. | [textproto](docs/examples/gh-coverage-config.textproto) |
+| **[envoy ↗](https://sheaf-data.github.io/examples/envoy/)** | proto | Envoy xDS v3 protobuf API: the v3 management-plane services. | [textproto](docs/examples/envoy-coverage-config.textproto) |
+| **[gh (GitHub CLI) ↗](https://sheaf-data.github.io/examples/gh/)** | cli | The GitHub CLI's subcommand + flag surface, scanned from its checked-in cobra YAML reference. | [textproto](docs/examples/gh-coverage-config.textproto) |
 | **[sheaf (self-scan) ↗](docs/examples/self-scan/)** | cli | Sheaf dogfooding itself: its own CLI surface joined against its own tests, docs, and worked examples. The canonical "what a complete config looks like for a cobra-style CLI." | [textproto](docs/examples/self-scan/sheaf.textproto) |
 
-*Run Sheaf on your own repo: [docs/scan-your-repo.md](docs/scan-your-repo.md).*
+*Browse the full gallery (6 reports) at **[sheaf-data.github.io/examples](https://sheaf-data.github.io/examples/)**. Run Sheaf on your own repo: [docs/scan-your-repo.md](docs/scan-your-repo.md).*
 
 To reproduce any sample locally (in-process, no server). Here, Sheaf's own self-scan:
 
