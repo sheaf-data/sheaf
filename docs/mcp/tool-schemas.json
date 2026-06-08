@@ -1,0 +1,134 @@
+{
+  "$comment": "Consolidated input schemas for the Sheaf MCP operations exposed by `sheaf serve`. Human-readable companion with example prompts and output types: docs/mcp/tools.md. Wire protocol: docs/mcp/api.md. Descriptions match the server's tools/list output. JSON Schema draft-07.",
+  "tools": [
+    {
+      "name": "list_libraries",
+      "description": "List libraries in the corpus with element/profile/finding counts",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "library_snapshot",
+      "description": "Return all ContractElements, CoverageProfiles and Findings for one library — the bulk read used by the report generator",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "library": { "type": "string", "description": "Library name as returned by list_libraries." }
+        },
+        "required": ["library"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "query_contract",
+      "description": "Return ContractElement and its CoverageProfile (or a subtree)",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "element_id": { "type": "string", "description": "Canonical element ID, e.g. \"kubectl get\" or \"fuchsia.io/Directory.Open\"." },
+          "subtree": {
+            "type": "string",
+            "enum": ["tests", "docs", "examples", "usage", "gaps"],
+            "description": "Optional. Narrow the response to one coverage bucket instead of the full profile."
+          }
+        },
+        "required": ["element_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "coverage",
+      "description": "Return the CoverageProfile for an element",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "element_id": { "type": "string" }
+        },
+        "required": ["element_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "find_coverage_gaps",
+      "description": "List findings, filterable by library and kind",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "library": { "type": "string", "description": "Optional. Filter to one library (accepts the <lib>/ and <lib>. prefixes)." },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["DOCUMENTED_UNTESTED", "TESTED_UNDOCUMENTED", "MISSING_IN_CATEGORY", "THIN_REFERENCE", "EXTERNAL_MENTION_ONLY", "COVERAGE_DELTA", "STALE_DOC"]
+            },
+            "description": "Optional. Filter to these finding kinds; the FINDING_KIND_ prefix is also accepted."
+          },
+          "max_items": { "type": "integer", "minimum": 0, "description": "Optional cap; 0 = no cap." }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "find_examples",
+      "description": "Search for elements matching a query (semantic if embedder configured, else token-overlap)",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "query": { "type": "string", "description": "Natural-language description of the behavior you want an element for." },
+          "max_items": { "type": "integer", "minimum": 1, "default": 10 }
+        },
+        "required": ["query"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "verify_invocation",
+      "description": "Check whether an invocation string matches a real element",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "invocation": { "type": "string", "description": "The element ID / call the agent is about to emit, e.g. \"fuchsia.io/Directory.Open\"." }
+        },
+        "required": ["invocation"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "review_pr",
+      "description": "Run a PR review: scan base + head paths, render comment, optionally post via configured review adapter",
+      "optional": true,
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "pr_ref": { "type": "string", "default": "PR#unknown", "description": "Label for the comment header." },
+          "base_path": { "type": "string", "description": "Working tree at the PR base commit." },
+          "head_path": { "type": "string", "description": "Working tree at the PR head commit." },
+          "post": { "type": "boolean", "default": false, "description": "Post via the configured review adapter; print-only when false." }
+        },
+        "required": ["base_path", "head_path"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "tools/list",
+      "description": "MCP convention: list the operations this server exposes",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    }
+  ]
+}
