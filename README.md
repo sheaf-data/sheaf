@@ -42,14 +42,14 @@ Each row links to a Sheaf report produced against a real project (the self-scan 
 
 *Run Sheaf on your own repo — [docs/scan-your-repo.md](docs/scan-your-repo.md).*
 
-To reproduce any sample locally (in-process, no server):
+To reproduce any sample locally (in-process, no server) — here, Sheaf's own self-scan:
 
 ```sh
-sheaf snapshot --config docs/examples/envoy-coverage-config.textproto --library envoy --out /tmp/envoy.json
-sheaf render --from-snapshot /tmp/envoy.json --ecosystem proto -o envoy-report.html
+sheaf snapshot --config docs/examples/self-scan/sheaf.textproto --library sheaf --out /tmp/sheaf-self.json
+sheaf render --from-snapshot /tmp/sheaf-self.json --ecosystem cli -o sheaf-self.html   # → 76 commands · 53 bridged · 23 gaps
 ```
 
-Pass the `--ecosystem` that matches the sample (the **Ecosystem** column above). All sample configs and rules live under [docs/examples/](docs/examples/).
+Pass the `--ecosystem` that matches the sample (the **Ecosystem** column above); the source map beside each config is auto-resolved. All sample configs and rules live under [docs/examples/](docs/examples/).
 
 ## MCP server
 
