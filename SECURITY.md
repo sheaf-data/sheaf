@@ -10,9 +10,16 @@ sheaf is pre-1.0. Security fixes land on the latest released `0.x` version and o
 | older `0.x` releases | ❌ (upgrade first) |
 | `main` (unreleased)  | ✅                 |
 
+## Release integrity
+
+Tagged releases (v0.1.0+) ship signed checksums and SBOMs. Signing is keyless
+(Sigstore cosign) against the release workflow's GitHub OIDC identity; there are no
+long-lived signing secrets in the repo. Verify a download before running it:
+see [docs/verifying-releases.md](docs/verifying-releases.md).
+
 ## Reporting a vulnerability
 
-**Please report security issues privately — do not open a public issue or PR.**
+**Please report security issues privately: do not open a public issue or PR.**
 
 Use GitHub's private vulnerability reporting:
 
