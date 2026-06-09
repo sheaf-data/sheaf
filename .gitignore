@@ -30,6 +30,7 @@ __pycache__/
 # Built binaries (rebuild via `go install` or `go build -o`)
 /sheaf
 /sheaf-adapter-gotest
+/sheaf-mcp-bench
 /scanner
 /dump-elements
 /dump-profile

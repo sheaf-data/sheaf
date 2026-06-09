@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -27,69 +28,49 @@ func repoRootForTest(t *testing.T) string {
 // against the committed report has to neutralize the stamp.
 var timestampRE = regexp.MustCompile(`\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC`)
 
-// TestRender_SelfScanByteIdentical drives the in-process Render path
-// against the self-scan config and asserts the rendered HTML is
-// byte-identical (modulo the embedded timestamp) to the committed
-// utils/scanner/testdata/sheaf-self.html — the proof that the in-process
-// pipeline is equivalent to the server-backed scanner CLI that
-// produced the committed report.
+// TestRender_SelfScanByteIdentical renders the self-scan report from a
+// FROZEN snapshot (utils/scanner/testdata/self-scan-snapshot.json) and
+// asserts it is byte-identical (modulo the embedded timestamp) to the
+// committed golden utils/scanner/testdata/sheaf-self.html — proof the
+// in-process render path is stable.
+//
+// Rendering from a frozen snapshot, not a live scan, is deliberate: the
+// doc-citation line numbers live in the snapshot and the render passes no
+// repo root (no git, no Lag section), so unrelated edits to the repo's
+// docs can no longer shift a citation and stale the golden. This test now
+// fails ONLY when the render code changes — exactly when the golden should
+// be re-blessed (SHEAF_UPDATE_GOLDEN=1; see golden_update_test.go).
+// Live-corpus correctness is covered separately by
+// TestSelfScan_ConceptDocReachFloor and TestSelfScan_BridgedFloor.
 func TestRender_SelfScanByteIdentical(t *testing.T) {
 	repoRoot := repoRootForTest(t)
-	// The committed golden was generated against a FULL checkout. On a shallow
-	// clone the Lag surface is (correctly) suppressed to its caveat instead of
-	// the real distribution, so the bytes can never match — skip rather than
-	// report a spurious failure. (That the golden silently differed on a
-	// shallow clone before this guard is exactly the bug this addresses.)
-	if isShallowRepo(repoRoot) {
-		t.Skip("self-scan golden requires full git history; this checkout is shallow (git fetch --unshallow)")
-	}
-	configPath := filepath.Join(repoRoot, "docs/examples/self-scan/sheaf.textproto")
+	snapPath := filepath.Join(repoRoot, "utils/scanner/testdata/self-scan-snapshot.json")
 	committed := filepath.Join(repoRoot, "utils/scanner/testdata/sheaf-self.html")
-	rulesSrc := filepath.Join(repoRoot, "docs/examples/self-scan/categorization-rules.textproto")
 
-	// The committed report was generated with the self-scan rules
-	// staged at the repo root (see scripts/regen-example-reports.sh).
-	// Reproduce that staging here. Skip if a rules file is already
-	// present so a concurrently-staged tree isn't clobbered.
-	staged := filepath.Join(repoRoot, "categorization-rules.textproto")
-	if _, err := os.Stat(staged); err == nil {
-		t.Skip("categorization-rules.textproto already present at repo root; skipping to avoid clobber")
-	}
-	src, err := os.ReadFile(rulesSrc)
+	data, err := os.ReadFile(snapPath)
 	if err != nil {
-		t.Fatalf("read rules: %v", err)
+		t.Fatalf("read frozen snapshot: %v", err)
 	}
-	if err := os.WriteFile(staged, src, 0o644); err != nil {
-		t.Fatalf("stage rules: %v", err)
+	var snap Snapshot
+	if err := json.Unmarshal(data, &snap); err != nil {
+		t.Fatalf("parse frozen snapshot: %v", err)
 	}
-	t.Cleanup(func() { os.Remove(staged) })
-
-	out := filepath.Join(t.TempDir(), "sheaf-self.html")
-	n, bridged, err := Render(context.Background(), configPath, repoRoot,
-		"sheaf", "", "cli",
-		"https://github.com/sheaf-data/sheaf/blob/main/{path}#L{line}", out)
+	got, _, err := RenderStatsStringFromSnapshot(context.Background(), &snap, "", "cli",
+		"https://github.com/sheaf-data/sheaf/blob/main/{path}#L{line}", "", nil)
 	if err != nil {
-		t.Fatalf("Render: %v", err)
-	}
-	if n == 0 {
-		t.Fatalf("Render returned zero elements")
-	}
-	t.Logf("Render: %d elements, %d bridged", n, bridged)
-
-	got, err := os.ReadFile(out)
-	if err != nil {
-		t.Fatalf("read rendered: %v", err)
+		t.Fatalf("render from snapshot: %v", err)
 	}
 	want, err := os.ReadFile(committed)
 	if err != nil {
-		t.Fatalf("read committed report: %v", err)
+		t.Fatalf("read committed golden: %v", err)
 	}
-	gotNorm := timestampRE.ReplaceAll(got, []byte("TS"))
+	gotNorm := timestampRE.ReplaceAll([]byte(got), []byte("TS"))
 	wantNorm := timestampRE.ReplaceAll(want, []byte("TS"))
 	if string(gotNorm) != string(wantNorm) {
 		t.Errorf("rendered report differs from committed utils/scanner/testdata/sheaf-self.html "+
-			"(got %d bytes, want %d bytes, modulo timestamp). The in-process Render path "+
-			"has diverged from the server-backed scanner CLI.", len(gotNorm), len(wantNorm))
+			"(got %d bytes, want %d bytes, modulo timestamp). Because the golden renders from a "+
+			"frozen snapshot, this fails only on a render-code change — re-bless with "+
+			"SHEAF_UPDATE_GOLDEN=1.", len(gotNorm), len(wantNorm))
 	}
 }
 
