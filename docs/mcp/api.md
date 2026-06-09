@@ -47,7 +47,7 @@ Wire it into Claude Desktop (`claude_desktop_config.json`) or any client that ta
 }
 ```
 
-Per-client setup — Claude Desktop, Cursor, Cline, Continue (config-file locations, how to apply, troubleshooting) — is in **[clients.md](clients.md)**.
+Per-client setup — Claude Desktop, Cursor, Cline, Continue, Codex, Gemini (config-file locations, how to apply, troubleshooting) — is in **[clients.md](clients.md)**.
 
 #### MCP envelope (`initialize` + `tools/call`)
 

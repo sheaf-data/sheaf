@@ -2,7 +2,7 @@
 
 The MCP server is the integration surface for any client that needs Sheaf's corpus over the network — coding agents (Claude, Cursor, Cline, …), the `scanner` binary, CI bots, custom dashboards.
 
-- **[clients.md](clients.md)** — connect a desktop agent (Claude Desktop, Cursor, Cline, Continue): copy-paste config snippets + troubleshooting.
+- **[clients.md](clients.md)** — connect a coding agent (Claude Desktop, Cursor, Cline, Continue, Codex, Gemini): copy-paste config snippets + troubleshooting.
 - **[api.md](api.md)** — wire protocol, every JSON-RPC method, params, return shape, error codes, auth.
 - **[schema.md](schema.md)** — the proto messages each result payload carries.
 - **[tools.md](tools.md)** — per-tool input JSON Schemas + example prompts (when/why an agent calls each). Machine-readable: [tool-schemas.json](tool-schemas.json).

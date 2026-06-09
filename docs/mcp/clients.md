@@ -1,8 +1,8 @@
 # Connecting MCP clients to sheaf
 
-Desktop coding agents — Claude Desktop, Cursor, Cline, Continue — connect to an MCP server by **spawning it as a subprocess and talking over stdin/stdout**. Sheaf speaks that transport with [`sheaf serve --stdio`](../cli/reference/sheaf_serve.md). This page has copy-paste config for each client; the wire protocol behind them is in [api.md](api.md#stdio-sheaf-serve---stdio).
+Coding agents — Claude Desktop, Cursor, Cline, Continue, OpenAI Codex CLI, Gemini CLI — connect to an MCP server by **spawning it as a subprocess and talking over stdin/stdout**. Sheaf speaks that transport with [`sheaf serve --stdio`](../cli/reference/sheaf_serve.md). This page has copy-paste config for each; the wire protocol behind them is in [api.md](api.md#stdio-sheaf-serve---stdio).
 
-All four clients use the same shape — a named server with a `command` and `args`. Only the config file's location and how you apply it differ.
+The setup is the same everywhere — a named server with a `command` and `args`. Most clients write it as JSON under an `mcpServers` object; Codex uses the TOML equivalent. Only the config file's location and format differ.
 
 ## Prerequisites
 
@@ -97,6 +97,35 @@ mcpServers:
 ```
 
 Reload Continue (or restart your IDE). Sheaf's tools become available to the agent.
+
+## OpenAI Codex CLI
+
+Codex configures MCP servers in **TOML**, in `~/.codex/config.toml`. Add a table:
+
+```toml
+[mcp_servers.sheaf]
+command = "/abs/path/to/sheaf"
+args = ["serve", "--stdio", "--repo", "/abs/path/to/repo"]
+```
+
+(Equivalently: `codex mcp add sheaf -- /abs/path/to/sheaf serve --stdio --repo /abs/path/to/repo`, if your Codex version ships the `mcp add` subcommand.) Start `codex`; it launches the server on demand. **Verify:** ask Codex to use a sheaf tool, e.g. *"with sheaf, find coverage gaps in this repo."*
+
+## Gemini CLI
+
+Gemini configures MCP servers as **JSON** in `~/.gemini/settings.json` (global) or `.gemini/settings.json` (per-project) — the same `mcpServers` shape as above:
+
+```json
+{
+  "mcpServers": {
+    "sheaf": {
+      "command": "/abs/path/to/sheaf",
+      "args": ["serve", "--stdio", "--repo", "/abs/path/to/repo"]
+    }
+  }
+}
+```
+
+Restart `gemini` (or run `/mcp` inside it to list servers). **Verify:** `/mcp` shows `sheaf` connected and lists its tools.
 
 ## Verifying the wiring
 
