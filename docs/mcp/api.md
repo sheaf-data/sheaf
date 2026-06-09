@@ -1,8 +1,12 @@
 # Sheaf MCP API
 
-The MCP server exposed by [`sheaf serve`](../cli/reference/sheaf_serve.md) is a JSON-RPC 2.0 endpoint that serves Sheaf's in-memory corpus to coding agents, the [`scanner`](../cli/reference/scanner.md) binary, and any other client that speaks HTTP. This page documents the wire protocol and every operation. Result payload schemas are defined in proto and indexed at [schema.md](schema.md).
+The MCP server exposed by [`sheaf serve`](../cli/reference/sheaf_serve.md) is a JSON-RPC 2.0 endpoint that serves Sheaf's in-memory corpus to coding agents, the [`scanner`](../cli/reference/scanner.md) binary, and any other client — over **HTTP** or, for desktop MCP clients that spawn the server as a subprocess, over **stdio**. This page documents the wire protocol and every operation. Result payload schemas are defined in proto and indexed at [schema.md](schema.md).
 
-## Transport
+## Transports
+
+`sheaf serve` speaks the same JSON-RPC operations over two transports. Pick by how your client connects.
+
+### HTTP (default)
 
 | Property | Value |
 |---|---|
@@ -11,6 +15,47 @@ The MCP server exposed by [`sheaf serve`](../cli/reference/sheaf_serve.md) is a 
 | Content-Type | `application/json` |
 | Health probe | `GET /healthz` (not RPC; returns `{"status":"ok", ...}`) |
 | Default bind | `127.0.0.1:7700` (configurable via `mcp_server.bind` / `mcp_server.port`) |
+
+Operations are reachable directly as JSON-RPC methods (`"method": "library_snapshot"`). This is what the `scanner` binary and HTTP agents use.
+
+### stdio (`sheaf serve --stdio`)
+
+Desktop MCP clients — Claude Desktop, Cursor, Cline, Continue — don't dial a URL; they launch the server as a child process and exchange messages over its stdin/stdout. Run that transport with:
+
+```bash
+sheaf serve --stdio --config sheaf.textproto --repo .
+```
+
+| Property | Value |
+|---|---|
+| Protocol | JSON-RPC 2.0, **one compact JSON message per line** (newline-delimited) |
+| Input | one request per line on **stdin** |
+| Output | one response per line on **stdout** |
+| Diagnostics | logs + banners on **stderr** (stdout is the protocol channel — nothing else is written there) |
+| Lifecycle | the MCP envelope: `initialize` handshake, then `tools/call` |
+
+Wire it into Claude Desktop (`claude_desktop_config.json`) or any client that takes an MCP command:
+
+```json
+{
+  "mcpServers": {
+    "sheaf": {
+      "command": "sheaf",
+      "args": ["serve", "--stdio", "--config", "/abs/path/to/sheaf.textproto", "--repo", "/abs/path/to/repo"]
+    }
+  }
+}
+```
+
+#### MCP envelope (`initialize` + `tools/call`)
+
+Spec-compliant MCP clients negotiate before calling tools, so over any transport the server also accepts the MCP envelope:
+
+- `initialize` → returns `{protocolVersion, capabilities:{tools:{}}, serverInfo:{name:"sheaf", version}}`. The client follows with a `notifications/initialized` notification (no response).
+- `tools/list` → the tool catalog (see [`tools/list`](#toolslist) below).
+- `tools/call` with `{"name": "<op>", "arguments": {…}}` → runs the op named in the [Operations](#operations) reference and returns its result as MCP `content` (text JSON) plus `structuredContent`. An unknown tool is a `-32602` error; an op-level failure comes back as `{"isError": true, "content": […]}`.
+
+The operation reference below documents each op's params and result. Those are what you pass as `tools/call` `arguments` (stdio / MCP clients) or call directly as the JSON-RPC `method` (HTTP / scanner).
 
 ## Auth
 

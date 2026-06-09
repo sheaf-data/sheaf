@@ -6,7 +6,7 @@ Run the ingest → index pipeline once and then keep the corpus live behind an M
 
 ```text
 sheaf serve [--config <path>] [--repo <path>]
-            [--bind <host>] [--port <n>]
+            [--bind <host>] [--port <n>] [--stdio]
 ```
 
 ## Description
@@ -23,14 +23,17 @@ Bind address and port come from the `mcp_server { bind: ... port: ... }` block i
 
 `serve` is foreground; it returns when the listener errors. Run with `&` (or under a process supervisor) when you want it in the background.
 
+With `--stdio`, `serve` speaks MCP over **newline-delimited JSON-RPC on stdin/stdout** instead of binding HTTP — the transport desktop MCP clients (Claude Desktop, Cursor, Cline, Continue) use when they launch the server as a subprocess. In that mode stdout is the protocol channel, so all banners and logs go to stderr. See [docs/mcp/api.md](../../mcp/api.md#stdio-sheaf-serve---stdio) for the framing and a `claude_desktop_config.json` snippet. `--bind`/`--port` are ignored under `--stdio`.
+
 ## Options
 
 | Flag | Default | Notes |
 |---|---|---|
 | `--config` | `<repo>/sheaf.textproto` | Path to the project config. |
 | `--repo`   | `.`                      | Project repo root. |
-| `--bind`   | from config              | Override `mcp_server.bind`. |
-| `--port`      | from config              | Override `mcp_server.port`. |
+| `--bind`   | from config              | Override `mcp_server.bind` (HTTP only). |
+| `--port`      | from config              | Override `mcp_server.port` (HTTP only). |
+| `--stdio`  | `false`                  | Speak MCP over stdin/stdout (newline-delimited JSON-RPC) for desktop clients, instead of HTTP. |
 
 ## Examples
 

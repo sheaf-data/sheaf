@@ -11,10 +11,13 @@
 package mcp
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -398,6 +401,131 @@ func (s *Server) writeResult(w http.ResponseWriter, id json.RawMessage, result a
 	})
 }
 
+// --- stdio transport ---
+
+// ServeStdio runs the MCP server over a newline-delimited JSON-RPC stream
+// on in/out — the transport MCP clients (Claude Desktop, Cursor, Cline)
+// use when they spawn `sheaf serve` as a subprocess. Each line of `in` is
+// one JSON-RPC request; each response is written as one compact JSON line
+// to `out`. Requests without an id are notifications and receive no
+// response, per JSON-RPC 2.0. Diagnostics go to the server logger
+// (stderr) — `out` carries protocol messages only, so anything else
+// written there corrupts the stream. Returns nil when `in` reaches EOF
+// (the client closed the pipe) or ctx is canceled (shutdown signal); a
+// read error otherwise.
+//
+// Requests are handled serially: one response is fully written before the
+// next request is read, so writes to `out` never interleave.
+func (s *Server) ServeStdio(ctx context.Context, in io.Reader, out io.Writer) error {
+	// A dedicated reader goroutine lets ctx cancellation (SIGINT) return
+	// promptly even while the main loop would otherwise block on stdin.
+	lines := make(chan []byte)
+	readErr := make(chan error, 1)
+	go func() {
+		r := bufio.NewReader(in)
+		for {
+			line, err := readStdioLine(r)
+			if len(line) > 0 {
+				select {
+				case lines <- line:
+				case <-ctx.Done():
+					return
+				}
+			}
+			if err != nil {
+				readErr <- err
+				return
+			}
+		}
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case err := <-readErr:
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return err
+		case line := <-lines:
+			s.handleStdioLine(ctx, line, out)
+		}
+	}
+}
+
+// readStdioLine reads one '\n'-delimited line (newline included on a full
+// line; absent on a final unterminated line, which arrives with io.EOF).
+// A line longer than the HTTP body cap is rejected to bound memory.
+func readStdioLine(r *bufio.Reader) ([]byte, error) {
+	line, err := r.ReadBytes('\n')
+	if len(line) > maxRequestBodyBytes {
+		return nil, fmt.Errorf("request line exceeds %d bytes", maxRequestBodyBytes)
+	}
+	return line, err
+}
+
+// handleStdioLine parses one line as a JSON-RPC request, dispatches it
+// through the same core the HTTP handler uses, and writes a response
+// unless the request was a notification.
+func (s *Server) handleStdioLine(ctx context.Context, line []byte, out io.Writer) {
+	line = bytes.TrimSpace(line)
+	if len(line) == 0 {
+		return
+	}
+	var req rpcRequest
+	if err := json.Unmarshal(line, &req); err != nil {
+		// Can't recover an id from an unparseable line; reply with null id.
+		s.writeStdioResponse(out, rpcResponse{
+			JSONRPC: "2.0", Error: &rpcError{Code: -32700, Message: "parse error: " + err.Error()},
+		})
+		return
+	}
+	if req.JSONRPC != "" && req.JSONRPC != "2.0" {
+		if !isNotification(req.ID) {
+			s.writeStdioResponse(out, rpcResponse{
+				JSONRPC: "2.0", ID: req.ID,
+				Error: &rpcError{Code: -32600, Message: "invalid request: jsonrpc version"},
+			})
+		}
+		return
+	}
+	start := time.Now()
+	result, rerr := s.dispatchSafe(ctx, req.Method, req.ID, req.Params)
+	s.logCall(ctx, req.Method, req.ID, time.Since(start), rerr)
+	if isNotification(req.ID) {
+		return // JSON-RPC notifications get no response.
+	}
+	resp := rpcResponse{JSONRPC: "2.0", ID: req.ID}
+	if rerr != nil {
+		resp.Error = rerr
+	} else {
+		resp.Result = result
+	}
+	s.writeStdioResponse(out, resp)
+}
+
+// writeStdioResponse marshals resp to compact JSON and writes it as one
+// line. json.Marshal escapes any newline inside string values, so the
+// framing invariant — exactly one message per line — always holds.
+func (s *Server) writeStdioResponse(out io.Writer, resp rpcResponse) {
+	b, err := json.Marshal(resp)
+	if err != nil {
+		s.logger.LogAttrs(context.Background(), slog.LevelError, "marshal stdio response", slog.Any("err", err))
+		return
+	}
+	b = append(b, '\n')
+	if _, err := out.Write(b); err != nil {
+		s.logger.LogAttrs(context.Background(), slog.LevelError, "write stdio response", slog.Any("err", err))
+	}
+}
+
+// isNotification reports whether a JSON-RPC id is absent — the marker of a
+// notification, which gets no response. An explicit null id counts as a
+// request (answered with a null id).
+func isNotification(id json.RawMessage) bool {
+	return len(id) == 0
+}
+
 // --- Operation dispatch ---
 
 // codeInternalError is the JSON-RPC 2.0 "internal error" code, returned
@@ -463,6 +591,14 @@ func (s *Server) dispatch(ctx context.Context, method string, params json.RawMes
 		return s.opLibrarySnapshot(params)
 	case "tools/list":
 		return s.opToolsList()
+	case "initialize":
+		return s.opInitialize(params)
+	case "tools/call":
+		return s.opToolsCall(ctx, params)
+	case "notifications/initialized":
+		// MCP lifecycle notification: acknowledged with no result/error.
+		// The transport suppresses the response (notifications carry no id).
+		return nil, nil
 	}
 	return nil, &rpcError{Code: -32601, Message: "method not found: " + method}
 }
@@ -800,6 +936,79 @@ func (s *Server) opToolsList() (any, *rpcError) {
 		})
 	}
 	return map[string]any{"tools": tools}, nil
+}
+
+// mcpProtocolVersion is the MCP protocol version advertised in the
+// initialize handshake. The envelope sheaf implements (initialize,
+// tools/list, tools/call) is stable across recent MCP revisions, so the
+// handshake echoes the client's requested version when present and falls
+// back to this otherwise.
+const mcpProtocolVersion = "2024-11-05"
+
+// opInitialize answers the MCP `initialize` handshake: it advertises the
+// tools capability and identifies the server. A spec-compliant client
+// (Claude Desktop, Cursor, Cline) sends this first and will not issue
+// tools/list or tools/call until it succeeds.
+func (s *Server) opInitialize(params json.RawMessage) (any, *rpcError) {
+	version := mcpProtocolVersion
+	if len(params) > 0 {
+		var p struct {
+			ProtocolVersion string `json:"protocolVersion"`
+		}
+		if err := json.Unmarshal(params, &p); err == nil && p.ProtocolVersion != "" {
+			version = p.ProtocolVersion
+		}
+	}
+	return map[string]any{
+		"protocolVersion": version,
+		"capabilities":    map[string]any{"tools": map[string]any{}},
+		"serverInfo":      map[string]any{"name": "sheaf", "version": "0.1.0"},
+	}, nil
+}
+
+// opToolsCall implements the MCP `tools/call` envelope. It unwraps
+// {name, arguments}, routes name to the same op the bare JSON-RPC method
+// reaches, and wraps the result in MCP content (text JSON +
+// structuredContent). An unknown tool is a protocol error (-32602); an
+// op-level failure is returned as an isError result so the calling model
+// reads the message instead of seeing a transport fault.
+func (s *Server) opToolsCall(ctx context.Context, params json.RawMessage) (any, *rpcError) {
+	var p struct {
+		Name      string          `json:"name"`
+		Arguments json.RawMessage `json:"arguments"`
+	}
+	if len(params) > 0 {
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, &rpcError{Code: -32602, Message: "invalid params: " + err.Error()}
+		}
+	}
+	if p.Name == "" {
+		return nil, &rpcError{Code: -32602, Message: "invalid params: tool name required"}
+	}
+	// The envelope methods are not themselves callable tools.
+	switch p.Name {
+	case "initialize", "tools/list", "tools/call", "notifications/initialized":
+		return nil, &rpcError{Code: -32602, Message: "not a callable tool: " + p.Name}
+	}
+	result, rerr := s.dispatch(ctx, p.Name, p.Arguments)
+	if rerr != nil {
+		if rerr.Code == -32601 { // unknown method → unknown tool
+			return nil, &rpcError{Code: -32602, Message: "unknown tool: " + p.Name}
+		}
+		// Tool ran and failed: surface as an MCP isError result.
+		return map[string]any{
+			"content": []map[string]any{{"type": "text", "text": rerr.Message}},
+			"isError": true,
+		}, nil
+	}
+	text, err := json.Marshal(result)
+	if err != nil {
+		return nil, &rpcError{Code: codeInternalError, Message: "marshal tool result"}
+	}
+	return map[string]any{
+		"content":           []map[string]any{{"type": "text", "text": string(text)}},
+		"structuredContent": result,
+	}, nil
 }
 
 // list_libraries — enumerate the libraries present in the corpus.

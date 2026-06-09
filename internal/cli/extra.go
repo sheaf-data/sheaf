@@ -484,18 +484,20 @@ func Serve(args []string) int {
 		configPath, repoPath string
 		bind                 string
 		port                 int
+		stdio                bool
 	)
 	fs.StringVar(&configPath, "config", "", "Path to sheaf.textproto")
 	fs.StringVar(&repoPath, "repo", ".", "Project repo root")
 	fs.StringVar(&bind, "bind", "", "Override mcp_server.bind")
 	fs.IntVar(&port, "port", 0, "Override mcp_server.port")
+	fs.BoolVar(&stdio, "stdio", false, "Speak MCP over newline-delimited JSON-RPC on stdin/stdout (for Claude Desktop, Cursor, Cline) instead of HTTP")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
-	return runServe(os.Stdout, os.Stderr, configPath, repoPath, bind, port)
+	return runServe(os.Stdout, os.Stderr, configPath, repoPath, bind, port, stdio)
 }
 
-func runServe(stdout, stderr io.Writer, configPath, repoPath, bind string, port int) int {
+func runServe(stdout, stderr io.Writer, configPath, repoPath, bind string, port int, stdio bool) int {
 	res, rc := runFullPipeline(stderr, configPath, repoPath)
 	if rc != 0 {
 		return rc
@@ -522,12 +524,19 @@ func runServe(stdout, stderr io.Writer, configPath, repoPath, bind string, port 
 	// + a possible future stdio transport). Text by default; JSON when
 	// SHEAF_LOG_FORMAT=json. Env-driven to avoid a proto change for now.
 	srv = srv.WithLogger(slog.New(newLogHandler(stderr, os.Getenv("SHEAF_LOG_FORMAT"))))
+	// In stdio mode stdout IS the JSON-RPC channel, so every human-facing
+	// status line must go to stderr — a stray byte on stdout desyncs the
+	// client. statusOut routes those lines accordingly.
+	statusOut := stdout
+	if stdio {
+		statusOut = stderr
+	}
 	// Wire LLM-backed semantic search if configured.
 	if embedder, err := llm.BuildEmbedder(cfg.GetLlm()); err == nil {
 		cache, _ := llm.BuildCache(cfg.GetCache())
 		srv = srv.WithEmbedder(embedder, cache)
 		if _, noop := embedder.(llm.NoopEmbedder); !noop {
-			fmt.Fprintf(stdout, "Semantic find_examples enabled (embedder=%s)\n", embedder.Name())
+			fmt.Fprintf(statusOut, "Semantic find_examples enabled (embedder=%s)\n", embedder.Name())
 		}
 	} else {
 		fmt.Fprintf(stderr, "warning: embedder construction failed: %v (semantic search disabled)\n", err)
@@ -543,9 +552,8 @@ func runServe(stdout, stderr io.Writer, configPath, repoPath, bind string, port 
 	reviewAdapter, _ := review.Build(cfg.GetReview())
 	srv = srv.WithReview(cfg, rules, reviewAdapter)
 	if reviewAdapter != nil {
-		fmt.Fprintf(stdout, "review_pr enabled (adapter=%s)\n", reviewAdapter.Name())
+		fmt.Fprintf(statusOut, "review_pr enabled (adapter=%s)\n", reviewAdapter.Name())
 	}
-	fmt.Fprintf(stdout, "MCP server listening on %s\n", srv.Addr())
 	// Signal-aware context so the server drains in-flight requests on
 	// SIGINT/SIGTERM instead of being hard-killed (audit #6). This also
 	// retires the previously-permanent shutdown goroutine in Start: the
@@ -553,6 +561,17 @@ func runServe(stdout, stderr io.Writer, configPath, repoPath, bind string, port 
 	// drain. stop() releases the signal handlers on the way out.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if stdio {
+		// Newline-delimited JSON-RPC on stdin/stdout for MCP clients that
+		// spawn sheaf as a subprocess. stdout is the protocol channel.
+		fmt.Fprintln(statusOut, "MCP server ready (stdio transport)")
+		if err := srv.ServeStdio(ctx, os.Stdin, stdout); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 1
+		}
+		return 0
+	}
+	fmt.Fprintf(statusOut, "MCP server listening on %s\n", srv.Addr())
 	if err := srv.Start(ctx); err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1

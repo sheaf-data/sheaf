@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **MCP stdio transport** — `sheaf serve --stdio` speaks MCP over
+  newline-delimited JSON-RPC on stdin/stdout, the transport desktop
+  clients (Claude Desktop, Cursor, Cline, Continue) use when they spawn
+  the server as a subprocess. Adds the MCP envelope (`initialize`
+  handshake + `tools/call`) alongside the existing HTTP transport and bare
+  JSON-RPC methods, so the same ops are reachable both ways. stdout is the
+  protocol channel; banners and logs go to stderr. See
+  [`docs/mcp/api.md`](docs/mcp/api.md).
 - **Runtime (out-of-process) adapters** — adapters can now be loaded at
   scan time instead of only compiled in. Any executable that speaks the
   [adapter-plugin protocol](docs/adapter-protocol.md) over stdio
