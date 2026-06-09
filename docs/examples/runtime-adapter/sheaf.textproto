@@ -1,0 +1,33 @@
+# sheaf.textproto — loading the gotest test-parser as a RUNTIME adapter.
+#
+# This is the self-scan config's gotest block, but instead of the built-in
+# `name: "gotest"` adapter it loads the SAME parser as an out-of-process
+# plugin (`name: "external"`). The rows it produces are identical — see
+# docs/examples/runtime-adapter/README.md for the walkthrough and the
+# equivalence proof.
+#
+# Run it from the repo root after building the plugin onto your PATH (or
+# point `command` at the built binary):
+#
+#   go build -o ./sheaf-adapter-gotest ./cmd/sheaf-adapter-gotest
+#   go build -o ./sheaf ./cmd/sheaf
+#   ./sheaf scan --config docs/examples/runtime-adapter/sheaf.textproto --repo .
+#
+# The scan's per-adapter sample block lists the discovered Go tests,
+# provenance-stamped to "gotest" exactly as the in-process adapter would.
+
+version: 1
+project { name: "sheaf-runtime-adapter-demo" }
+
+test_parser {
+  name: "external"
+  external {
+    # Relative to the repo root (where you run sheaf). Put the binary on
+    # PATH and use a bare "sheaf-adapter-gotest" instead if you prefer.
+    command: "./sheaf-adapter-gotest"
+    include: "internal/adapters/gotest/**/*_test.go"
+    # The provenance/display name. Set to "gotest" so the report reads
+    # identically to an in-process gotest run.
+    name: "gotest"
+  }
+}

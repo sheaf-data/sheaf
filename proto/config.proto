@@ -186,6 +186,43 @@ message Closure {
 // extension types. For v1 the oneof is hardcoded — see docs/config.md
 // §6 for the extension story.
 
+// ExternalAdapterConfig configures a runtime (out-of-process) adapter:
+// any executable that speaks the adapter-plugin protocol over stdio
+// (proto/adapterplugin.proto, docs/adapter-protocol.md). Selected by
+// name "external" in any of the adapter-role blocks below; the block it
+// appears in determines the role the plugin is invoked for. The command
+// is spawned once per Discover call.
+//
+// SECURITY: `command` runs arbitrary code with the privileges of the
+// sheaf process. sheaf.textproto is trusted input — only configure
+// external adapters you trust, exactly as you would a Makefile target.
+message ExternalAdapterConfig {
+  // command is the plugin executable. Resolved on PATH when not an
+  // absolute or ./relative path. Required.
+  string command = 1;
+  // args are fixed arguments passed to the command before the stdio
+  // protocol takes over (e.g. "--verbose"). The protocol itself flows
+  // over stdin/stdout, not argv.
+  repeated string args = 2;
+  // include/exclude are the file globs handed to the plugin. First-class
+  // because nearly every adapter takes them.
+  repeated string include = 3;
+  repeated string exclude = 4;
+  // option carries adapter-specific scalar knobs (e.g.
+  // option { key: "binary_name" value: "docker" }). Lists other than
+  // include/exclude are not expressible here by design; pass them via
+  // `args` and have the plugin parse its own argv.
+  map<string, string> option = 5;
+  // timeout_ms bounds one Discover call. 0 selects the host default
+  // (60s). On timeout the process is killed and the adapter soft-fails.
+  int64 timeout_ms = 6;
+  // name overrides the adapter name used in provenance and `doctor`
+  // output. Defaults to the command's basename. Set it to the stock
+  // adapter's name (e.g. "gotest") when wrapping one, so the report reads
+  // identically to the in-process run.
+  string name = 7;
+}
+
 message ContractAnchorConfig {
   string name = 1;
   oneof per_adapter {
@@ -200,6 +237,7 @@ message ContractAnchorConfig {
     K8sManifestAnchorConfig k8s_manifest = 18;
     HelmValuesAnchorConfig helm_values = 19;
     LLMExtractAnchorConfig llmextract = 20;
+    ExternalAdapterConfig external = 21;
   }
 }
 
@@ -467,6 +505,7 @@ message RenderedReferenceConfig {
     MarkdownCLIConfig markdowncli = 12;
     WorkflowsConfig workflows = 13;
     YamlWorkflowsConfig yaml_workflows = 14;
+    ExternalAdapterConfig external = 15;
   }
 }
 
@@ -623,6 +662,7 @@ message TestParserConfig {
     ProtoCPPConfig protocpp = 14;
     PytestConfig pytest = 15;
     PythonTestConfig python_test = 16;
+    ExternalAdapterConfig external = 17;
   }
 }
 
@@ -795,6 +835,7 @@ message DocParserConfig {
     MarkdownConfig markdown = 10;
     RstConfig rst = 11;
     DoxygenConfig doxygen = 12;
+    ExternalAdapterConfig external = 13;
   }
 }
 
@@ -855,6 +896,10 @@ message ImplementsMapConfig {
   repeated string pattern = 2;       // regex patterns; %PROTO% substituted at runtime
   repeated string include = 3;
   repeated string exclude = 4;
+  // external is set when name == "external" (runtime adapter). This
+  // message predates the per-adapter oneof convention, so the field sits
+  // alongside the built-in knobs rather than in a oneof.
+  ExternalAdapterConfig external = 10;
 }
 
 // ============================================================

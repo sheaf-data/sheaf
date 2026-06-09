@@ -99,6 +99,16 @@ type BuildHints interface {
 	FacadeSymbol(backendModule, backendLocalName string) (facadeLocalName string, ok bool)
 }
 
+// HealthChecker is an optional interface an adapter may implement to let
+// `sheaf doctor` verify it is operational before any scan runs. A runtime
+// (external) adapter implements it to probe that its plugin executable
+// exists and speaks a compatible protocol version. Adapters that don't
+// implement it are reported healthy (there is nothing to check — they are
+// compiled in).
+type HealthChecker interface {
+	CheckHealth(ctx context.Context) error
+}
+
 // NopHints is the zero-value BuildHints. Adapters that have no
 // build-graph source can use it directly; the orchestrator passes
 // NopHints{} until a build-graph adapter is wired.

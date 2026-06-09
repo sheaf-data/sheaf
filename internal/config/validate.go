@@ -57,11 +57,27 @@ func Validate(c *configpb.Config) error {
 	return nil
 }
 
+// validateExternal checks the shared external (runtime adapter) block
+// used by every adapter role. The block is required and must name a
+// command; everything else is optional and validated by the plugin at
+// run time.
+func validateExternal(e *configpb.ExternalAdapterConfig) error {
+	if e == nil {
+		return errors.New(`name="external" requires an external { ... } block`)
+	}
+	if e.GetCommand() == "" {
+		return errors.New("external.command: required")
+	}
+	return nil
+}
+
 func validateContractAnchor(a *configpb.ContractAnchorConfig) error {
 	if a.GetName() == "" {
 		return errors.New("name: required")
 	}
 	switch a.GetName() {
+	case "external":
+		return validateExternal(a.GetExternal())
 	case "fidl":
 		f := a.GetFidl()
 		if f == nil {
@@ -170,6 +186,8 @@ func validateRenderedReference(r *configpb.RenderedReferenceConfig) error {
 		return errors.New("name: required")
 	}
 	switch r.GetName() {
+	case "external":
+		return validateExternal(r.GetExternal())
 	case "fidldoc":
 		f := r.GetFidldoc()
 		if f == nil {
@@ -230,6 +248,8 @@ func validateTestParser(tp *configpb.TestParserConfig) error {
 		return errors.New("name: required")
 	}
 	switch tp.GetName() {
+	case "external":
+		return validateExternal(tp.GetExternal())
 	case "gtest":
 		if tp.GetGtest() == nil {
 			return errors.New(`name="gtest" requires a gtest { ... } block`)
@@ -265,6 +285,8 @@ func validateDocParser(dp *configpb.DocParserConfig) error {
 		return errors.New("name: required")
 	}
 	switch dp.GetName() {
+	case "external":
+		return validateExternal(dp.GetExternal())
 	case "markdown":
 		if dp.GetMarkdown() == nil {
 			return errors.New(`name="markdown" requires a markdown { ... } block`)

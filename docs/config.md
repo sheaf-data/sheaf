@@ -712,6 +712,40 @@ build_graph {
 
 v1 limitations: `pw_facade` reports no opinion on public-vs-private API (the `IsPublic` hint is always unknown — adapters treat unknown as "public"), and it does **not** resolve the `BUILDCONFIG.gn` backend-variable assignment (`pw_chrono_SYSTEM_CLOCK_BACKEND = …`). The name-convention heuristic captures the structural relationships that matter for the report without reading those assignments.
 
+### 4.20 `external` — runtime (out-of-process) adapters
+
+Every adapter role above selects a built-in adapter by name. The reserved name **`external`** selects a *runtime adapter* instead: an executable that speaks the [adapter-plugin protocol](adapter-protocol.md) over stdio, loaded at scan time with no rebuild of sheaf. Use it to add a parser for a format sheaf doesn't ship, or to write one in a language other than Go. The role is fixed by which block the `external` entry appears under (`test_parser` → test parser, `doc_parser` → doc parser, and so on).
+
+```textproto
+test_parser {
+  name: "external"
+  external {
+    command: "sheaf-adapter-gotest"   # required; PATH-resolved if not absolute or ./relative
+    args: ["--verbose"]               # optional fixed argv (the protocol flows over stdio, not argv)
+    include: "**/*_test.go"           # file globs handed to the plugin
+    exclude: "**/vendor/**"
+    option { key: "binary_name" value: "docker" }  # adapter-specific scalar knobs
+    timeout_ms: 30000                 # per-Discover timeout; 0 → 60s default
+    name: "gotest"                    # provenance/display name; default: basename(command)
+  }
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `command` | **Required.** The plugin executable. Resolved on `PATH` unless absolute or `./`-relative. |
+| `args` | Fixed arguments passed before the stdio protocol takes over (e.g. a verbosity flag). |
+| `include` / `exclude` | File globs forwarded to the plugin as `AdapterConfig.include` / `exclude`. |
+| `option` | String→string map of adapter-specific knobs (`AdapterConfig.option`). Lists other than include/exclude aren't expressible here by design — pass them via `args`. |
+| `timeout_ms` | Bounds one `Discover` call. `0` selects the 60s default. On timeout the process is killed and the adapter soft-fails. |
+| `name` | The name recorded in row provenance and shown by `sheaf doctor`. Defaults to the command's basename; set it to a stock adapter's name (e.g. `gotest`) when wrapping one so the report reads identically. |
+
+A runtime adapter is **soft-failing** like any adapter: a missing command, non-zero exit, unparseable output, protocol-version mismatch, or a plugin-reported error is recorded as a per-adapter error and the scan continues. Its rows carry deterministic-tier provenance by default (sourced to `name`); a plugin may stamp its own provenance on the rows it returns to override that.
+
+> **Security.** `command` runs arbitrary code with the sheaf process's privileges. `sheaf.textproto` is trusted input — only configure external adapters you trust, exactly as you would a Makefile target or a CI step.
+
+Worked example (converting and loading the stock `gotest` adapter): [`docs/examples/runtime-adapter/`](examples/runtime-adapter/README.md). Protocol specification: [`docs/adapter-protocol.md`](adapter-protocol.md).
+
 ---
 
 ## 5. `categorization-rules.textproto` (the source map) — full reference

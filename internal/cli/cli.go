@@ -319,23 +319,21 @@ func runDoctor(stdout, stderr io.Writer, configPath, repoPath string) int {
 		fmt.Fprintf(stderr, "  resolve: %v\n", err)
 		return 3
 	}
-	s := o.Summary()
-	for _, name := range s.ContractAnchors {
-		fmt.Fprintf(stdout, "  %-20s [OK]\n", name)
+	// Probe each adapter. Compiled-in adapters report healthy with nothing
+	// to check; runtime (external) adapters verify their plugin executable
+	// exists and speaks a compatible protocol, so [OK] is meaningful for
+	// them. A short deadline keeps a hung plugin from stalling doctor.
+	healthCtx, cancelHealth := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelHealth()
+	health := o.CheckHealth(healthCtx)
+	for _, h := range health {
+		if h.Err != nil {
+			fmt.Fprintf(stdout, "  %-20s [FAIL: %v]\n", h.Name, h.Err)
+		} else {
+			fmt.Fprintf(stdout, "  %-20s [OK]\n", h.Name)
+		}
 	}
-	for _, name := range s.TestParsers {
-		fmt.Fprintf(stdout, "  %-20s [OK]\n", name)
-	}
-	for _, name := range s.DocParsers {
-		fmt.Fprintf(stdout, "  %-20s [OK]\n", name)
-	}
-	for _, name := range s.RenderedRefs {
-		fmt.Fprintf(stdout, "  %-20s [OK]\n", name)
-	}
-	for _, name := range s.ImplementsMaps {
-		fmt.Fprintf(stdout, "  %-20s [OK]\n", name)
-	}
-	if len(s.ContractAnchors)+len(s.TestParsers)+len(s.DocParsers)+len(s.RenderedRefs)+len(s.ImplementsMaps) == 0 {
+	if len(health) == 0 {
 		fmt.Fprintln(stdout, "  (none configured)")
 	}
 

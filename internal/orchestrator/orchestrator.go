@@ -25,6 +25,7 @@ import (
 	"github.com/sheaf-data/sheaf/internal/adapters/cppheader"
 	"github.com/sheaf-data/sheaf/internal/adapters/crd"
 	"github.com/sheaf-data/sheaf/internal/adapters/doxygen"
+	"github.com/sheaf-data/sheaf/internal/adapters/external"
 	"github.com/sheaf-data/sheaf/internal/adapters/fidl"
 	"github.com/sheaf-data/sheaf/internal/adapters/fidldoc"
 	"github.com/sheaf-data/sheaf/internal/adapters/gotest"
@@ -188,6 +189,12 @@ func (o *Orchestrator) resolveAdapters() error {
 				Include: pt.GetInclude(),
 				Exclude: pt.GetExclude(),
 			}))
+		case "external":
+			a, err := external.NewTestParser(externalConfig(tp.GetExternal()))
+			if err != nil {
+				return fmt.Errorf("orchestrator: test_parser[%d] external: %w", i, err)
+			}
+			o.testParsers = append(o.testParsers, a)
 		default:
 			return fmt.Errorf("orchestrator: test_parser[%d]: unknown name %q", i, tp.GetName())
 		}
@@ -219,6 +226,12 @@ func (o *Orchestrator) resolveAdapters() error {
 				Include: d.GetInclude(),
 				Exclude: d.GetExclude(),
 			}))
+		case "external":
+			a, err := external.NewDocParser(externalConfig(dp.GetExternal()))
+			if err != nil {
+				return fmt.Errorf("orchestrator: doc_parser[%d] external: %w", i, err)
+			}
+			o.docParsers = append(o.docParsers, a)
 		case "concept-docs":
 			// Concept-docs source for the additive docs.concepts surface.
 			// Deliberately NOT wired as an orchestrator doc-parser: the loose
@@ -331,6 +344,12 @@ func (o *Orchestrator) resolveAdapters() error {
 				Exclude:  lc.GetExclude(),
 				CacheDir: cacheDir,
 			}, client))
+		case "external":
+			a, err := external.NewContractAnchor(externalConfig(ca.GetExternal()))
+			if err != nil {
+				return fmt.Errorf("orchestrator: contract_anchor[%d] external: %w", i, err)
+			}
+			o.contractAnchors = append(o.contractAnchors, a)
 		default:
 			return fmt.Errorf("orchestrator: contract_anchor[%d]: unknown name %q", i, ca.GetName())
 		}
@@ -405,6 +424,12 @@ func (o *Orchestrator) resolveAdapters() error {
 				MinElements: int(yw.GetMinElements()),
 				URLBase:     yw.GetUrlBase(),
 			}))
+		case "external":
+			a, err := external.NewRenderedReference(externalConfig(rr.GetExternal()))
+			if err != nil {
+				return fmt.Errorf("orchestrator: rendered_reference[%d] external: %w", i, err)
+			}
+			o.renderedRefs = append(o.renderedRefs, a)
 		default:
 			return fmt.Errorf("orchestrator: rendered_reference[%d]: unknown name %q", i, rr.GetName())
 		}
@@ -418,11 +443,72 @@ func (o *Orchestrator) resolveAdapters() error {
 				Exclude:     im.GetExclude(),
 				CPPPatterns: im.GetPattern(),
 			}))
+		case "external":
+			a, err := external.NewImplementsMapper(externalConfig(im.GetExternal()))
+			if err != nil {
+				return fmt.Errorf("orchestrator: implements_map[%d] external: %w", i, err)
+			}
+			o.implementsMaps = append(o.implementsMaps, a)
 		default:
 			return fmt.Errorf("orchestrator: implements_map[%d]: unknown name %q", i, im.GetName())
 		}
 	}
 	return nil
+}
+
+// AdapterHealth is the result of probing one resolved adapter for
+// `sheaf doctor`. Err is nil when the adapter is healthy (or has no
+// health check to run, which is the case for every compiled-in adapter).
+type AdapterHealth struct {
+	Name string
+	Err  error
+}
+
+// CheckHealth probes every resolved adapter that implements
+// adapters.HealthChecker (today: runtime/external adapters, which verify
+// their plugin executable exists and speaks a compatible protocol) and
+// returns one entry per adapter in resolve order. Compiled-in adapters
+// have nothing to probe and report healthy. The ctx bounds the probes;
+// `sheaf doctor` passes a short deadline so a hung plugin can't stall it.
+func (o *Orchestrator) CheckHealth(ctx context.Context) []AdapterHealth {
+	var out []AdapterHealth
+	add := func(name string, a any) {
+		var err error
+		if hc, ok := a.(adapters.HealthChecker); ok {
+			err = hc.CheckHealth(ctx)
+		}
+		out = append(out, AdapterHealth{Name: name, Err: err})
+	}
+	for _, ap := range o.contractAnchors {
+		add(ap.Name(), ap)
+	}
+	for _, tp := range o.testParsers {
+		add(tp.Name(), tp)
+	}
+	for _, dp := range o.docParsers {
+		add(dp.Name(), dp)
+	}
+	for _, rr := range o.renderedRefs {
+		add(rr.Name(), rr)
+	}
+	for _, im := range o.implementsMaps {
+		add(im.Name(), im)
+	}
+	return out
+}
+
+// externalConfig projects a configpb.ExternalAdapterConfig onto the
+// host-side external.Config consumed by the runtime-adapter wrappers.
+func externalConfig(e *configpb.ExternalAdapterConfig) external.Config {
+	return external.Config{
+		Command: e.GetCommand(),
+		Args:    e.GetArgs(),
+		Include: e.GetInclude(),
+		Exclude: e.GetExclude(),
+		Option:  e.GetOption(),
+		Timeout: time.Duration(e.GetTimeoutMs()) * time.Millisecond,
+		Name:    e.GetName(),
+	}
 }
 
 // Run executes the scan. Adapters run in parallel; their results are
