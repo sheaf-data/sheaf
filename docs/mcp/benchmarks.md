@@ -20,7 +20,7 @@ drives each operation N times over the in-process stdio transport.
 
 ```bash
 go run ./cmd/sheaf-mcp-bench --config sheaf.textproto --repo . --n 50
-# --out bench.md also writes the table to a file
+# the table goes to stdout; redirect to save it:  … > bench.md
 ```
 
 ## Sample results

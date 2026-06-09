@@ -15,7 +15,10 @@
 //
 // Usage:
 //
-//	sheaf-mcp-bench --config sheaf.textproto --repo . [--n 50] [--out bench.md]
+//	sheaf-mcp-bench --config sheaf.textproto --repo . [--n 50]
+//
+// The table is written to stdout (diagnostics to stderr); redirect to save
+// it: `sheaf-mcp-bench … > bench.md`.
 package main
 
 import (
@@ -37,15 +40,14 @@ import (
 )
 
 func main() {
-	var configPath, repoPath, outPath string
+	var configPath, repoPath string
 	var n int
 	flag.StringVar(&configPath, "config", "", "Path to sheaf.textproto (default <repo>/sheaf.textproto)")
 	flag.StringVar(&repoPath, "repo", ".", "Project repo root")
 	flag.IntVar(&n, "n", 50, "Iterations per tool")
-	flag.StringVar(&outPath, "out", "", "Optional: also write the results table to this markdown file")
 	flag.Parse()
 
-	if err := run(configPath, repoPath, n, outPath); err != nil {
+	if err := run(configPath, repoPath, n); err != nil {
 		fmt.Fprintln(os.Stderr, "sheaf-mcp-bench:", err)
 		os.Exit(1)
 	}
@@ -58,7 +60,7 @@ type toolResult struct {
 	bytes int
 }
 
-func run(configPath, repoPath string, n int, outPath string) error {
+func run(configPath, repoPath string, n int) error {
 	if n < 1 {
 		n = 1
 	}
@@ -153,14 +155,7 @@ func run(configPath, repoPath string, n int, outPath string) error {
 		results = append(results, toolResult{tool: c.tool, p50: pctile(durs, 50), p95: pctile(durs, 95), bytes: lastBytes})
 	}
 
-	table := renderTable(res, lib, elemID, n, results)
-	fmt.Print(table)
-	if outPath != "" {
-		if werr := os.WriteFile(outPath, []byte(table), 0o644); werr != nil {
-			return fmt.Errorf("write %s: %w", outPath, werr)
-		}
-		fmt.Fprintf(os.Stderr, "wrote %s\n", outPath)
-	}
+	fmt.Print(renderTable(res, lib, elemID, n, results))
 	return nil
 }
 
