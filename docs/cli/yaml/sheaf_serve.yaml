@@ -5,7 +5,7 @@ long: |
   behind an MCP server. Coding agents and the scanner binary consume
   the server's contract-element lookup, coverage-profile lookup,
   worked-example retrieval, library_snapshot, and review_pr ops.
-usage: sheaf serve [--config path] [--repo path] [--bind host] [--port n]
+usage: sheaf serve [--config path] [--repo path] [--bind host] [--port n] [--stdio]
 pname: sheaf
 plink: sheaf.yaml
 options:
@@ -25,3 +25,7 @@ options:
     value_type: int
     default_value: "0"
     description: Override mcp_server.port.
+  - option: stdio
+    value_type: bool
+    default_value: "false"
+    description: Speak MCP over newline-delimited JSON-RPC on stdin/stdout (for Claude Desktop, Cursor, Cline) instead of HTTP.

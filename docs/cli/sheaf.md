@@ -53,7 +53,7 @@ The per-flag notes below show each subcommand with the options you reach for mos
 
 **Report.** `sheaf report` bulk-dumps every coverage profile. `sheaf report --format` chooses `csv`, `json`, or `html`; when it is `html`, `sheaf report --output` names the directory the multi-page report is written to. `sheaf report --config` and `sheaf report --repo` locate the project.
 
-**Serve.** `sheaf serve` starts the MCP server. `sheaf serve --bind` sets the listen address (default `127.0.0.1`) and `sheaf serve --config` selects the config whose corpus is served.
+**Serve.** `sheaf serve` starts the MCP server. `sheaf serve --bind` sets the listen address (default `127.0.0.1`) and `sheaf serve --config` selects the config whose corpus is served. `sheaf serve --stdio` switches from the HTTP listener to newline-delimited JSON-RPC on stdin/stdout, the transport desktop MCP clients (Claude Desktop, Cursor, Cline) use when they spawn the server as a subprocess.
 
 **Review.** `sheaf review` renders a PR-coverage-delta comment. It needs a base tree via `sheaf review --base`; `sheaf review --repo` is the PR head and `sheaf review --pr` is the reference printed in the comment header. `sheaf review --review` overrides the configured review adapter (`noop`/`file`/`gerrit`/`github`), `sheaf review --file-out` is where the `file` adapter writes, and `sheaf review --post` actually posts the comment instead of printing it. `sheaf review --config` selects the config used for both base and head.
 
