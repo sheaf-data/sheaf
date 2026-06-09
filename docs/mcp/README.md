@@ -6,6 +6,7 @@ The MCP server is the integration surface for any client that needs Sheaf's corp
 - **[api.md](api.md)** — wire protocol, every JSON-RPC method, params, return shape, error codes, auth.
 - **[schema.md](schema.md)** — the proto messages each result payload carries.
 - **[tools.md](tools.md)** — per-tool input JSON Schemas + example prompts (when/why an agent calls each). Machine-readable: [tool-schemas.json](tool-schemas.json).
+- **[benchmarks.md](benchmarks.md)** — per-tool latency + response-size benchmarks (run via `cmd/sheaf-mcp-bench`).
 
 ## At a glance
 
