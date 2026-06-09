@@ -96,4 +96,16 @@ jobs:
         run: go build ./...
 
       - name: go test (race)
-        run: go test ./... -race -count=1
+        run: go test ./... -race -count=1 -coverprofile=coverage.out -covermode=atomic
+
+      - name: upload coverage to codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.out
+          flags: ${{ matrix.os }}
+          # Public repo: codecov uploads are tokenless. If uploads start
+          # failing (rate-limited / 403), add a CODECOV_TOKEN repo secret
+          # and pass it here:
+          # token: ${{ secrets.CODECOV_TOKEN }}
+          # TODO(human): add CODECOV_TOKEN if uploads fail
+          fail_ci_if_error: false
