@@ -4,6 +4,8 @@ Coding agents — Claude Desktop, Cursor, Cline, Continue, OpenAI Codex CLI, Gem
 
 The setup is the same everywhere — a named server with a `command` and `args`. Most clients write it as JSON under an `mcpServers` object; Codex uses the TOML equivalent. Only the config file's location and format differ.
 
+Prefer to copy a file rather than a snippet? Ready-to-edit configs for every client are in **[examples/](examples/README.md)**.
+
 ## Prerequisites
 
 1. **`sheaf` installed and runnable.** `go install github.com/sheaf-data/sheaf/cmd/sheaf@latest` or a [release binary](https://github.com/sheaf-data/sheaf/releases). Check: `sheaf version`.

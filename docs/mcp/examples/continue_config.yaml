@@ -1,0 +1,8 @@
+mcpServers:
+  - name: sheaf
+    command: sheaf
+    args:
+      - serve
+      - --stdio
+      - --repo
+      - /ABSOLUTE/PATH/TO/your-repo

@@ -1,0 +1,4 @@
+# OpenAI Codex CLI — add to ~/.codex/config.toml
+[mcp_servers.sheaf]
+command = "sheaf"
+args = ["serve", "--stdio", "--repo", "/ABSOLUTE/PATH/TO/your-repo"]
