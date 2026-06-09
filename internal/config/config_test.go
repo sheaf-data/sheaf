@@ -53,6 +53,83 @@ cache { store: "filesystem" filesystem { path: "~/.sheaf/cache" } }
 	}
 }
 
+// ----- External (runtime) adapters -----
+
+// TestLoadConfig_ExternalAdapter proves the textproto syntax documented
+// in docs/config.md for a runtime adapter parses, validates, and round-
+// trips into the expected fields.
+func TestLoadConfig_ExternalAdapter(t *testing.T) {
+	dir := t.TempDir()
+	body := `
+version: 1
+project { name: "demo" }
+test_parser {
+  name: "external"
+  external {
+    command: "sheaf-adapter-gotest"
+    include: "**/*_test.go"
+    exclude: "**/vendor/**"
+    option { key: "binary_name" value: "docker" }
+    timeout_ms: 30000
+    name: "gotest"
+  }
+}
+`
+	p := writeFile(t, dir, "sheaf.textproto", body)
+	cfg, err := LoadConfig(p)
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if err := Validate(cfg); err != nil {
+		t.Fatalf("Validate: %v", err)
+	}
+	ext := cfg.GetTestParser()[0].GetExternal()
+	if ext.GetCommand() != "sheaf-adapter-gotest" {
+		t.Errorf("command = %q", ext.GetCommand())
+	}
+	if ext.GetOption()["binary_name"] != "docker" {
+		t.Errorf("option[binary_name] = %q, want docker", ext.GetOption()["binary_name"])
+	}
+	if ext.GetTimeoutMs() != 30000 {
+		t.Errorf("timeout_ms = %d, want 30000", ext.GetTimeoutMs())
+	}
+	if ext.GetName() != "gotest" {
+		t.Errorf("name = %q, want gotest", ext.GetName())
+	}
+}
+
+func TestValidate_ExternalRequiresCommand(t *testing.T) {
+	cfg := &configpb.Config{
+		Version: 1,
+		Project: &configpb.Project{Name: "x"},
+		TestParser: []*configpb.TestParserConfig{
+			{
+				Name: "external",
+				PerAdapter: &configpb.TestParserConfig_External{
+					External: &configpb.ExternalAdapterConfig{Include: []string{"**/*_test.go"}},
+				},
+			},
+		},
+	}
+	err := Validate(cfg)
+	if err == nil || !strings.Contains(err.Error(), "command") {
+		t.Fatalf("err = %v, want a missing-command error", err)
+	}
+}
+
+func TestValidate_ExternalMissingBlock(t *testing.T) {
+	cfg := &configpb.Config{
+		Version: 1,
+		Project: &configpb.Project{Name: "x"},
+		DocParser: []*configpb.DocParserConfig{
+			{Name: "external"}, // no external { ... } block
+		},
+	}
+	if err := Validate(cfg); err == nil {
+		t.Fatal("want an error when the external block is absent")
+	}
+}
+
 // ----- Version checks -----
 
 func TestLoadConfig_UnknownVersion(t *testing.T) {

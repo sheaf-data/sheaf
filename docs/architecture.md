@@ -142,6 +142,24 @@ rendered-reference adapters route their refs through the
 `CoverageProfile.docs.reference.by_adapter` map rather than adding a typed
 field, so the indexer, report, and CLI pick them up without edits.
 
+**Adapters can also be loaded at runtime.** The set above is compiled in,
+but an adapter does not have to be. A *runtime adapter* is any executable
+that speaks the [adapter-plugin protocol](adapter-protocol.md) over
+stdio — selected by `name: "external"` in any role block, spawned once per
+`Discover` call, handed a `DiscoverRequest` on stdin, and returning a
+`DiscoverResponse` of the same `ContractElement` / `TestCase` / `DocClaim`
+rows on stdout. Because the wire payload *is* the corpus schema, a runtime
+adapter's rows are indistinguishable from a built-in's once ingested (same
+provenance stamping, same indexer join). This trades the in-process
+adapter's zero-overhead call and access to `BuildHints` for
+language-independence (write it in anything), process isolation (a crash
+is a soft per-adapter error), and no rebuild of sheaf. The host side is
+`internal/adapters/external`; the shared codec and serving loop are
+`internal/adapterplugin`; the reference plugin is
+`cmd/sheaf-adapter-gotest` — the stock `gotest` parser, unchanged, wrapped
+in ~20 lines. An equivalence test asserts the in-process and runtime
+`gotest` emit byte-identical rows.
+
 ## The pipeline
 
 The orchestrator (`internal/orchestrator/`) wires a parsed config into a

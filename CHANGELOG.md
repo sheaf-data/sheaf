@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Runtime (out-of-process) adapters** — adapters can now be loaded at
+  scan time instead of only compiled in. Any executable that speaks the
+  [adapter-plugin protocol](docs/adapter-protocol.md) over stdio
+  (length-prefixed protobuf, one spawn per `Discover`) plugs into any
+  adapter role via `name: "external"` in `sheaf.textproto` — write one in
+  any language, with no rebuild of sheaf. Ships the protocol
+  (`proto/adapterplugin.proto`), the host (`internal/adapters/external`),
+  a Go serving helper (`internal/adapterplugin`), and a reference plugin
+  (`cmd/sheaf-adapter-gotest`) that wraps the stock `gotest` parser and is
+  proven row-identical to the in-process adapter by an equivalence test.
+  See [`docs/examples/runtime-adapter/`](docs/examples/runtime-adapter/README.md).
 - **In-process render path** — `sheaf snapshot` emits a library's Snapshot
   JSON and `sheaf render --from-snapshot <file>` renders the HTML report
   directly, with no `sheaf serve` / `scanner` two-process round-trip.

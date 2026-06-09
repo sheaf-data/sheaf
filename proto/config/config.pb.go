@@ -293,7 +293,7 @@ func (x MarkdownCLIConfig_URLStyle) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MarkdownCLIConfig_URLStyle.Descriptor instead.
 func (MarkdownCLIConfig_URLStyle) EnumDescriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{22, 0}
+	return file_config_proto_rawDescGZIP(), []int{23, 0}
 }
 
 type AuthConfig_Mode int32
@@ -342,7 +342,7 @@ func (x AuthConfig_Mode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AuthConfig_Mode.Descriptor instead.
 func (AuthConfig_Mode) EnumDescriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{42, 0}
+	return file_config_proto_rawDescGZIP(), []int{43, 0}
 }
 
 type Config struct {
@@ -952,6 +952,125 @@ func (x *Closure) GetExternalPolicy() Closure_ExternalPolicy {
 	return Closure_EXTERNAL_POLICY_UNSPECIFIED
 }
 
+// ExternalAdapterConfig configures a runtime (out-of-process) adapter:
+// any executable that speaks the adapter-plugin protocol over stdio
+// (proto/adapterplugin.proto, docs/adapter-protocol.md). Selected by
+// name "external" in any of the adapter-role blocks below; the block it
+// appears in determines the role the plugin is invoked for. The command
+// is spawned once per Discover call.
+//
+// SECURITY: `command` runs arbitrary code with the privileges of the
+// sheaf process. sheaf.textproto is trusted input — only configure
+// external adapters you trust, exactly as you would a Makefile target.
+type ExternalAdapterConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// command is the plugin executable. Resolved on PATH when not an
+	// absolute or ./relative path. Required.
+	Command string `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
+	// args are fixed arguments passed to the command before the stdio
+	// protocol takes over (e.g. "--verbose"). The protocol itself flows
+	// over stdin/stdout, not argv.
+	Args []string `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"`
+	// include/exclude are the file globs handed to the plugin. First-class
+	// because nearly every adapter takes them.
+	Include []string `protobuf:"bytes,3,rep,name=include,proto3" json:"include,omitempty"`
+	Exclude []string `protobuf:"bytes,4,rep,name=exclude,proto3" json:"exclude,omitempty"`
+	// option carries adapter-specific scalar knobs (e.g.
+	// option { key: "binary_name" value: "docker" }). Lists other than
+	// include/exclude are not expressible here by design; pass them via
+	// `args` and have the plugin parse its own argv.
+	Option map[string]string `protobuf:"bytes,5,rep,name=option,proto3" json:"option,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// timeout_ms bounds one Discover call. 0 selects the host default
+	// (60s). On timeout the process is killed and the adapter soft-fails.
+	TimeoutMs int64 `protobuf:"varint,6,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	// name overrides the adapter name used in provenance and `doctor`
+	// output. Defaults to the command's basename. Set it to the stock
+	// adapter's name (e.g. "gotest") when wrapping one, so the report reads
+	// identically to the in-process run.
+	Name          string `protobuf:"bytes,7,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExternalAdapterConfig) Reset() {
+	*x = ExternalAdapterConfig{}
+	mi := &file_config_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExternalAdapterConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExternalAdapterConfig) ProtoMessage() {}
+
+func (x *ExternalAdapterConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_config_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExternalAdapterConfig.ProtoReflect.Descriptor instead.
+func (*ExternalAdapterConfig) Descriptor() ([]byte, []int) {
+	return file_config_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ExternalAdapterConfig) GetCommand() string {
+	if x != nil {
+		return x.Command
+	}
+	return ""
+}
+
+func (x *ExternalAdapterConfig) GetArgs() []string {
+	if x != nil {
+		return x.Args
+	}
+	return nil
+}
+
+func (x *ExternalAdapterConfig) GetInclude() []string {
+	if x != nil {
+		return x.Include
+	}
+	return nil
+}
+
+func (x *ExternalAdapterConfig) GetExclude() []string {
+	if x != nil {
+		return x.Exclude
+	}
+	return nil
+}
+
+func (x *ExternalAdapterConfig) GetOption() map[string]string {
+	if x != nil {
+		return x.Option
+	}
+	return nil
+}
+
+func (x *ExternalAdapterConfig) GetTimeoutMs() int64 {
+	if x != nil {
+		return x.TimeoutMs
+	}
+	return 0
+}
+
+func (x *ExternalAdapterConfig) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 type ContractAnchorConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -968,6 +1087,7 @@ type ContractAnchorConfig struct {
 	//	*ContractAnchorConfig_K8SManifest
 	//	*ContractAnchorConfig_HelmValues
 	//	*ContractAnchorConfig_Llmextract
+	//	*ContractAnchorConfig_External
 	PerAdapter    isContractAnchorConfig_PerAdapter `protobuf_oneof:"per_adapter"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -975,7 +1095,7 @@ type ContractAnchorConfig struct {
 
 func (x *ContractAnchorConfig) Reset() {
 	*x = ContractAnchorConfig{}
-	mi := &file_config_proto_msgTypes[5]
+	mi := &file_config_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -987,7 +1107,7 @@ func (x *ContractAnchorConfig) String() string {
 func (*ContractAnchorConfig) ProtoMessage() {}
 
 func (x *ContractAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[5]
+	mi := &file_config_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1000,7 +1120,7 @@ func (x *ContractAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContractAnchorConfig.ProtoReflect.Descriptor instead.
 func (*ContractAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{5}
+	return file_config_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ContractAnchorConfig) GetName() string {
@@ -1116,6 +1236,15 @@ func (x *ContractAnchorConfig) GetLlmextract() *LLMExtractAnchorConfig {
 	return nil
 }
 
+func (x *ContractAnchorConfig) GetExternal() *ExternalAdapterConfig {
+	if x != nil {
+		if x, ok := x.PerAdapter.(*ContractAnchorConfig_External); ok {
+			return x.External
+		}
+	}
+	return nil
+}
+
 type isContractAnchorConfig_PerAdapter interface {
 	isContractAnchorConfig_PerAdapter()
 }
@@ -1164,6 +1293,10 @@ type ContractAnchorConfig_Llmextract struct {
 	Llmextract *LLMExtractAnchorConfig `protobuf:"bytes,20,opt,name=llmextract,proto3,oneof"`
 }
 
+type ContractAnchorConfig_External struct {
+	External *ExternalAdapterConfig `protobuf:"bytes,21,opt,name=external,proto3,oneof"`
+}
+
 func (*ContractAnchorConfig_Fidl) isContractAnchorConfig_PerAdapter() {}
 
 func (*ContractAnchorConfig_Argh) isContractAnchorConfig_PerAdapter() {}
@@ -1185,6 +1318,8 @@ func (*ContractAnchorConfig_K8SManifest) isContractAnchorConfig_PerAdapter() {}
 func (*ContractAnchorConfig_HelmValues) isContractAnchorConfig_PerAdapter() {}
 
 func (*ContractAnchorConfig_Llmextract) isContractAnchorConfig_PerAdapter() {}
+
+func (*ContractAnchorConfig_External) isContractAnchorConfig_PerAdapter() {}
 
 // LLMExtractAnchorConfig configures the llmextract adapter — an LLM
 // contract-anchor for the SCHEMALESS tail (e.g. C++ headers with no
@@ -1225,7 +1360,7 @@ type LLMExtractAnchorConfig struct {
 
 func (x *LLMExtractAnchorConfig) Reset() {
 	*x = LLMExtractAnchorConfig{}
-	mi := &file_config_proto_msgTypes[6]
+	mi := &file_config_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1237,7 +1372,7 @@ func (x *LLMExtractAnchorConfig) String() string {
 func (*LLMExtractAnchorConfig) ProtoMessage() {}
 
 func (x *LLMExtractAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[6]
+	mi := &file_config_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1250,7 +1385,7 @@ func (x *LLMExtractAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LLMExtractAnchorConfig.ProtoReflect.Descriptor instead.
 func (*LLMExtractAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{6}
+	return file_config_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *LLMExtractAnchorConfig) GetInclude() []string {
@@ -1324,7 +1459,7 @@ type HelmValuesAnchorConfig struct {
 
 func (x *HelmValuesAnchorConfig) Reset() {
 	*x = HelmValuesAnchorConfig{}
-	mi := &file_config_proto_msgTypes[7]
+	mi := &file_config_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1336,7 +1471,7 @@ func (x *HelmValuesAnchorConfig) String() string {
 func (*HelmValuesAnchorConfig) ProtoMessage() {}
 
 func (x *HelmValuesAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[7]
+	mi := &file_config_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1349,7 +1484,7 @@ func (x *HelmValuesAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HelmValuesAnchorConfig.ProtoReflect.Descriptor instead.
 func (*HelmValuesAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{7}
+	return file_config_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *HelmValuesAnchorConfig) GetInclude() []string {
@@ -1398,7 +1533,7 @@ type K8SManifestAnchorConfig struct {
 
 func (x *K8SManifestAnchorConfig) Reset() {
 	*x = K8SManifestAnchorConfig{}
-	mi := &file_config_proto_msgTypes[8]
+	mi := &file_config_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1410,7 +1545,7 @@ func (x *K8SManifestAnchorConfig) String() string {
 func (*K8SManifestAnchorConfig) ProtoMessage() {}
 
 func (x *K8SManifestAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[8]
+	mi := &file_config_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1423,7 +1558,7 @@ func (x *K8SManifestAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use K8SManifestAnchorConfig.ProtoReflect.Descriptor instead.
 func (*K8SManifestAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{8}
+	return file_config_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *K8SManifestAnchorConfig) GetInclude() []string {
@@ -1469,7 +1604,7 @@ type CRDAnchorConfig struct {
 
 func (x *CRDAnchorConfig) Reset() {
 	*x = CRDAnchorConfig{}
-	mi := &file_config_proto_msgTypes[9]
+	mi := &file_config_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1481,7 +1616,7 @@ func (x *CRDAnchorConfig) String() string {
 func (*CRDAnchorConfig) ProtoMessage() {}
 
 func (x *CRDAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[9]
+	mi := &file_config_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1494,7 +1629,7 @@ func (x *CRDAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CRDAnchorConfig.ProtoReflect.Descriptor instead.
 func (*CRDAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{9}
+	return file_config_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CRDAnchorConfig) GetInclude() []string {
@@ -1545,7 +1680,7 @@ type CppHeaderAnchorConfig struct {
 
 func (x *CppHeaderAnchorConfig) Reset() {
 	*x = CppHeaderAnchorConfig{}
-	mi := &file_config_proto_msgTypes[10]
+	mi := &file_config_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1557,7 +1692,7 @@ func (x *CppHeaderAnchorConfig) String() string {
 func (*CppHeaderAnchorConfig) ProtoMessage() {}
 
 func (x *CppHeaderAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[10]
+	mi := &file_config_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1570,7 +1705,7 @@ func (x *CppHeaderAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CppHeaderAnchorConfig.ProtoReflect.Descriptor instead.
 func (*CppHeaderAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{10}
+	return file_config_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CppHeaderAnchorConfig) GetInclude() []string {
@@ -1631,7 +1766,7 @@ type CMLAnchorConfig struct {
 
 func (x *CMLAnchorConfig) Reset() {
 	*x = CMLAnchorConfig{}
-	mi := &file_config_proto_msgTypes[11]
+	mi := &file_config_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1643,7 +1778,7 @@ func (x *CMLAnchorConfig) String() string {
 func (*CMLAnchorConfig) ProtoMessage() {}
 
 func (x *CMLAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[11]
+	mi := &file_config_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1656,7 +1791,7 @@ func (x *CMLAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CMLAnchorConfig.ProtoReflect.Descriptor instead.
 func (*CMLAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{11}
+	return file_config_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CMLAnchorConfig) GetInclude() []string {
@@ -1689,7 +1824,7 @@ type FIDLAnchorConfig struct {
 
 func (x *FIDLAnchorConfig) Reset() {
 	*x = FIDLAnchorConfig{}
-	mi := &file_config_proto_msgTypes[12]
+	mi := &file_config_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1701,7 +1836,7 @@ func (x *FIDLAnchorConfig) String() string {
 func (*FIDLAnchorConfig) ProtoMessage() {}
 
 func (x *FIDLAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[12]
+	mi := &file_config_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1714,7 +1849,7 @@ func (x *FIDLAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FIDLAnchorConfig.ProtoReflect.Descriptor instead.
 func (*FIDLAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{12}
+	return file_config_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *FIDLAnchorConfig) GetFidlcPath() string {
@@ -1763,7 +1898,7 @@ type ArghAnchorConfig struct {
 
 func (x *ArghAnchorConfig) Reset() {
 	*x = ArghAnchorConfig{}
-	mi := &file_config_proto_msgTypes[13]
+	mi := &file_config_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1775,7 +1910,7 @@ func (x *ArghAnchorConfig) String() string {
 func (*ArghAnchorConfig) ProtoMessage() {}
 
 func (x *ArghAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[13]
+	mi := &file_config_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1788,7 +1923,7 @@ func (x *ArghAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArghAnchorConfig.ProtoReflect.Descriptor instead.
 func (*ArghAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{13}
+	return file_config_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ArghAnchorConfig) GetCrateRoots() []string {
@@ -1836,7 +1971,7 @@ type ClapAnchorConfig struct {
 
 func (x *ClapAnchorConfig) Reset() {
 	*x = ClapAnchorConfig{}
-	mi := &file_config_proto_msgTypes[14]
+	mi := &file_config_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1848,7 +1983,7 @@ func (x *ClapAnchorConfig) String() string {
 func (*ClapAnchorConfig) ProtoMessage() {}
 
 func (x *ClapAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[14]
+	mi := &file_config_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1861,7 +1996,7 @@ func (x *ClapAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClapAnchorConfig.ProtoReflect.Descriptor instead.
 func (*ClapAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{14}
+	return file_config_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ClapAnchorConfig) GetCrateRoots() []string {
@@ -1913,7 +2048,7 @@ type ProtoAnchorConfig struct {
 
 func (x *ProtoAnchorConfig) Reset() {
 	*x = ProtoAnchorConfig{}
-	mi := &file_config_proto_msgTypes[15]
+	mi := &file_config_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1925,7 +2060,7 @@ func (x *ProtoAnchorConfig) String() string {
 func (*ProtoAnchorConfig) ProtoMessage() {}
 
 func (x *ProtoAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[15]
+	mi := &file_config_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1938,7 +2073,7 @@ func (x *ProtoAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProtoAnchorConfig.ProtoReflect.Descriptor instead.
 func (*ProtoAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{15}
+	return file_config_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ProtoAnchorConfig) GetProtocPath() string {
@@ -2011,7 +2146,7 @@ type CobraAnchorConfig struct {
 
 func (x *CobraAnchorConfig) Reset() {
 	*x = CobraAnchorConfig{}
-	mi := &file_config_proto_msgTypes[16]
+	mi := &file_config_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2023,7 +2158,7 @@ func (x *CobraAnchorConfig) String() string {
 func (*CobraAnchorConfig) ProtoMessage() {}
 
 func (x *CobraAnchorConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[16]
+	mi := &file_config_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2036,7 +2171,7 @@ func (x *CobraAnchorConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CobraAnchorConfig.ProtoReflect.Descriptor instead.
 func (*CobraAnchorConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{16}
+	return file_config_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CobraAnchorConfig) GetYamlDir() string {
@@ -2084,6 +2219,7 @@ type RenderedReferenceConfig struct {
 	//	*RenderedReferenceConfig_Markdowncli
 	//	*RenderedReferenceConfig_Workflows
 	//	*RenderedReferenceConfig_YamlWorkflows
+	//	*RenderedReferenceConfig_External
 	PerAdapter    isRenderedReferenceConfig_PerAdapter `protobuf_oneof:"per_adapter"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2091,7 +2227,7 @@ type RenderedReferenceConfig struct {
 
 func (x *RenderedReferenceConfig) Reset() {
 	*x = RenderedReferenceConfig{}
-	mi := &file_config_proto_msgTypes[17]
+	mi := &file_config_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2103,7 +2239,7 @@ func (x *RenderedReferenceConfig) String() string {
 func (*RenderedReferenceConfig) ProtoMessage() {}
 
 func (x *RenderedReferenceConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[17]
+	mi := &file_config_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2116,7 +2252,7 @@ func (x *RenderedReferenceConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenderedReferenceConfig.ProtoReflect.Descriptor instead.
 func (*RenderedReferenceConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{17}
+	return file_config_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *RenderedReferenceConfig) GetName() string {
@@ -2178,6 +2314,15 @@ func (x *RenderedReferenceConfig) GetYamlWorkflows() *YamlWorkflowsConfig {
 	return nil
 }
 
+func (x *RenderedReferenceConfig) GetExternal() *ExternalAdapterConfig {
+	if x != nil {
+		if x, ok := x.PerAdapter.(*RenderedReferenceConfig_External); ok {
+			return x.External
+		}
+	}
+	return nil
+}
+
 type isRenderedReferenceConfig_PerAdapter interface {
 	isRenderedReferenceConfig_PerAdapter()
 }
@@ -2202,6 +2347,10 @@ type RenderedReferenceConfig_YamlWorkflows struct {
 	YamlWorkflows *YamlWorkflowsConfig `protobuf:"bytes,14,opt,name=yaml_workflows,json=yamlWorkflows,proto3,oneof"`
 }
 
+type RenderedReferenceConfig_External struct {
+	External *ExternalAdapterConfig `protobuf:"bytes,15,opt,name=external,proto3,oneof"`
+}
+
 func (*RenderedReferenceConfig_Fidldoc) isRenderedReferenceConfig_PerAdapter() {}
 
 func (*RenderedReferenceConfig_Clidoc) isRenderedReferenceConfig_PerAdapter() {}
@@ -2211,6 +2360,8 @@ func (*RenderedReferenceConfig_Markdowncli) isRenderedReferenceConfig_PerAdapter
 func (*RenderedReferenceConfig_Workflows) isRenderedReferenceConfig_PerAdapter() {}
 
 func (*RenderedReferenceConfig_YamlWorkflows) isRenderedReferenceConfig_PerAdapter() {}
+
+func (*RenderedReferenceConfig_External) isRenderedReferenceConfig_PerAdapter() {}
 
 // YamlWorkflowsConfig configures the yaml-workflows rendered-reference
 // adapter — the YAML / declarative-graph sibling of the CLI-shaped
@@ -2249,7 +2400,7 @@ type YamlWorkflowsConfig struct {
 
 func (x *YamlWorkflowsConfig) Reset() {
 	*x = YamlWorkflowsConfig{}
-	mi := &file_config_proto_msgTypes[18]
+	mi := &file_config_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2261,7 +2412,7 @@ func (x *YamlWorkflowsConfig) String() string {
 func (*YamlWorkflowsConfig) ProtoMessage() {}
 
 func (x *YamlWorkflowsConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[18]
+	mi := &file_config_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2274,7 +2425,7 @@ func (x *YamlWorkflowsConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use YamlWorkflowsConfig.ProtoReflect.Descriptor instead.
 func (*YamlWorkflowsConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{18}
+	return file_config_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *YamlWorkflowsConfig) GetDocsDir() string {
@@ -2361,7 +2512,7 @@ type WorkflowsConfig struct {
 
 func (x *WorkflowsConfig) Reset() {
 	*x = WorkflowsConfig{}
-	mi := &file_config_proto_msgTypes[19]
+	mi := &file_config_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2373,7 +2524,7 @@ func (x *WorkflowsConfig) String() string {
 func (*WorkflowsConfig) ProtoMessage() {}
 
 func (x *WorkflowsConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[19]
+	mi := &file_config_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2386,7 +2537,7 @@ func (x *WorkflowsConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowsConfig.ProtoReflect.Descriptor instead.
 func (*WorkflowsConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{19}
+	return file_config_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *WorkflowsConfig) GetDocsDir() string {
@@ -2442,7 +2593,7 @@ type FIDLDocConfig struct {
 
 func (x *FIDLDocConfig) Reset() {
 	*x = FIDLDocConfig{}
-	mi := &file_config_proto_msgTypes[20]
+	mi := &file_config_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2454,7 +2605,7 @@ func (x *FIDLDocConfig) String() string {
 func (*FIDLDocConfig) ProtoMessage() {}
 
 func (x *FIDLDocConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[20]
+	mi := &file_config_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2467,7 +2618,7 @@ func (x *FIDLDocConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FIDLDocConfig.ProtoReflect.Descriptor instead.
 func (*FIDLDocConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{20}
+	return file_config_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *FIDLDocConfig) GetBundlePath() string {
@@ -2502,7 +2653,7 @@ type CLIDocConfig struct {
 
 func (x *CLIDocConfig) Reset() {
 	*x = CLIDocConfig{}
-	mi := &file_config_proto_msgTypes[21]
+	mi := &file_config_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2514,7 +2665,7 @@ func (x *CLIDocConfig) String() string {
 func (*CLIDocConfig) ProtoMessage() {}
 
 func (x *CLIDocConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[21]
+	mi := &file_config_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2527,7 +2678,7 @@ func (x *CLIDocConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CLIDocConfig.ProtoReflect.Descriptor instead.
 func (*CLIDocConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{21}
+	return file_config_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CLIDocConfig) GetBundlePath() string {
@@ -2585,7 +2736,7 @@ type MarkdownCLIConfig struct {
 
 func (x *MarkdownCLIConfig) Reset() {
 	*x = MarkdownCLIConfig{}
-	mi := &file_config_proto_msgTypes[22]
+	mi := &file_config_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2597,7 +2748,7 @@ func (x *MarkdownCLIConfig) String() string {
 func (*MarkdownCLIConfig) ProtoMessage() {}
 
 func (x *MarkdownCLIConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[22]
+	mi := &file_config_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2610,7 +2761,7 @@ func (x *MarkdownCLIConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkdownCLIConfig.ProtoReflect.Descriptor instead.
 func (*MarkdownCLIConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{22}
+	return file_config_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *MarkdownCLIConfig) GetDocsDir() string {
@@ -2681,7 +2832,7 @@ type OptionsTableConfig struct {
 
 func (x *OptionsTableConfig) Reset() {
 	*x = OptionsTableConfig{}
-	mi := &file_config_proto_msgTypes[23]
+	mi := &file_config_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2693,7 +2844,7 @@ func (x *OptionsTableConfig) String() string {
 func (*OptionsTableConfig) ProtoMessage() {}
 
 func (x *OptionsTableConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[23]
+	mi := &file_config_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2706,7 +2857,7 @@ func (x *OptionsTableConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OptionsTableConfig.ProtoReflect.Descriptor instead.
 func (*OptionsTableConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{23}
+	return file_config_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *OptionsTableConfig) GetSectionNames() []string {
@@ -2742,6 +2893,7 @@ type TestParserConfig struct {
 	//	*TestParserConfig_Protocpp
 	//	*TestParserConfig_Pytest
 	//	*TestParserConfig_PythonTest
+	//	*TestParserConfig_External
 	PerAdapter    isTestParserConfig_PerAdapter `protobuf_oneof:"per_adapter"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2749,7 +2901,7 @@ type TestParserConfig struct {
 
 func (x *TestParserConfig) Reset() {
 	*x = TestParserConfig{}
-	mi := &file_config_proto_msgTypes[24]
+	mi := &file_config_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2761,7 +2913,7 @@ func (x *TestParserConfig) String() string {
 func (*TestParserConfig) ProtoMessage() {}
 
 func (x *TestParserConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[24]
+	mi := &file_config_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2774,7 +2926,7 @@ func (x *TestParserConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestParserConfig.ProtoReflect.Descriptor instead.
 func (*TestParserConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{24}
+	return file_config_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *TestParserConfig) GetName() string {
@@ -2854,6 +3006,15 @@ func (x *TestParserConfig) GetPythonTest() *PythonTestConfig {
 	return nil
 }
 
+func (x *TestParserConfig) GetExternal() *ExternalAdapterConfig {
+	if x != nil {
+		if x, ok := x.PerAdapter.(*TestParserConfig_External); ok {
+			return x.External
+		}
+	}
+	return nil
+}
+
 type isTestParserConfig_PerAdapter interface {
 	isTestParserConfig_PerAdapter()
 }
@@ -2886,6 +3047,10 @@ type TestParserConfig_PythonTest struct {
 	PythonTest *PythonTestConfig `protobuf:"bytes,16,opt,name=python_test,json=pythonTest,proto3,oneof"`
 }
 
+type TestParserConfig_External struct {
+	External *ExternalAdapterConfig `protobuf:"bytes,17,opt,name=external,proto3,oneof"`
+}
+
 func (*TestParserConfig_Gtest) isTestParserConfig_PerAdapter() {}
 
 func (*TestParserConfig_RustTest) isTestParserConfig_PerAdapter() {}
@@ -2900,6 +3065,8 @@ func (*TestParserConfig_Pytest) isTestParserConfig_PerAdapter() {}
 
 func (*TestParserConfig_PythonTest) isTestParserConfig_PerAdapter() {}
 
+func (*TestParserConfig_External) isTestParserConfig_PerAdapter() {}
+
 type GTestConfig struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Include         []string               `protobuf:"bytes,1,rep,name=include,proto3" json:"include,omitempty"`
@@ -2911,7 +3078,7 @@ type GTestConfig struct {
 
 func (x *GTestConfig) Reset() {
 	*x = GTestConfig{}
-	mi := &file_config_proto_msgTypes[25]
+	mi := &file_config_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2923,7 +3090,7 @@ func (x *GTestConfig) String() string {
 func (*GTestConfig) ProtoMessage() {}
 
 func (x *GTestConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[25]
+	mi := &file_config_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2936,7 +3103,7 @@ func (x *GTestConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GTestConfig.ProtoReflect.Descriptor instead.
 func (*GTestConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{25}
+	return file_config_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GTestConfig) GetInclude() []string {
@@ -2971,7 +3138,7 @@ type RustTestConfig struct {
 
 func (x *RustTestConfig) Reset() {
 	*x = RustTestConfig{}
-	mi := &file_config_proto_msgTypes[26]
+	mi := &file_config_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2983,7 +3150,7 @@ func (x *RustTestConfig) String() string {
 func (*RustTestConfig) ProtoMessage() {}
 
 func (x *RustTestConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[26]
+	mi := &file_config_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2996,7 +3163,7 @@ func (x *RustTestConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RustTestConfig.ProtoReflect.Descriptor instead.
 func (*RustTestConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{26}
+	return file_config_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *RustTestConfig) GetInclude() []string {
@@ -3030,7 +3197,7 @@ type BatsConfig struct {
 
 func (x *BatsConfig) Reset() {
 	*x = BatsConfig{}
-	mi := &file_config_proto_msgTypes[27]
+	mi := &file_config_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3042,7 +3209,7 @@ func (x *BatsConfig) String() string {
 func (*BatsConfig) ProtoMessage() {}
 
 func (x *BatsConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[27]
+	mi := &file_config_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3055,7 +3222,7 @@ func (x *BatsConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatsConfig.ProtoReflect.Descriptor instead.
 func (*BatsConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{27}
+	return file_config_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *BatsConfig) GetInclude() []string {
@@ -3135,7 +3302,7 @@ type ProtoCPPConfig struct {
 
 func (x *ProtoCPPConfig) Reset() {
 	*x = ProtoCPPConfig{}
-	mi := &file_config_proto_msgTypes[28]
+	mi := &file_config_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3147,7 +3314,7 @@ func (x *ProtoCPPConfig) String() string {
 func (*ProtoCPPConfig) ProtoMessage() {}
 
 func (x *ProtoCPPConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[28]
+	mi := &file_config_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3160,7 +3327,7 @@ func (x *ProtoCPPConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProtoCPPConfig.ProtoReflect.Descriptor instead.
 func (*ProtoCPPConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{28}
+	return file_config_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ProtoCPPConfig) GetInclude() []string {
@@ -3219,7 +3386,7 @@ type GoTestConfig struct {
 
 func (x *GoTestConfig) Reset() {
 	*x = GoTestConfig{}
-	mi := &file_config_proto_msgTypes[29]
+	mi := &file_config_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3231,7 +3398,7 @@ func (x *GoTestConfig) String() string {
 func (*GoTestConfig) ProtoMessage() {}
 
 func (x *GoTestConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[29]
+	mi := &file_config_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3244,7 +3411,7 @@ func (x *GoTestConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GoTestConfig.ProtoReflect.Descriptor instead.
 func (*GoTestConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{29}
+	return file_config_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GoTestConfig) GetInclude() []string {
@@ -3310,7 +3477,7 @@ type PytestConfig struct {
 
 func (x *PytestConfig) Reset() {
 	*x = PytestConfig{}
-	mi := &file_config_proto_msgTypes[30]
+	mi := &file_config_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3322,7 +3489,7 @@ func (x *PytestConfig) String() string {
 func (*PytestConfig) ProtoMessage() {}
 
 func (x *PytestConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[30]
+	mi := &file_config_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3335,7 +3502,7 @@ func (x *PytestConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PytestConfig.ProtoReflect.Descriptor instead.
 func (*PytestConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{30}
+	return file_config_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *PytestConfig) GetInclude() []string {
@@ -3398,7 +3565,7 @@ type PythonTestConfig struct {
 
 func (x *PythonTestConfig) Reset() {
 	*x = PythonTestConfig{}
-	mi := &file_config_proto_msgTypes[31]
+	mi := &file_config_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3410,7 +3577,7 @@ func (x *PythonTestConfig) String() string {
 func (*PythonTestConfig) ProtoMessage() {}
 
 func (x *PythonTestConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[31]
+	mi := &file_config_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3423,7 +3590,7 @@ func (x *PythonTestConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PythonTestConfig.ProtoReflect.Descriptor instead.
 func (*PythonTestConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{31}
+	return file_config_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *PythonTestConfig) GetInclude() []string {
@@ -3448,6 +3615,7 @@ type DocParserConfig struct {
 	//	*DocParserConfig_Markdown
 	//	*DocParserConfig_Rst
 	//	*DocParserConfig_Doxygen
+	//	*DocParserConfig_External
 	PerAdapter    isDocParserConfig_PerAdapter `protobuf_oneof:"per_adapter"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3455,7 +3623,7 @@ type DocParserConfig struct {
 
 func (x *DocParserConfig) Reset() {
 	*x = DocParserConfig{}
-	mi := &file_config_proto_msgTypes[32]
+	mi := &file_config_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3467,7 +3635,7 @@ func (x *DocParserConfig) String() string {
 func (*DocParserConfig) ProtoMessage() {}
 
 func (x *DocParserConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[32]
+	mi := &file_config_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3480,7 +3648,7 @@ func (x *DocParserConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DocParserConfig.ProtoReflect.Descriptor instead.
 func (*DocParserConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{32}
+	return file_config_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *DocParserConfig) GetName() string {
@@ -3524,6 +3692,15 @@ func (x *DocParserConfig) GetDoxygen() *DoxygenConfig {
 	return nil
 }
 
+func (x *DocParserConfig) GetExternal() *ExternalAdapterConfig {
+	if x != nil {
+		if x, ok := x.PerAdapter.(*DocParserConfig_External); ok {
+			return x.External
+		}
+	}
+	return nil
+}
+
 type isDocParserConfig_PerAdapter interface {
 	isDocParserConfig_PerAdapter()
 }
@@ -3540,11 +3717,17 @@ type DocParserConfig_Doxygen struct {
 	Doxygen *DoxygenConfig `protobuf:"bytes,12,opt,name=doxygen,proto3,oneof"`
 }
 
+type DocParserConfig_External struct {
+	External *ExternalAdapterConfig `protobuf:"bytes,13,opt,name=external,proto3,oneof"`
+}
+
 func (*DocParserConfig_Markdown) isDocParserConfig_PerAdapter() {}
 
 func (*DocParserConfig_Rst) isDocParserConfig_PerAdapter() {}
 
 func (*DocParserConfig_Doxygen) isDocParserConfig_PerAdapter() {}
+
+func (*DocParserConfig_External) isDocParserConfig_PerAdapter() {}
 
 type MarkdownConfig struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
@@ -3557,7 +3740,7 @@ type MarkdownConfig struct {
 
 func (x *MarkdownConfig) Reset() {
 	*x = MarkdownConfig{}
-	mi := &file_config_proto_msgTypes[33]
+	mi := &file_config_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3569,7 +3752,7 @@ func (x *MarkdownConfig) String() string {
 func (*MarkdownConfig) ProtoMessage() {}
 
 func (x *MarkdownConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[33]
+	mi := &file_config_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3582,7 +3765,7 @@ func (x *MarkdownConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkdownConfig.ProtoReflect.Descriptor instead.
 func (*MarkdownConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{33}
+	return file_config_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *MarkdownConfig) GetInclude() []string {
@@ -3625,7 +3808,7 @@ type RstConfig struct {
 
 func (x *RstConfig) Reset() {
 	*x = RstConfig{}
-	mi := &file_config_proto_msgTypes[34]
+	mi := &file_config_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3637,7 +3820,7 @@ func (x *RstConfig) String() string {
 func (*RstConfig) ProtoMessage() {}
 
 func (x *RstConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[34]
+	mi := &file_config_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3650,7 +3833,7 @@ func (x *RstConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RstConfig.ProtoReflect.Descriptor instead.
 func (*RstConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{34}
+	return file_config_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *RstConfig) GetInclude() []string {
@@ -3711,7 +3894,7 @@ type DoxygenConfig struct {
 
 func (x *DoxygenConfig) Reset() {
 	*x = DoxygenConfig{}
-	mi := &file_config_proto_msgTypes[35]
+	mi := &file_config_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3723,7 +3906,7 @@ func (x *DoxygenConfig) String() string {
 func (*DoxygenConfig) ProtoMessage() {}
 
 func (x *DoxygenConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[35]
+	mi := &file_config_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3736,7 +3919,7 @@ func (x *DoxygenConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DoxygenConfig.ProtoReflect.Descriptor instead.
 func (*DoxygenConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{35}
+	return file_config_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *DoxygenConfig) GetXmlDir() string {
@@ -3768,18 +3951,22 @@ func (x *DoxygenConfig) GetExclude() []string {
 }
 
 type ImplementsMapConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Pattern       []string               `protobuf:"bytes,2,rep,name=pattern,proto3" json:"pattern,omitempty"` // regex patterns; %PROTO% substituted at runtime
-	Include       []string               `protobuf:"bytes,3,rep,name=include,proto3" json:"include,omitempty"`
-	Exclude       []string               `protobuf:"bytes,4,rep,name=exclude,proto3" json:"exclude,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Name    string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Pattern []string               `protobuf:"bytes,2,rep,name=pattern,proto3" json:"pattern,omitempty"` // regex patterns; %PROTO% substituted at runtime
+	Include []string               `protobuf:"bytes,3,rep,name=include,proto3" json:"include,omitempty"`
+	Exclude []string               `protobuf:"bytes,4,rep,name=exclude,proto3" json:"exclude,omitempty"`
+	// external is set when name == "external" (runtime adapter). This
+	// message predates the per-adapter oneof convention, so the field sits
+	// alongside the built-in knobs rather than in a oneof.
+	External      *ExternalAdapterConfig `protobuf:"bytes,10,opt,name=external,proto3" json:"external,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ImplementsMapConfig) Reset() {
 	*x = ImplementsMapConfig{}
-	mi := &file_config_proto_msgTypes[36]
+	mi := &file_config_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3791,7 +3978,7 @@ func (x *ImplementsMapConfig) String() string {
 func (*ImplementsMapConfig) ProtoMessage() {}
 
 func (x *ImplementsMapConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[36]
+	mi := &file_config_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3804,7 +3991,7 @@ func (x *ImplementsMapConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImplementsMapConfig.ProtoReflect.Descriptor instead.
 func (*ImplementsMapConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{36}
+	return file_config_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ImplementsMapConfig) GetName() string {
@@ -3835,6 +4022,13 @@ func (x *ImplementsMapConfig) GetExclude() []string {
 	return nil
 }
 
+func (x *ImplementsMapConfig) GetExternal() *ExternalAdapterConfig {
+	if x != nil {
+		return x.External
+	}
+	return nil
+}
+
 type AnalyzerKV struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Key   string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -3850,7 +4044,7 @@ type AnalyzerKV struct {
 
 func (x *AnalyzerKV) Reset() {
 	*x = AnalyzerKV{}
-	mi := &file_config_proto_msgTypes[37]
+	mi := &file_config_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3862,7 +4056,7 @@ func (x *AnalyzerKV) String() string {
 func (*AnalyzerKV) ProtoMessage() {}
 
 func (x *AnalyzerKV) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[37]
+	mi := &file_config_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3875,7 +4069,7 @@ func (x *AnalyzerKV) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AnalyzerKV.ProtoReflect.Descriptor instead.
 func (*AnalyzerKV) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{37}
+	return file_config_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *AnalyzerKV) GetKey() string {
@@ -3953,7 +4147,7 @@ type AnalyzerConfig struct {
 
 func (x *AnalyzerConfig) Reset() {
 	*x = AnalyzerConfig{}
-	mi := &file_config_proto_msgTypes[38]
+	mi := &file_config_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3965,7 +4159,7 @@ func (x *AnalyzerConfig) String() string {
 func (*AnalyzerConfig) ProtoMessage() {}
 
 func (x *AnalyzerConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[38]
+	mi := &file_config_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3978,7 +4172,7 @@ func (x *AnalyzerConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AnalyzerConfig.ProtoReflect.Descriptor instead.
 func (*AnalyzerConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{38}
+	return file_config_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *AnalyzerConfig) GetName() string {
@@ -4021,7 +4215,7 @@ type SubstanceThresholds struct {
 
 func (x *SubstanceThresholds) Reset() {
 	*x = SubstanceThresholds{}
-	mi := &file_config_proto_msgTypes[39]
+	mi := &file_config_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4033,7 +4227,7 @@ func (x *SubstanceThresholds) String() string {
 func (*SubstanceThresholds) ProtoMessage() {}
 
 func (x *SubstanceThresholds) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[39]
+	mi := &file_config_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4046,7 +4240,7 @@ func (x *SubstanceThresholds) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubstanceThresholds.ProtoReflect.Descriptor instead.
 func (*SubstanceThresholds) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{39}
+	return file_config_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *SubstanceThresholds) GetEcosystem() string {
@@ -4087,7 +4281,7 @@ type PublicSurface struct {
 
 func (x *PublicSurface) Reset() {
 	*x = PublicSurface{}
-	mi := &file_config_proto_msgTypes[40]
+	mi := &file_config_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4099,7 +4293,7 @@ func (x *PublicSurface) String() string {
 func (*PublicSurface) ProtoMessage() {}
 
 func (x *PublicSurface) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[40]
+	mi := &file_config_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4112,7 +4306,7 @@ func (x *PublicSurface) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublicSurface.ProtoReflect.Descriptor instead.
 func (*PublicSurface) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{40}
+	return file_config_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *PublicSurface) GetFidlCategory() []string {
@@ -4142,7 +4336,7 @@ type MCPServerConfig struct {
 
 func (x *MCPServerConfig) Reset() {
 	*x = MCPServerConfig{}
-	mi := &file_config_proto_msgTypes[41]
+	mi := &file_config_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4154,7 +4348,7 @@ func (x *MCPServerConfig) String() string {
 func (*MCPServerConfig) ProtoMessage() {}
 
 func (x *MCPServerConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[41]
+	mi := &file_config_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4167,7 +4361,7 @@ func (x *MCPServerConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MCPServerConfig.ProtoReflect.Descriptor instead.
 func (*MCPServerConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{41}
+	return file_config_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *MCPServerConfig) GetBind() string {
@@ -4215,7 +4409,7 @@ type AuthConfig struct {
 
 func (x *AuthConfig) Reset() {
 	*x = AuthConfig{}
-	mi := &file_config_proto_msgTypes[42]
+	mi := &file_config_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4227,7 +4421,7 @@ func (x *AuthConfig) String() string {
 func (*AuthConfig) ProtoMessage() {}
 
 func (x *AuthConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[42]
+	mi := &file_config_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4240,7 +4434,7 @@ func (x *AuthConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthConfig.ProtoReflect.Descriptor instead.
 func (*AuthConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{42}
+	return file_config_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *AuthConfig) GetMode() AuthConfig_Mode {
@@ -4267,7 +4461,7 @@ type OperationCache struct {
 
 func (x *OperationCache) Reset() {
 	*x = OperationCache{}
-	mi := &file_config_proto_msgTypes[43]
+	mi := &file_config_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4279,7 +4473,7 @@ func (x *OperationCache) String() string {
 func (*OperationCache) ProtoMessage() {}
 
 func (x *OperationCache) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[43]
+	mi := &file_config_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4292,7 +4486,7 @@ func (x *OperationCache) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OperationCache.ProtoReflect.Descriptor instead.
 func (*OperationCache) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{43}
+	return file_config_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *OperationCache) GetOp() string {
@@ -4322,7 +4516,7 @@ type CacheStoreConfig struct {
 
 func (x *CacheStoreConfig) Reset() {
 	*x = CacheStoreConfig{}
-	mi := &file_config_proto_msgTypes[44]
+	mi := &file_config_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4334,7 +4528,7 @@ func (x *CacheStoreConfig) String() string {
 func (*CacheStoreConfig) ProtoMessage() {}
 
 func (x *CacheStoreConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[44]
+	mi := &file_config_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4347,7 +4541,7 @@ func (x *CacheStoreConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CacheStoreConfig.ProtoReflect.Descriptor instead.
 func (*CacheStoreConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{44}
+	return file_config_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *CacheStoreConfig) GetStore() string {
@@ -4394,7 +4588,7 @@ type FilesystemCacheConfig struct {
 
 func (x *FilesystemCacheConfig) Reset() {
 	*x = FilesystemCacheConfig{}
-	mi := &file_config_proto_msgTypes[45]
+	mi := &file_config_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4406,7 +4600,7 @@ func (x *FilesystemCacheConfig) String() string {
 func (*FilesystemCacheConfig) ProtoMessage() {}
 
 func (x *FilesystemCacheConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[45]
+	mi := &file_config_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4419,7 +4613,7 @@ func (x *FilesystemCacheConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FilesystemCacheConfig.ProtoReflect.Descriptor instead.
 func (*FilesystemCacheConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{45}
+	return file_config_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *FilesystemCacheConfig) GetPath() string {
@@ -4457,7 +4651,7 @@ type ReviewAdapterConfig struct {
 
 func (x *ReviewAdapterConfig) Reset() {
 	*x = ReviewAdapterConfig{}
-	mi := &file_config_proto_msgTypes[46]
+	mi := &file_config_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4469,7 +4663,7 @@ func (x *ReviewAdapterConfig) String() string {
 func (*ReviewAdapterConfig) ProtoMessage() {}
 
 func (x *ReviewAdapterConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[46]
+	mi := &file_config_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4482,7 +4676,7 @@ func (x *ReviewAdapterConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReviewAdapterConfig.ProtoReflect.Descriptor instead.
 func (*ReviewAdapterConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{46}
+	return file_config_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *ReviewAdapterConfig) GetAdapter() string {
@@ -4544,7 +4738,7 @@ type GerritReviewConfig struct {
 
 func (x *GerritReviewConfig) Reset() {
 	*x = GerritReviewConfig{}
-	mi := &file_config_proto_msgTypes[47]
+	mi := &file_config_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4556,7 +4750,7 @@ func (x *GerritReviewConfig) String() string {
 func (*GerritReviewConfig) ProtoMessage() {}
 
 func (x *GerritReviewConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[47]
+	mi := &file_config_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4569,7 +4763,7 @@ func (x *GerritReviewConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GerritReviewConfig.ProtoReflect.Descriptor instead.
 func (*GerritReviewConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{47}
+	return file_config_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *GerritReviewConfig) GetHost() string {
@@ -4603,7 +4797,7 @@ type GitHubReviewConfig struct {
 
 func (x *GitHubReviewConfig) Reset() {
 	*x = GitHubReviewConfig{}
-	mi := &file_config_proto_msgTypes[48]
+	mi := &file_config_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4615,7 +4809,7 @@ func (x *GitHubReviewConfig) String() string {
 func (*GitHubReviewConfig) ProtoMessage() {}
 
 func (x *GitHubReviewConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[48]
+	mi := &file_config_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4628,7 +4822,7 @@ func (x *GitHubReviewConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitHubReviewConfig.ProtoReflect.Descriptor instead.
 func (*GitHubReviewConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{48}
+	return file_config_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *GitHubReviewConfig) GetRepo() string {
@@ -4664,7 +4858,7 @@ type LLMConfig struct {
 
 func (x *LLMConfig) Reset() {
 	*x = LLMConfig{}
-	mi := &file_config_proto_msgTypes[49]
+	mi := &file_config_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4676,7 +4870,7 @@ func (x *LLMConfig) String() string {
 func (*LLMConfig) ProtoMessage() {}
 
 func (x *LLMConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[49]
+	mi := &file_config_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4689,7 +4883,7 @@ func (x *LLMConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LLMConfig.ProtoReflect.Descriptor instead.
 func (*LLMConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{49}
+	return file_config_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *LLMConfig) GetClient() string {
@@ -4776,7 +4970,7 @@ type LocalLlamaConfig struct {
 
 func (x *LocalLlamaConfig) Reset() {
 	*x = LocalLlamaConfig{}
-	mi := &file_config_proto_msgTypes[50]
+	mi := &file_config_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4788,7 +4982,7 @@ func (x *LocalLlamaConfig) String() string {
 func (*LocalLlamaConfig) ProtoMessage() {}
 
 func (x *LocalLlamaConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[50]
+	mi := &file_config_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4801,7 +4995,7 @@ func (x *LocalLlamaConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalLlamaConfig.ProtoReflect.Descriptor instead.
 func (*LocalLlamaConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{50}
+	return file_config_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *LocalLlamaConfig) GetHost() string {
@@ -4836,7 +5030,7 @@ type OllamaEmbedConfig struct {
 
 func (x *OllamaEmbedConfig) Reset() {
 	*x = OllamaEmbedConfig{}
-	mi := &file_config_proto_msgTypes[51]
+	mi := &file_config_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4848,7 +5042,7 @@ func (x *OllamaEmbedConfig) String() string {
 func (*OllamaEmbedConfig) ProtoMessage() {}
 
 func (x *OllamaEmbedConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[51]
+	mi := &file_config_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4861,7 +5055,7 @@ func (x *OllamaEmbedConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OllamaEmbedConfig.ProtoReflect.Descriptor instead.
 func (*OllamaEmbedConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{51}
+	return file_config_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *OllamaEmbedConfig) GetHost() string {
@@ -4894,7 +5088,7 @@ type LLMCacheConfig struct {
 
 func (x *LLMCacheConfig) Reset() {
 	*x = LLMCacheConfig{}
-	mi := &file_config_proto_msgTypes[52]
+	mi := &file_config_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4906,7 +5100,7 @@ func (x *LLMCacheConfig) String() string {
 func (*LLMCacheConfig) ProtoMessage() {}
 
 func (x *LLMCacheConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[52]
+	mi := &file_config_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4919,7 +5113,7 @@ func (x *LLMCacheConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LLMCacheConfig.ProtoReflect.Descriptor instead.
 func (*LLMCacheConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{52}
+	return file_config_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *LLMCacheConfig) GetPromptVersion() uint32 {
@@ -4940,7 +5134,7 @@ type AnnotationConfig struct {
 
 func (x *AnnotationConfig) Reset() {
 	*x = AnnotationConfig{}
-	mi := &file_config_proto_msgTypes[53]
+	mi := &file_config_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4952,7 +5146,7 @@ func (x *AnnotationConfig) String() string {
 func (*AnnotationConfig) ProtoMessage() {}
 
 func (x *AnnotationConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[53]
+	mi := &file_config_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4965,7 +5159,7 @@ func (x *AnnotationConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AnnotationConfig.ProtoReflect.Descriptor instead.
 func (*AnnotationConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{53}
+	return file_config_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *AnnotationConfig) GetEnabled() bool {
@@ -4999,7 +5193,7 @@ type Approver struct {
 
 func (x *Approver) Reset() {
 	*x = Approver{}
-	mi := &file_config_proto_msgTypes[54]
+	mi := &file_config_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5011,7 +5205,7 @@ func (x *Approver) String() string {
 func (*Approver) ProtoMessage() {}
 
 func (x *Approver) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[54]
+	mi := &file_config_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5024,7 +5218,7 @@ func (x *Approver) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Approver.ProtoReflect.Descriptor instead.
 func (*Approver) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{54}
+	return file_config_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *Approver) GetName() string {
@@ -5054,7 +5248,7 @@ type VCSAdapterConfig struct {
 
 func (x *VCSAdapterConfig) Reset() {
 	*x = VCSAdapterConfig{}
-	mi := &file_config_proto_msgTypes[55]
+	mi := &file_config_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5066,7 +5260,7 @@ func (x *VCSAdapterConfig) String() string {
 func (*VCSAdapterConfig) ProtoMessage() {}
 
 func (x *VCSAdapterConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[55]
+	mi := &file_config_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5079,7 +5273,7 @@ func (x *VCSAdapterConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VCSAdapterConfig.ProtoReflect.Descriptor instead.
 func (*VCSAdapterConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{55}
+	return file_config_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *VCSAdapterConfig) GetAdapter() string {
@@ -5124,7 +5318,7 @@ type GitVCSConfig struct {
 
 func (x *GitVCSConfig) Reset() {
 	*x = GitVCSConfig{}
-	mi := &file_config_proto_msgTypes[56]
+	mi := &file_config_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5136,7 +5330,7 @@ func (x *GitVCSConfig) String() string {
 func (*GitVCSConfig) ProtoMessage() {}
 
 func (x *GitVCSConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[56]
+	mi := &file_config_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5149,7 +5343,7 @@ func (x *GitVCSConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitVCSConfig.ProtoReflect.Descriptor instead.
 func (*GitVCSConfig) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{56}
+	return file_config_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *GitVCSConfig) GetRoot() string {
@@ -5170,7 +5364,7 @@ type Strictness struct {
 
 func (x *Strictness) Reset() {
 	*x = Strictness{}
-	mi := &file_config_proto_msgTypes[57]
+	mi := &file_config_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5182,7 +5376,7 @@ func (x *Strictness) String() string {
 func (*Strictness) ProtoMessage() {}
 
 func (x *Strictness) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[57]
+	mi := &file_config_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5195,7 +5389,7 @@ func (x *Strictness) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Strictness.ProtoReflect.Descriptor instead.
 func (*Strictness) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{57}
+	return file_config_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *Strictness) GetUnmatchedGlobs() StrictnessAction {
@@ -5236,7 +5430,7 @@ type CodegenBridge struct {
 
 func (x *CodegenBridge) Reset() {
 	*x = CodegenBridge{}
-	mi := &file_config_proto_msgTypes[58]
+	mi := &file_config_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5248,7 +5442,7 @@ func (x *CodegenBridge) String() string {
 func (*CodegenBridge) ProtoMessage() {}
 
 func (x *CodegenBridge) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[58]
+	mi := &file_config_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5261,7 +5455,7 @@ func (x *CodegenBridge) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CodegenBridge.ProtoReflect.Descriptor instead.
 func (*CodegenBridge) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{58}
+	return file_config_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *CodegenBridge) GetSourceEcosystem() string {
@@ -5297,7 +5491,7 @@ type MonorepoManifest struct {
 
 func (x *MonorepoManifest) Reset() {
 	*x = MonorepoManifest{}
-	mi := &file_config_proto_msgTypes[59]
+	mi := &file_config_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5309,7 +5503,7 @@ func (x *MonorepoManifest) String() string {
 func (*MonorepoManifest) ProtoMessage() {}
 
 func (x *MonorepoManifest) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[59]
+	mi := &file_config_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5322,7 +5516,7 @@ func (x *MonorepoManifest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MonorepoManifest.ProtoReflect.Descriptor instead.
 func (*MonorepoManifest) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{59}
+	return file_config_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *MonorepoManifest) GetEntries() []*MonorepoManifest_Entry {
@@ -5351,7 +5545,7 @@ type BuildGraph struct {
 
 func (x *BuildGraph) Reset() {
 	*x = BuildGraph{}
-	mi := &file_config_proto_msgTypes[60]
+	mi := &file_config_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5363,7 +5557,7 @@ func (x *BuildGraph) String() string {
 func (*BuildGraph) ProtoMessage() {}
 
 func (x *BuildGraph) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[60]
+	mi := &file_config_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5376,7 +5570,7 @@ func (x *BuildGraph) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildGraph.ProtoReflect.Descriptor instead.
 func (*BuildGraph) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{60}
+	return file_config_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *BuildGraph) GetPwFacade() *PwFacade {
@@ -5404,7 +5598,7 @@ type PwFacade struct {
 
 func (x *PwFacade) Reset() {
 	*x = PwFacade{}
-	mi := &file_config_proto_msgTypes[61]
+	mi := &file_config_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5416,7 +5610,7 @@ func (x *PwFacade) String() string {
 func (*PwFacade) ProtoMessage() {}
 
 func (x *PwFacade) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[61]
+	mi := &file_config_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5429,7 +5623,7 @@ func (x *PwFacade) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PwFacade.ProtoReflect.Descriptor instead.
 func (*PwFacade) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{61}
+	return file_config_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *PwFacade) GetInclude() []string {
@@ -5470,7 +5664,7 @@ type MonorepoManifest_Entry struct {
 
 func (x *MonorepoManifest_Entry) Reset() {
 	*x = MonorepoManifest_Entry{}
-	mi := &file_config_proto_msgTypes[62]
+	mi := &file_config_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5482,7 +5676,7 @@ func (x *MonorepoManifest_Entry) String() string {
 func (*MonorepoManifest_Entry) ProtoMessage() {}
 
 func (x *MonorepoManifest_Entry) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[62]
+	mi := &file_config_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5495,7 +5689,7 @@ func (x *MonorepoManifest_Entry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MonorepoManifest_Entry.ProtoReflect.Descriptor instead.
 func (*MonorepoManifest_Entry) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{59, 0}
+	return file_config_proto_rawDescGZIP(), []int{60, 0}
 }
 
 func (x *MonorepoManifest_Entry) GetConfigPath() string {
@@ -5623,7 +5817,19 @@ const file_config_proto_rawDesc = "" +
 	"\n" +
 	"FULL_PARSE\x10\x02\x12\n" +
 	"\n" +
-	"\x06IGNORE\x10\x03\"\xf7\x05\n" +
+	"\x06IGNORE\x10\x03\"\xb3\x02\n" +
+	"\x15ExternalAdapterConfig\x12\x18\n" +
+	"\acommand\x18\x01 \x01(\tR\acommand\x12\x12\n" +
+	"\x04args\x18\x02 \x03(\tR\x04args\x12\x18\n" +
+	"\ainclude\x18\x03 \x03(\tR\ainclude\x12\x18\n" +
+	"\aexclude\x18\x04 \x03(\tR\aexclude\x12J\n" +
+	"\x06option\x18\x05 \x03(\v22.sheaf.config.v1.ExternalAdapterConfig.OptionEntryR\x06option\x12\x1d\n" +
+	"\n" +
+	"timeout_ms\x18\x06 \x01(\x03R\ttimeoutMs\x12\x12\n" +
+	"\x04name\x18\a \x01(\tR\x04name\x1a9\n" +
+	"\vOptionEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xbd\x06\n" +
 	"\x14ContractAnchorConfig\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x127\n" +
 	"\x04fidl\x18\n" +
@@ -5641,7 +5847,8 @@ const file_config_proto_rawDesc = "" +
 	"helmValues\x12I\n" +
 	"\n" +
 	"llmextract\x18\x14 \x01(\v2'.sheaf.config.v1.LLMExtractAnchorConfigH\x00R\n" +
-	"llmextractB\r\n" +
+	"llmextract\x12D\n" +
+	"\bexternal\x18\x15 \x01(\v2&.sheaf.config.v1.ExternalAdapterConfigH\x00R\bexternalB\r\n" +
 	"\vper_adapter\"\x99\x01\n" +
 	"\x16LLMExtractAnchorConfig\x12\x18\n" +
 	"\ainclude\x18\x01 \x03(\tR\ainclude\x12\x18\n" +
@@ -5698,7 +5905,7 @@ const file_config_proto_rawDesc = "" +
 	"\aexclude\x18\x03 \x03(\tR\aexclude\x12\x1f\n" +
 	"\vbinary_name\x18\x04 \x01(\tR\n" +
 	"binaryName\x12\x19\n" +
-	"\burl_base\x18\x05 \x01(\tR\aurlBase\"\x8a\x03\n" +
+	"\burl_base\x18\x05 \x01(\tR\aurlBase\"\xd0\x03\n" +
 	"\x17RenderedReferenceConfig\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12:\n" +
 	"\afidldoc\x18\n" +
@@ -5706,7 +5913,8 @@ const file_config_proto_rawDesc = "" +
 	"\x06clidoc\x18\v \x01(\v2\x1d.sheaf.config.v1.CLIDocConfigH\x00R\x06clidoc\x12F\n" +
 	"\vmarkdowncli\x18\f \x01(\v2\".sheaf.config.v1.MarkdownCLIConfigH\x00R\vmarkdowncli\x12@\n" +
 	"\tworkflows\x18\r \x01(\v2 .sheaf.config.v1.WorkflowsConfigH\x00R\tworkflows\x12M\n" +
-	"\x0eyaml_workflows\x18\x0e \x01(\v2$.sheaf.config.v1.YamlWorkflowsConfigH\x00R\ryamlWorkflowsB\r\n" +
+	"\x0eyaml_workflows\x18\x0e \x01(\v2$.sheaf.config.v1.YamlWorkflowsConfigH\x00R\ryamlWorkflows\x12D\n" +
+	"\bexternal\x18\x0f \x01(\v2&.sheaf.config.v1.ExternalAdapterConfigH\x00R\bexternalB\r\n" +
 	"\vper_adapter\"\xc1\x01\n" +
 	"\x13YamlWorkflowsConfig\x12\x19\n" +
 	"\bdocs_dir\x18\x01 \x01(\tR\adocsDir\x12\x18\n" +
@@ -5751,7 +5959,7 @@ const file_config_proto_rawDesc = "" +
 	"\rsection_names\x18\x01 \x03(\tR\fsectionNames\x12\x1f\n" +
 	"\vname_column\x18\x02 \x01(\x05R\n" +
 	"nameColumn\x12-\n" +
-	"\x12description_column\x18\x03 \x01(\x05R\x11descriptionColumn\"\xd5\x03\n" +
+	"\x12description_column\x18\x03 \x01(\x05R\x11descriptionColumn\"\x9b\x04\n" +
 	"\x10TestParserConfig\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x124\n" +
 	"\x05gtest\x18\n" +
@@ -5762,7 +5970,8 @@ const file_config_proto_rawDesc = "" +
 	"\bprotocpp\x18\x0e \x01(\v2\x1f.sheaf.config.v1.ProtoCPPConfigH\x00R\bprotocpp\x127\n" +
 	"\x06pytest\x18\x0f \x01(\v2\x1d.sheaf.config.v1.PytestConfigH\x00R\x06pytest\x12D\n" +
 	"\vpython_test\x18\x10 \x01(\v2!.sheaf.config.v1.PythonTestConfigH\x00R\n" +
-	"pythonTestB\r\n" +
+	"pythonTest\x12D\n" +
+	"\bexternal\x18\x11 \x01(\v2&.sheaf.config.v1.ExternalAdapterConfigH\x00R\bexternalB\r\n" +
 	"\vper_adapter\"m\n" +
 	"\vGTestConfig\x12\x18\n" +
 	"\ainclude\x18\x01 \x03(\tR\ainclude\x12\x18\n" +
@@ -5794,13 +6003,14 @@ const file_config_proto_rawDesc = "" +
 	"\x0emodule_aliases\x18\x04 \x03(\tR\rmoduleAliases\"F\n" +
 	"\x10PythonTestConfig\x12\x18\n" +
 	"\ainclude\x18\x01 \x03(\tR\ainclude\x12\x18\n" +
-	"\aexclude\x18\x02 \x03(\tR\aexclude\"\xdf\x01\n" +
+	"\aexclude\x18\x02 \x03(\tR\aexclude\"\xa5\x02\n" +
 	"\x0fDocParserConfig\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12=\n" +
 	"\bmarkdown\x18\n" +
 	" \x01(\v2\x1f.sheaf.config.v1.MarkdownConfigH\x00R\bmarkdown\x12.\n" +
 	"\x03rst\x18\v \x01(\v2\x1a.sheaf.config.v1.RstConfigH\x00R\x03rst\x12:\n" +
-	"\adoxygen\x18\f \x01(\v2\x1e.sheaf.config.v1.DoxygenConfigH\x00R\adoxygenB\r\n" +
+	"\adoxygen\x18\f \x01(\v2\x1e.sheaf.config.v1.DoxygenConfigH\x00R\adoxygen\x12D\n" +
+	"\bexternal\x18\r \x01(\v2&.sheaf.config.v1.ExternalAdapterConfigH\x00R\bexternalB\r\n" +
 	"\vper_adapter\"v\n" +
 	"\x0eMarkdownConfig\x12\x18\n" +
 	"\ainclude\x18\x01 \x03(\tR\ainclude\x12\x18\n" +
@@ -5814,12 +6024,14 @@ const file_config_proto_rawDesc = "" +
 	"\axml_dir\x18\x01 \x01(\tR\x06xmlDir\x12\x19\n" +
 	"\burl_base\x18\x02 \x01(\tR\aurlBase\x12\x18\n" +
 	"\ainclude\x18\x03 \x03(\tR\ainclude\x12\x18\n" +
-	"\aexclude\x18\x04 \x03(\tR\aexclude\"w\n" +
+	"\aexclude\x18\x04 \x03(\tR\aexclude\"\xbb\x01\n" +
 	"\x13ImplementsMapConfig\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\apattern\x18\x02 \x03(\tR\apattern\x12\x18\n" +
 	"\ainclude\x18\x03 \x03(\tR\ainclude\x12\x18\n" +
-	"\aexclude\x18\x04 \x03(\tR\aexclude\"\x8c\x01\n" +
+	"\aexclude\x18\x04 \x03(\tR\aexclude\x12B\n" +
+	"\bexternal\x18\n" +
+	" \x01(\v2&.sheaf.config.v1.ExternalAdapterConfigR\bexternal\"\x8c\x01\n" +
 	"\n" +
 	"AnalyzerKV\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12#\n" +
@@ -5973,7 +6185,7 @@ func file_config_proto_rawDescGZIP() []byte {
 }
 
 var file_config_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_config_proto_msgTypes = make([]protoimpl.MessageInfo, 63)
+var file_config_proto_msgTypes = make([]protoimpl.MessageInfo, 65)
 var file_config_proto_goTypes = []any{
 	(Severity)(0),                   // 0: sheaf.config.v1.Severity
 	(StrictnessAction)(0),           // 1: sheaf.config.v1.StrictnessAction
@@ -5986,140 +6198,148 @@ var file_config_proto_goTypes = []any{
 	(*Project)(nil),                 // 8: sheaf.config.v1.Project
 	(*Scope)(nil),                   // 9: sheaf.config.v1.Scope
 	(*Closure)(nil),                 // 10: sheaf.config.v1.Closure
-	(*ContractAnchorConfig)(nil),    // 11: sheaf.config.v1.ContractAnchorConfig
-	(*LLMExtractAnchorConfig)(nil),  // 12: sheaf.config.v1.LLMExtractAnchorConfig
-	(*HelmValuesAnchorConfig)(nil),  // 13: sheaf.config.v1.HelmValuesAnchorConfig
-	(*K8SManifestAnchorConfig)(nil), // 14: sheaf.config.v1.K8sManifestAnchorConfig
-	(*CRDAnchorConfig)(nil),         // 15: sheaf.config.v1.CRDAnchorConfig
-	(*CppHeaderAnchorConfig)(nil),   // 16: sheaf.config.v1.CppHeaderAnchorConfig
-	(*CMLAnchorConfig)(nil),         // 17: sheaf.config.v1.CMLAnchorConfig
-	(*FIDLAnchorConfig)(nil),        // 18: sheaf.config.v1.FIDLAnchorConfig
-	(*ArghAnchorConfig)(nil),        // 19: sheaf.config.v1.ArghAnchorConfig
-	(*ClapAnchorConfig)(nil),        // 20: sheaf.config.v1.ClapAnchorConfig
-	(*ProtoAnchorConfig)(nil),       // 21: sheaf.config.v1.ProtoAnchorConfig
-	(*CobraAnchorConfig)(nil),       // 22: sheaf.config.v1.CobraAnchorConfig
-	(*RenderedReferenceConfig)(nil), // 23: sheaf.config.v1.RenderedReferenceConfig
-	(*YamlWorkflowsConfig)(nil),     // 24: sheaf.config.v1.YamlWorkflowsConfig
-	(*WorkflowsConfig)(nil),         // 25: sheaf.config.v1.WorkflowsConfig
-	(*FIDLDocConfig)(nil),           // 26: sheaf.config.v1.FIDLDocConfig
-	(*CLIDocConfig)(nil),            // 27: sheaf.config.v1.CLIDocConfig
-	(*MarkdownCLIConfig)(nil),       // 28: sheaf.config.v1.MarkdownCLIConfig
-	(*OptionsTableConfig)(nil),      // 29: sheaf.config.v1.OptionsTableConfig
-	(*TestParserConfig)(nil),        // 30: sheaf.config.v1.TestParserConfig
-	(*GTestConfig)(nil),             // 31: sheaf.config.v1.GTestConfig
-	(*RustTestConfig)(nil),          // 32: sheaf.config.v1.RustTestConfig
-	(*BatsConfig)(nil),              // 33: sheaf.config.v1.BatsConfig
-	(*ProtoCPPConfig)(nil),          // 34: sheaf.config.v1.ProtoCPPConfig
-	(*GoTestConfig)(nil),            // 35: sheaf.config.v1.GoTestConfig
-	(*PytestConfig)(nil),            // 36: sheaf.config.v1.PytestConfig
-	(*PythonTestConfig)(nil),        // 37: sheaf.config.v1.PythonTestConfig
-	(*DocParserConfig)(nil),         // 38: sheaf.config.v1.DocParserConfig
-	(*MarkdownConfig)(nil),          // 39: sheaf.config.v1.MarkdownConfig
-	(*RstConfig)(nil),               // 40: sheaf.config.v1.RstConfig
-	(*DoxygenConfig)(nil),           // 41: sheaf.config.v1.DoxygenConfig
-	(*ImplementsMapConfig)(nil),     // 42: sheaf.config.v1.ImplementsMapConfig
-	(*AnalyzerKV)(nil),              // 43: sheaf.config.v1.AnalyzerKV
-	(*AnalyzerConfig)(nil),          // 44: sheaf.config.v1.AnalyzerConfig
-	(*SubstanceThresholds)(nil),     // 45: sheaf.config.v1.SubstanceThresholds
-	(*PublicSurface)(nil),           // 46: sheaf.config.v1.PublicSurface
-	(*MCPServerConfig)(nil),         // 47: sheaf.config.v1.MCPServerConfig
-	(*AuthConfig)(nil),              // 48: sheaf.config.v1.AuthConfig
-	(*OperationCache)(nil),          // 49: sheaf.config.v1.OperationCache
-	(*CacheStoreConfig)(nil),        // 50: sheaf.config.v1.CacheStoreConfig
-	(*FilesystemCacheConfig)(nil),   // 51: sheaf.config.v1.FilesystemCacheConfig
-	(*ReviewAdapterConfig)(nil),     // 52: sheaf.config.v1.ReviewAdapterConfig
-	(*GerritReviewConfig)(nil),      // 53: sheaf.config.v1.GerritReviewConfig
-	(*GitHubReviewConfig)(nil),      // 54: sheaf.config.v1.GitHubReviewConfig
-	(*LLMConfig)(nil),               // 55: sheaf.config.v1.LLMConfig
-	(*LocalLlamaConfig)(nil),        // 56: sheaf.config.v1.LocalLlamaConfig
-	(*OllamaEmbedConfig)(nil),       // 57: sheaf.config.v1.OllamaEmbedConfig
-	(*LLMCacheConfig)(nil),          // 58: sheaf.config.v1.LLMCacheConfig
-	(*AnnotationConfig)(nil),        // 59: sheaf.config.v1.AnnotationConfig
-	(*Approver)(nil),                // 60: sheaf.config.v1.Approver
-	(*VCSAdapterConfig)(nil),        // 61: sheaf.config.v1.VCSAdapterConfig
-	(*GitVCSConfig)(nil),            // 62: sheaf.config.v1.GitVCSConfig
-	(*Strictness)(nil),              // 63: sheaf.config.v1.Strictness
-	(*CodegenBridge)(nil),           // 64: sheaf.config.v1.CodegenBridge
-	(*MonorepoManifest)(nil),        // 65: sheaf.config.v1.MonorepoManifest
-	(*BuildGraph)(nil),              // 66: sheaf.config.v1.BuildGraph
-	(*PwFacade)(nil),                // 67: sheaf.config.v1.PwFacade
-	(*MonorepoManifest_Entry)(nil),  // 68: sheaf.config.v1.MonorepoManifest.Entry
+	(*ExternalAdapterConfig)(nil),   // 11: sheaf.config.v1.ExternalAdapterConfig
+	(*ContractAnchorConfig)(nil),    // 12: sheaf.config.v1.ContractAnchorConfig
+	(*LLMExtractAnchorConfig)(nil),  // 13: sheaf.config.v1.LLMExtractAnchorConfig
+	(*HelmValuesAnchorConfig)(nil),  // 14: sheaf.config.v1.HelmValuesAnchorConfig
+	(*K8SManifestAnchorConfig)(nil), // 15: sheaf.config.v1.K8sManifestAnchorConfig
+	(*CRDAnchorConfig)(nil),         // 16: sheaf.config.v1.CRDAnchorConfig
+	(*CppHeaderAnchorConfig)(nil),   // 17: sheaf.config.v1.CppHeaderAnchorConfig
+	(*CMLAnchorConfig)(nil),         // 18: sheaf.config.v1.CMLAnchorConfig
+	(*FIDLAnchorConfig)(nil),        // 19: sheaf.config.v1.FIDLAnchorConfig
+	(*ArghAnchorConfig)(nil),        // 20: sheaf.config.v1.ArghAnchorConfig
+	(*ClapAnchorConfig)(nil),        // 21: sheaf.config.v1.ClapAnchorConfig
+	(*ProtoAnchorConfig)(nil),       // 22: sheaf.config.v1.ProtoAnchorConfig
+	(*CobraAnchorConfig)(nil),       // 23: sheaf.config.v1.CobraAnchorConfig
+	(*RenderedReferenceConfig)(nil), // 24: sheaf.config.v1.RenderedReferenceConfig
+	(*YamlWorkflowsConfig)(nil),     // 25: sheaf.config.v1.YamlWorkflowsConfig
+	(*WorkflowsConfig)(nil),         // 26: sheaf.config.v1.WorkflowsConfig
+	(*FIDLDocConfig)(nil),           // 27: sheaf.config.v1.FIDLDocConfig
+	(*CLIDocConfig)(nil),            // 28: sheaf.config.v1.CLIDocConfig
+	(*MarkdownCLIConfig)(nil),       // 29: sheaf.config.v1.MarkdownCLIConfig
+	(*OptionsTableConfig)(nil),      // 30: sheaf.config.v1.OptionsTableConfig
+	(*TestParserConfig)(nil),        // 31: sheaf.config.v1.TestParserConfig
+	(*GTestConfig)(nil),             // 32: sheaf.config.v1.GTestConfig
+	(*RustTestConfig)(nil),          // 33: sheaf.config.v1.RustTestConfig
+	(*BatsConfig)(nil),              // 34: sheaf.config.v1.BatsConfig
+	(*ProtoCPPConfig)(nil),          // 35: sheaf.config.v1.ProtoCPPConfig
+	(*GoTestConfig)(nil),            // 36: sheaf.config.v1.GoTestConfig
+	(*PytestConfig)(nil),            // 37: sheaf.config.v1.PytestConfig
+	(*PythonTestConfig)(nil),        // 38: sheaf.config.v1.PythonTestConfig
+	(*DocParserConfig)(nil),         // 39: sheaf.config.v1.DocParserConfig
+	(*MarkdownConfig)(nil),          // 40: sheaf.config.v1.MarkdownConfig
+	(*RstConfig)(nil),               // 41: sheaf.config.v1.RstConfig
+	(*DoxygenConfig)(nil),           // 42: sheaf.config.v1.DoxygenConfig
+	(*ImplementsMapConfig)(nil),     // 43: sheaf.config.v1.ImplementsMapConfig
+	(*AnalyzerKV)(nil),              // 44: sheaf.config.v1.AnalyzerKV
+	(*AnalyzerConfig)(nil),          // 45: sheaf.config.v1.AnalyzerConfig
+	(*SubstanceThresholds)(nil),     // 46: sheaf.config.v1.SubstanceThresholds
+	(*PublicSurface)(nil),           // 47: sheaf.config.v1.PublicSurface
+	(*MCPServerConfig)(nil),         // 48: sheaf.config.v1.MCPServerConfig
+	(*AuthConfig)(nil),              // 49: sheaf.config.v1.AuthConfig
+	(*OperationCache)(nil),          // 50: sheaf.config.v1.OperationCache
+	(*CacheStoreConfig)(nil),        // 51: sheaf.config.v1.CacheStoreConfig
+	(*FilesystemCacheConfig)(nil),   // 52: sheaf.config.v1.FilesystemCacheConfig
+	(*ReviewAdapterConfig)(nil),     // 53: sheaf.config.v1.ReviewAdapterConfig
+	(*GerritReviewConfig)(nil),      // 54: sheaf.config.v1.GerritReviewConfig
+	(*GitHubReviewConfig)(nil),      // 55: sheaf.config.v1.GitHubReviewConfig
+	(*LLMConfig)(nil),               // 56: sheaf.config.v1.LLMConfig
+	(*LocalLlamaConfig)(nil),        // 57: sheaf.config.v1.LocalLlamaConfig
+	(*OllamaEmbedConfig)(nil),       // 58: sheaf.config.v1.OllamaEmbedConfig
+	(*LLMCacheConfig)(nil),          // 59: sheaf.config.v1.LLMCacheConfig
+	(*AnnotationConfig)(nil),        // 60: sheaf.config.v1.AnnotationConfig
+	(*Approver)(nil),                // 61: sheaf.config.v1.Approver
+	(*VCSAdapterConfig)(nil),        // 62: sheaf.config.v1.VCSAdapterConfig
+	(*GitVCSConfig)(nil),            // 63: sheaf.config.v1.GitVCSConfig
+	(*Strictness)(nil),              // 64: sheaf.config.v1.Strictness
+	(*CodegenBridge)(nil),           // 65: sheaf.config.v1.CodegenBridge
+	(*MonorepoManifest)(nil),        // 66: sheaf.config.v1.MonorepoManifest
+	(*BuildGraph)(nil),              // 67: sheaf.config.v1.BuildGraph
+	(*PwFacade)(nil),                // 68: sheaf.config.v1.PwFacade
+	nil,                             // 69: sheaf.config.v1.ExternalAdapterConfig.OptionEntry
+	(*MonorepoManifest_Entry)(nil),  // 70: sheaf.config.v1.MonorepoManifest.Entry
 }
 var file_config_proto_depIdxs = []int32{
 	8,  // 0: sheaf.config.v1.Config.project:type_name -> sheaf.config.v1.Project
 	9,  // 1: sheaf.config.v1.Config.scope:type_name -> sheaf.config.v1.Scope
-	11, // 2: sheaf.config.v1.Config.contract_anchor:type_name -> sheaf.config.v1.ContractAnchorConfig
-	23, // 3: sheaf.config.v1.Config.rendered_reference:type_name -> sheaf.config.v1.RenderedReferenceConfig
-	30, // 4: sheaf.config.v1.Config.test_parser:type_name -> sheaf.config.v1.TestParserConfig
-	38, // 5: sheaf.config.v1.Config.doc_parser:type_name -> sheaf.config.v1.DocParserConfig
-	42, // 6: sheaf.config.v1.Config.implements_map:type_name -> sheaf.config.v1.ImplementsMapConfig
-	44, // 7: sheaf.config.v1.Config.analyzer:type_name -> sheaf.config.v1.AnalyzerConfig
-	45, // 8: sheaf.config.v1.Config.substance_thresholds:type_name -> sheaf.config.v1.SubstanceThresholds
-	46, // 9: sheaf.config.v1.Config.public_surface:type_name -> sheaf.config.v1.PublicSurface
-	47, // 10: sheaf.config.v1.Config.mcp_server:type_name -> sheaf.config.v1.MCPServerConfig
-	50, // 11: sheaf.config.v1.Config.cache:type_name -> sheaf.config.v1.CacheStoreConfig
-	52, // 12: sheaf.config.v1.Config.review:type_name -> sheaf.config.v1.ReviewAdapterConfig
-	55, // 13: sheaf.config.v1.Config.llm:type_name -> sheaf.config.v1.LLMConfig
-	59, // 14: sheaf.config.v1.Config.annotation:type_name -> sheaf.config.v1.AnnotationConfig
-	61, // 15: sheaf.config.v1.Config.vcs:type_name -> sheaf.config.v1.VCSAdapterConfig
-	63, // 16: sheaf.config.v1.Config.strictness:type_name -> sheaf.config.v1.Strictness
-	64, // 17: sheaf.config.v1.Config.codegen_bridges:type_name -> sheaf.config.v1.CodegenBridge
-	66, // 18: sheaf.config.v1.Config.build_graph:type_name -> sheaf.config.v1.BuildGraph
+	12, // 2: sheaf.config.v1.Config.contract_anchor:type_name -> sheaf.config.v1.ContractAnchorConfig
+	24, // 3: sheaf.config.v1.Config.rendered_reference:type_name -> sheaf.config.v1.RenderedReferenceConfig
+	31, // 4: sheaf.config.v1.Config.test_parser:type_name -> sheaf.config.v1.TestParserConfig
+	39, // 5: sheaf.config.v1.Config.doc_parser:type_name -> sheaf.config.v1.DocParserConfig
+	43, // 6: sheaf.config.v1.Config.implements_map:type_name -> sheaf.config.v1.ImplementsMapConfig
+	45, // 7: sheaf.config.v1.Config.analyzer:type_name -> sheaf.config.v1.AnalyzerConfig
+	46, // 8: sheaf.config.v1.Config.substance_thresholds:type_name -> sheaf.config.v1.SubstanceThresholds
+	47, // 9: sheaf.config.v1.Config.public_surface:type_name -> sheaf.config.v1.PublicSurface
+	48, // 10: sheaf.config.v1.Config.mcp_server:type_name -> sheaf.config.v1.MCPServerConfig
+	51, // 11: sheaf.config.v1.Config.cache:type_name -> sheaf.config.v1.CacheStoreConfig
+	53, // 12: sheaf.config.v1.Config.review:type_name -> sheaf.config.v1.ReviewAdapterConfig
+	56, // 13: sheaf.config.v1.Config.llm:type_name -> sheaf.config.v1.LLMConfig
+	60, // 14: sheaf.config.v1.Config.annotation:type_name -> sheaf.config.v1.AnnotationConfig
+	62, // 15: sheaf.config.v1.Config.vcs:type_name -> sheaf.config.v1.VCSAdapterConfig
+	64, // 16: sheaf.config.v1.Config.strictness:type_name -> sheaf.config.v1.Strictness
+	65, // 17: sheaf.config.v1.Config.codegen_bridges:type_name -> sheaf.config.v1.CodegenBridge
+	67, // 18: sheaf.config.v1.Config.build_graph:type_name -> sheaf.config.v1.BuildGraph
 	7,  // 19: sheaf.config.v1.Config.attribution:type_name -> sheaf.config.v1.AttributionConfig
 	10, // 20: sheaf.config.v1.Scope.closure:type_name -> sheaf.config.v1.Closure
 	2,  // 21: sheaf.config.v1.Closure.mode:type_name -> sheaf.config.v1.Closure.Mode
 	3,  // 22: sheaf.config.v1.Closure.external_policy:type_name -> sheaf.config.v1.Closure.ExternalPolicy
-	18, // 23: sheaf.config.v1.ContractAnchorConfig.fidl:type_name -> sheaf.config.v1.FIDLAnchorConfig
-	19, // 24: sheaf.config.v1.ContractAnchorConfig.argh:type_name -> sheaf.config.v1.ArghAnchorConfig
-	22, // 25: sheaf.config.v1.ContractAnchorConfig.cobra:type_name -> sheaf.config.v1.CobraAnchorConfig
-	21, // 26: sheaf.config.v1.ContractAnchorConfig.proto:type_name -> sheaf.config.v1.ProtoAnchorConfig
-	17, // 27: sheaf.config.v1.ContractAnchorConfig.cml:type_name -> sheaf.config.v1.CMLAnchorConfig
-	20, // 28: sheaf.config.v1.ContractAnchorConfig.clap:type_name -> sheaf.config.v1.ClapAnchorConfig
-	16, // 29: sheaf.config.v1.ContractAnchorConfig.cpp_header:type_name -> sheaf.config.v1.CppHeaderAnchorConfig
-	15, // 30: sheaf.config.v1.ContractAnchorConfig.crd:type_name -> sheaf.config.v1.CRDAnchorConfig
-	14, // 31: sheaf.config.v1.ContractAnchorConfig.k8s_manifest:type_name -> sheaf.config.v1.K8sManifestAnchorConfig
-	13, // 32: sheaf.config.v1.ContractAnchorConfig.helm_values:type_name -> sheaf.config.v1.HelmValuesAnchorConfig
-	12, // 33: sheaf.config.v1.ContractAnchorConfig.llmextract:type_name -> sheaf.config.v1.LLMExtractAnchorConfig
-	26, // 34: sheaf.config.v1.RenderedReferenceConfig.fidldoc:type_name -> sheaf.config.v1.FIDLDocConfig
-	27, // 35: sheaf.config.v1.RenderedReferenceConfig.clidoc:type_name -> sheaf.config.v1.CLIDocConfig
-	28, // 36: sheaf.config.v1.RenderedReferenceConfig.markdowncli:type_name -> sheaf.config.v1.MarkdownCLIConfig
-	25, // 37: sheaf.config.v1.RenderedReferenceConfig.workflows:type_name -> sheaf.config.v1.WorkflowsConfig
-	24, // 38: sheaf.config.v1.RenderedReferenceConfig.yaml_workflows:type_name -> sheaf.config.v1.YamlWorkflowsConfig
-	29, // 39: sheaf.config.v1.MarkdownCLIConfig.options_table:type_name -> sheaf.config.v1.OptionsTableConfig
-	4,  // 40: sheaf.config.v1.MarkdownCLIConfig.url_style:type_name -> sheaf.config.v1.MarkdownCLIConfig.URLStyle
-	31, // 41: sheaf.config.v1.TestParserConfig.gtest:type_name -> sheaf.config.v1.GTestConfig
-	32, // 42: sheaf.config.v1.TestParserConfig.rust_test:type_name -> sheaf.config.v1.RustTestConfig
-	33, // 43: sheaf.config.v1.TestParserConfig.bats:type_name -> sheaf.config.v1.BatsConfig
-	35, // 44: sheaf.config.v1.TestParserConfig.gotest:type_name -> sheaf.config.v1.GoTestConfig
-	34, // 45: sheaf.config.v1.TestParserConfig.protocpp:type_name -> sheaf.config.v1.ProtoCPPConfig
-	36, // 46: sheaf.config.v1.TestParserConfig.pytest:type_name -> sheaf.config.v1.PytestConfig
-	37, // 47: sheaf.config.v1.TestParserConfig.python_test:type_name -> sheaf.config.v1.PythonTestConfig
-	39, // 48: sheaf.config.v1.DocParserConfig.markdown:type_name -> sheaf.config.v1.MarkdownConfig
-	40, // 49: sheaf.config.v1.DocParserConfig.rst:type_name -> sheaf.config.v1.RstConfig
-	41, // 50: sheaf.config.v1.DocParserConfig.doxygen:type_name -> sheaf.config.v1.DoxygenConfig
-	0,  // 51: sheaf.config.v1.AnalyzerConfig.severity:type_name -> sheaf.config.v1.Severity
-	43, // 52: sheaf.config.v1.AnalyzerConfig.config:type_name -> sheaf.config.v1.AnalyzerKV
-	48, // 53: sheaf.config.v1.MCPServerConfig.auth:type_name -> sheaf.config.v1.AuthConfig
-	49, // 54: sheaf.config.v1.MCPServerConfig.operation_cache:type_name -> sheaf.config.v1.OperationCache
-	5,  // 55: sheaf.config.v1.AuthConfig.mode:type_name -> sheaf.config.v1.AuthConfig.Mode
-	51, // 56: sheaf.config.v1.CacheStoreConfig.filesystem:type_name -> sheaf.config.v1.FilesystemCacheConfig
-	53, // 57: sheaf.config.v1.ReviewAdapterConfig.gerrit:type_name -> sheaf.config.v1.GerritReviewConfig
-	54, // 58: sheaf.config.v1.ReviewAdapterConfig.github:type_name -> sheaf.config.v1.GitHubReviewConfig
-	56, // 59: sheaf.config.v1.LLMConfig.local_llama:type_name -> sheaf.config.v1.LocalLlamaConfig
-	57, // 60: sheaf.config.v1.LLMConfig.ollama_embeddings:type_name -> sheaf.config.v1.OllamaEmbedConfig
-	58, // 61: sheaf.config.v1.LLMConfig.cache:type_name -> sheaf.config.v1.LLMCacheConfig
-	60, // 62: sheaf.config.v1.AnnotationConfig.approvers:type_name -> sheaf.config.v1.Approver
-	62, // 63: sheaf.config.v1.VCSAdapterConfig.git:type_name -> sheaf.config.v1.GitVCSConfig
-	1,  // 64: sheaf.config.v1.Strictness.unmatched_globs:type_name -> sheaf.config.v1.StrictnessAction
-	1,  // 65: sheaf.config.v1.Strictness.missing_bundles:type_name -> sheaf.config.v1.StrictnessAction
-	1,  // 66: sheaf.config.v1.Strictness.empty_categories:type_name -> sheaf.config.v1.StrictnessAction
-	68, // 67: sheaf.config.v1.MonorepoManifest.entries:type_name -> sheaf.config.v1.MonorepoManifest.Entry
-	67, // 68: sheaf.config.v1.BuildGraph.pw_facade:type_name -> sheaf.config.v1.PwFacade
-	69, // [69:69] is the sub-list for method output_type
-	69, // [69:69] is the sub-list for method input_type
-	69, // [69:69] is the sub-list for extension type_name
-	69, // [69:69] is the sub-list for extension extendee
-	0,  // [0:69] is the sub-list for field type_name
+	69, // 23: sheaf.config.v1.ExternalAdapterConfig.option:type_name -> sheaf.config.v1.ExternalAdapterConfig.OptionEntry
+	19, // 24: sheaf.config.v1.ContractAnchorConfig.fidl:type_name -> sheaf.config.v1.FIDLAnchorConfig
+	20, // 25: sheaf.config.v1.ContractAnchorConfig.argh:type_name -> sheaf.config.v1.ArghAnchorConfig
+	23, // 26: sheaf.config.v1.ContractAnchorConfig.cobra:type_name -> sheaf.config.v1.CobraAnchorConfig
+	22, // 27: sheaf.config.v1.ContractAnchorConfig.proto:type_name -> sheaf.config.v1.ProtoAnchorConfig
+	18, // 28: sheaf.config.v1.ContractAnchorConfig.cml:type_name -> sheaf.config.v1.CMLAnchorConfig
+	21, // 29: sheaf.config.v1.ContractAnchorConfig.clap:type_name -> sheaf.config.v1.ClapAnchorConfig
+	17, // 30: sheaf.config.v1.ContractAnchorConfig.cpp_header:type_name -> sheaf.config.v1.CppHeaderAnchorConfig
+	16, // 31: sheaf.config.v1.ContractAnchorConfig.crd:type_name -> sheaf.config.v1.CRDAnchorConfig
+	15, // 32: sheaf.config.v1.ContractAnchorConfig.k8s_manifest:type_name -> sheaf.config.v1.K8sManifestAnchorConfig
+	14, // 33: sheaf.config.v1.ContractAnchorConfig.helm_values:type_name -> sheaf.config.v1.HelmValuesAnchorConfig
+	13, // 34: sheaf.config.v1.ContractAnchorConfig.llmextract:type_name -> sheaf.config.v1.LLMExtractAnchorConfig
+	11, // 35: sheaf.config.v1.ContractAnchorConfig.external:type_name -> sheaf.config.v1.ExternalAdapterConfig
+	27, // 36: sheaf.config.v1.RenderedReferenceConfig.fidldoc:type_name -> sheaf.config.v1.FIDLDocConfig
+	28, // 37: sheaf.config.v1.RenderedReferenceConfig.clidoc:type_name -> sheaf.config.v1.CLIDocConfig
+	29, // 38: sheaf.config.v1.RenderedReferenceConfig.markdowncli:type_name -> sheaf.config.v1.MarkdownCLIConfig
+	26, // 39: sheaf.config.v1.RenderedReferenceConfig.workflows:type_name -> sheaf.config.v1.WorkflowsConfig
+	25, // 40: sheaf.config.v1.RenderedReferenceConfig.yaml_workflows:type_name -> sheaf.config.v1.YamlWorkflowsConfig
+	11, // 41: sheaf.config.v1.RenderedReferenceConfig.external:type_name -> sheaf.config.v1.ExternalAdapterConfig
+	30, // 42: sheaf.config.v1.MarkdownCLIConfig.options_table:type_name -> sheaf.config.v1.OptionsTableConfig
+	4,  // 43: sheaf.config.v1.MarkdownCLIConfig.url_style:type_name -> sheaf.config.v1.MarkdownCLIConfig.URLStyle
+	32, // 44: sheaf.config.v1.TestParserConfig.gtest:type_name -> sheaf.config.v1.GTestConfig
+	33, // 45: sheaf.config.v1.TestParserConfig.rust_test:type_name -> sheaf.config.v1.RustTestConfig
+	34, // 46: sheaf.config.v1.TestParserConfig.bats:type_name -> sheaf.config.v1.BatsConfig
+	36, // 47: sheaf.config.v1.TestParserConfig.gotest:type_name -> sheaf.config.v1.GoTestConfig
+	35, // 48: sheaf.config.v1.TestParserConfig.protocpp:type_name -> sheaf.config.v1.ProtoCPPConfig
+	37, // 49: sheaf.config.v1.TestParserConfig.pytest:type_name -> sheaf.config.v1.PytestConfig
+	38, // 50: sheaf.config.v1.TestParserConfig.python_test:type_name -> sheaf.config.v1.PythonTestConfig
+	11, // 51: sheaf.config.v1.TestParserConfig.external:type_name -> sheaf.config.v1.ExternalAdapterConfig
+	40, // 52: sheaf.config.v1.DocParserConfig.markdown:type_name -> sheaf.config.v1.MarkdownConfig
+	41, // 53: sheaf.config.v1.DocParserConfig.rst:type_name -> sheaf.config.v1.RstConfig
+	42, // 54: sheaf.config.v1.DocParserConfig.doxygen:type_name -> sheaf.config.v1.DoxygenConfig
+	11, // 55: sheaf.config.v1.DocParserConfig.external:type_name -> sheaf.config.v1.ExternalAdapterConfig
+	11, // 56: sheaf.config.v1.ImplementsMapConfig.external:type_name -> sheaf.config.v1.ExternalAdapterConfig
+	0,  // 57: sheaf.config.v1.AnalyzerConfig.severity:type_name -> sheaf.config.v1.Severity
+	44, // 58: sheaf.config.v1.AnalyzerConfig.config:type_name -> sheaf.config.v1.AnalyzerKV
+	49, // 59: sheaf.config.v1.MCPServerConfig.auth:type_name -> sheaf.config.v1.AuthConfig
+	50, // 60: sheaf.config.v1.MCPServerConfig.operation_cache:type_name -> sheaf.config.v1.OperationCache
+	5,  // 61: sheaf.config.v1.AuthConfig.mode:type_name -> sheaf.config.v1.AuthConfig.Mode
+	52, // 62: sheaf.config.v1.CacheStoreConfig.filesystem:type_name -> sheaf.config.v1.FilesystemCacheConfig
+	54, // 63: sheaf.config.v1.ReviewAdapterConfig.gerrit:type_name -> sheaf.config.v1.GerritReviewConfig
+	55, // 64: sheaf.config.v1.ReviewAdapterConfig.github:type_name -> sheaf.config.v1.GitHubReviewConfig
+	57, // 65: sheaf.config.v1.LLMConfig.local_llama:type_name -> sheaf.config.v1.LocalLlamaConfig
+	58, // 66: sheaf.config.v1.LLMConfig.ollama_embeddings:type_name -> sheaf.config.v1.OllamaEmbedConfig
+	59, // 67: sheaf.config.v1.LLMConfig.cache:type_name -> sheaf.config.v1.LLMCacheConfig
+	61, // 68: sheaf.config.v1.AnnotationConfig.approvers:type_name -> sheaf.config.v1.Approver
+	63, // 69: sheaf.config.v1.VCSAdapterConfig.git:type_name -> sheaf.config.v1.GitVCSConfig
+	1,  // 70: sheaf.config.v1.Strictness.unmatched_globs:type_name -> sheaf.config.v1.StrictnessAction
+	1,  // 71: sheaf.config.v1.Strictness.missing_bundles:type_name -> sheaf.config.v1.StrictnessAction
+	1,  // 72: sheaf.config.v1.Strictness.empty_categories:type_name -> sheaf.config.v1.StrictnessAction
+	70, // 73: sheaf.config.v1.MonorepoManifest.entries:type_name -> sheaf.config.v1.MonorepoManifest.Entry
+	68, // 74: sheaf.config.v1.BuildGraph.pw_facade:type_name -> sheaf.config.v1.PwFacade
+	75, // [75:75] is the sub-list for method output_type
+	75, // [75:75] is the sub-list for method input_type
+	75, // [75:75] is the sub-list for extension type_name
+	75, // [75:75] is the sub-list for extension extendee
+	0,  // [0:75] is the sub-list for field type_name
 }
 
 func init() { file_config_proto_init() }
@@ -6127,7 +6347,7 @@ func file_config_proto_init() {
 	if File_config_proto != nil {
 		return
 	}
-	file_config_proto_msgTypes[5].OneofWrappers = []any{
+	file_config_proto_msgTypes[6].OneofWrappers = []any{
 		(*ContractAnchorConfig_Fidl)(nil),
 		(*ContractAnchorConfig_Argh)(nil),
 		(*ContractAnchorConfig_Cobra)(nil),
@@ -6139,15 +6359,17 @@ func file_config_proto_init() {
 		(*ContractAnchorConfig_K8SManifest)(nil),
 		(*ContractAnchorConfig_HelmValues)(nil),
 		(*ContractAnchorConfig_Llmextract)(nil),
+		(*ContractAnchorConfig_External)(nil),
 	}
-	file_config_proto_msgTypes[17].OneofWrappers = []any{
+	file_config_proto_msgTypes[18].OneofWrappers = []any{
 		(*RenderedReferenceConfig_Fidldoc)(nil),
 		(*RenderedReferenceConfig_Clidoc)(nil),
 		(*RenderedReferenceConfig_Markdowncli)(nil),
 		(*RenderedReferenceConfig_Workflows)(nil),
 		(*RenderedReferenceConfig_YamlWorkflows)(nil),
+		(*RenderedReferenceConfig_External)(nil),
 	}
-	file_config_proto_msgTypes[24].OneofWrappers = []any{
+	file_config_proto_msgTypes[25].OneofWrappers = []any{
 		(*TestParserConfig_Gtest)(nil),
 		(*TestParserConfig_RustTest)(nil),
 		(*TestParserConfig_Bats)(nil),
@@ -6155,29 +6377,31 @@ func file_config_proto_init() {
 		(*TestParserConfig_Protocpp)(nil),
 		(*TestParserConfig_Pytest)(nil),
 		(*TestParserConfig_PythonTest)(nil),
+		(*TestParserConfig_External)(nil),
 	}
-	file_config_proto_msgTypes[32].OneofWrappers = []any{
+	file_config_proto_msgTypes[33].OneofWrappers = []any{
 		(*DocParserConfig_Markdown)(nil),
 		(*DocParserConfig_Rst)(nil),
 		(*DocParserConfig_Doxygen)(nil),
+		(*DocParserConfig_External)(nil),
 	}
-	file_config_proto_msgTypes[37].OneofWrappers = []any{
+	file_config_proto_msgTypes[38].OneofWrappers = []any{
 		(*AnalyzerKV_StringValue)(nil),
 		(*AnalyzerKV_IntValue)(nil),
 		(*AnalyzerKV_BoolValue)(nil),
 	}
-	file_config_proto_msgTypes[44].OneofWrappers = []any{
+	file_config_proto_msgTypes[45].OneofWrappers = []any{
 		(*CacheStoreConfig_Filesystem)(nil),
 	}
-	file_config_proto_msgTypes[46].OneofWrappers = []any{
+	file_config_proto_msgTypes[47].OneofWrappers = []any{
 		(*ReviewAdapterConfig_Gerrit)(nil),
 		(*ReviewAdapterConfig_Github)(nil),
 	}
-	file_config_proto_msgTypes[49].OneofWrappers = []any{
+	file_config_proto_msgTypes[50].OneofWrappers = []any{
 		(*LLMConfig_LocalLlama)(nil),
 		(*LLMConfig_OllamaEmbeddings)(nil),
 	}
-	file_config_proto_msgTypes[55].OneofWrappers = []any{
+	file_config_proto_msgTypes[56].OneofWrappers = []any{
 		(*VCSAdapterConfig_Git)(nil),
 	}
 	type x struct{}
@@ -6186,7 +6410,7 @@ func file_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_config_proto_rawDesc), len(file_config_proto_rawDesc)),
 			NumEnums:      6,
-			NumMessages:   63,
+			NumMessages:   65,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

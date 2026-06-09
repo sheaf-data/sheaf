@@ -1,0 +1,102 @@
+// Adapter plugin protocol — the wire contract between sheaf and an
+// out-of-process ("runtime") adapter.
+//
+// An external adapter is any executable that speaks this protocol over
+// stdio. The host (sheaf) spawns the executable once per Discover call,
+// writes a single length-prefixed DiscoverRequest to the child's stdin,
+// reads a single length-prefixed DiscoverResponse from its stdout, and
+// the child exits. Framing is a 4-byte big-endian length followed by the
+// binary-marshaled message. See docs/adapter-protocol.md for the full
+// lifecycle, framing, and security model.
+//
+// The output rows ARE the existing corpus types (ContractElement /
+// TestCase / DocClaim), so an external adapter produces exactly what an
+// in-process adapter produces — the schema is the contract.
+
+syntax = "proto3";
+
+package sheaf.adapterplugin.v1;
+
+option go_package = "github.com/sheaf-data/sheaf/proto/adapterplugin";
+
+import "contract.proto";
+import "test_case.proto";
+import "doc_claim.proto";
+
+// Role identifies which adapter interface the host is invoking. An
+// external adapter may implement more than one role; the request names
+// the role for this call, and the response populates only the matching
+// output field(s).
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_CONTRACT_ANCHOR = 1;     // emits ContractElements (and optionally inline DocClaims)
+  ROLE_TEST_PARSER = 2;         // emits TestCases
+  ROLE_DOC_PARSER = 3;          // emits DocClaims
+  ROLE_RENDERED_REFERENCE = 4;  // emits DocClaims from a pre-rendered bundle
+  ROLE_IMPLEMENTS_MAP = 5;      // emits ContractElements (implementing classes)
+}
+
+// Scope mirrors internal/adapters.ScopeConfig on the wire: the subset of
+// project scope an adapter needs to limit its discovery.
+message Scope {
+  repeated string library = 1;        // primary libraries; empty means no filter
+  repeated string also_include = 2;
+  repeated string exclude = 3;
+}
+
+// AdapterConfig is the per-adapter configuration handed to the plugin.
+// include/exclude are first-class because nearly every adapter takes
+// file globs; everything else rides in the string-keyed `option` map
+// (e.g. {"binary_name": "docker"}). This is the host's
+// ExternalAdapterConfig projected onto the wire.
+message AdapterConfig {
+  repeated string include = 1;
+  repeated string exclude = 2;
+  map<string, string> option = 3;
+}
+
+// DiscoverRequest is the single message the host writes to the plugin's
+// stdin. Exactly one is sent per spawn.
+message DiscoverRequest {
+  // protocol_version is the version the host speaks. A plugin MUST reject
+  // a request whose version it does not implement (see ProtocolVersion in
+  // internal/adapterplugin).
+  uint32 protocol_version = 1;
+  Role role = 2;
+  // repo_path is the absolute path to the repository the plugin should
+  // scan. The plugin reads files directly from the local filesystem.
+  // Empty for ROLE_RENDERED_REFERENCE, which reads bundle paths from config.
+  string repo_path = 3;
+  Scope scope = 4;
+  AdapterConfig config = 5;
+}
+
+// DiscoverResponse is the single message the plugin writes to its stdout.
+// Exactly one is sent per spawn. The plugin populates the output field(s)
+// matching the request role; a contract anchor MAY populate both
+// `elements` and `doc_claims` (the DiscoverWithDocs entry point).
+message DiscoverResponse {
+  uint32 protocol_version = 1;
+  repeated sheaf.contract.v1.ContractElement elements = 2;
+  repeated sheaf.testcase.v1.TestCase tests = 3;
+  repeated sheaf.docclaim.v1.DocClaim doc_claims = 4;
+  // error, when non-empty, marks the Discover as failed. The host records
+  // it as a per-adapter error and continues the scan with other adapters
+  // (matching the in-process soft-fail contract). Rows are ignored when
+  // error is set.
+  string error = 5;
+  // warnings are non-fatal diagnostics surfaced to the host. Free-form.
+  repeated string warnings = 6;
+}
+
+// PluginInfo is emitted in response to the `--sheaf-adapter-info` probe:
+// the host spawns the executable with that single flag, reads one
+// length-prefixed PluginInfo from stdout, and the child exits 0. Used for
+// up-front protocol-version negotiation and `sheaf doctor` diagnostics
+// without running a scan.
+message PluginInfo {
+  uint32 protocol_version = 1;
+  string name = 2;
+  string version = 3;
+  repeated Role roles = 4;
+}
