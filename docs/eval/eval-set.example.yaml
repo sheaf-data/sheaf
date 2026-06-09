@@ -1,0 +1,72 @@
+# Eval set — grounded questions for the with-vs-without-sheaf eval.
+# See README.md for the protocol and rubric.
+#
+# One entry per question. Fields:
+#   id             stable id, e.g. "<repo>-001"
+#   repo           target repo name
+#   library        library/namespace the question is about ("" if n/a)
+#   category       flag | method | config | behavior  (for slicing results)
+#   question       what the agent is asked
+#   gold_answer    the correct answer (1-2 sentences)
+#   gold_citations sources a grounded answer should rest on (stable
+#                  anchors: file + flag/method/section, not line numbers)
+#   notes          optional grader hints
+#
+# The entries below are real, grounded questions about sheaf itself, with
+# gold answers filled in — a working starting point. Author 10-20 such
+# questions per target repo (8box 583DD21D).
+
+- id: sheaf-001
+  repo: sheaf
+  library: sheaf
+  category: flag
+  question: "How do you make `sheaf serve` speak MCP over stdio instead of binding HTTP?"
+  gold_answer: "Pass the --stdio flag: `sheaf serve --stdio`. It speaks newline-delimited JSON-RPC on stdin/stdout for desktop MCP clients."
+  gold_citations:
+    - "docs/cli/reference/sheaf_serve.md (--stdio)"
+    - "docs/mcp/api.md (#stdio)"
+  notes: "Grounding fails if it invents a transport flag other than --stdio."
+
+- id: sheaf-002
+  repo: sheaf
+  library: sheaf
+  category: config
+  question: "What config selects a runtime (out-of-process) adapter, and how is it named?"
+  gold_answer: "Use an adapter-role block (e.g. test_parser) with name: \"external\" plus an external { command: ... } block pointing at the plugin executable."
+  gold_citations:
+    - "docs/config.md (4.20 external)"
+    - "proto/config.proto (ExternalAdapterConfig)"
+  notes: "Wrong if it claims a compile-time-only adapter registry."
+
+- id: sheaf-003
+  repo: sheaf
+  library: sheaf
+  category: method
+  question: "What does the `library_snapshot` MCP tool return, and who consumes it?"
+  gold_answer: "All ContractElements, CoverageProfiles, and Findings for one library (the bulk read); consumed by the report generator / scanner binary."
+  gold_citations:
+    - "docs/mcp/api.md (#library_snapshot)"
+    - "internal/mcp/mcp.go (opLibrarySnapshot)"
+  notes: "Bonus if it notes this is the heavy call vs targeted query_contract."
+
+- id: sheaf-004
+  repo: sheaf
+  library: sheaf
+  category: behavior
+  question: "What is the default bind address and port for the sheaf MCP HTTP server?"
+  gold_answer: "127.0.0.1:7700 (configurable via mcp_server.bind / mcp_server.port)."
+  gold_citations:
+    - "docs/cli/reference/sheaf_serve.md (bind/port)"
+    - "internal/mcp/mcp.go (New default cfg)"
+  notes: "Wrong if it gives 0.0.0.0 or another port."
+
+- id: sheaf-005
+  repo: sheaf
+  library: sheaf
+  category: config
+  question: "Which test-parser adapter discovers Go test functions, and what does it key on?"
+  gold_answer: "The gotest adapter; it recognizes func TestXxx/BenchmarkXxx/FuzzXxx/ExampleXxx and t.Run subtests in *_test.go files."
+  gold_citations:
+    - "internal/adapters/gotest/gotest.go"
+    - "docs/config.md (GoTestConfig)"
+  notes: "Hallucination if it names a non-existent adapter."
