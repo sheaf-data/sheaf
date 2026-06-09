@@ -5,6 +5,8 @@
 # Sheaf
 
 [![ci](https://github.com/sheaf-data/sheaf/actions/workflows/ci.yml/badge.svg)](https://github.com/sheaf-data/sheaf/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sheaf-data/sheaf)](https://goreportcard.com/report/github.com/sheaf-data/sheaf)
+[![codecov](https://codecov.io/gh/sheaf-data/sheaf/branch/main/graph/badge.svg)](https://codecov.io/gh/sheaf-data/sheaf)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 **Your coding agent hallucinates APIs because your project is fragmented, not because the model isn't smart enough.** The docs, tests, and examples exist; they just don't point at the same things. Sheaf maps your real contract surface (every CLI command, API method, config knob) and shows, element by element, which ones a doc explains, a test verifies, and a working example demonstrates. The empty cells are where agents guess and humans open three tabs and a grep window.
