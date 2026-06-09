@@ -47,6 +47,8 @@ Wire it into Claude Desktop (`claude_desktop_config.json`) or any client that ta
 }
 ```
 
+Per-client setup — Claude Desktop, Cursor, Cline, Continue (config-file locations, how to apply, troubleshooting) — is in **[clients.md](clients.md)**.
+
 #### MCP envelope (`initialize` + `tools/call`)
 
 Spec-compliant MCP clients negotiate before calling tools, so over any transport the server also accepts the MCP envelope:
