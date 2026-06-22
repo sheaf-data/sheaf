@@ -17,7 +17,7 @@ jobs:
     name: checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -52,7 +52,7 @@ jobs:
         # Held at v6: golangci-lint-action v7+ requires golangci-lint v2 (a
         # different .golangci.yml schema). Migrating to v2 is a separate task;
         # until then this one bump is reverted from the grouped Dependabot PR.
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v1.64.8
           # Build golangci-lint from source with this job's Go toolchain.
@@ -83,7 +83,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -99,7 +99,7 @@ jobs:
         run: go test ./... -race -count=1 -coverprofile=coverage.out -covermode=atomic
 
       - name: upload coverage to codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           files: coverage.out
           flags: ${{ matrix.os }}
